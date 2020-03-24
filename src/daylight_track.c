@@ -13,7 +13,6 @@ gMonStatus  staDaylightTrackInit(void)
 {
     gmon_light_last_recording_tick = 0;
     staSetRequiredDaylenTicks(GMON_CFG_DEFAULT_REQUIRED_LIGHT_LENGTH_TICKS);
-    staUpdateLightChkInterval((unsigned int)GMON_CFG_NETCONN_START_INTERVAL_MS, (unsigned short)GMON_CFG_NUM_SENSOR_RECORDS_KEEP);
     gmon_light_actual_daylength_ticks = 0;
     gmon_light_prev_bulb_status = GMON_OUT_DEV_STATUS_OFF;
     return GMON_RESP_OK;
@@ -43,12 +42,18 @@ gMonStatus  staDaylightTrackRefreshSensorData(unsigned int *out)
 } // end of staDaylightTrackRefreshSensorData
 
 
-void  staSetRequiredDaylenTicks(unsigned int light_length)
+gMonStatus  staSetRequiredDaylenTicks(unsigned int light_length)
 {
-    stationSysEnterCritical();
-    gmon_light_requied_daylength_ticks = light_length;
-    stationSysExitCritical();
-}
+    gMonStatus  status = GMON_RESP_OK;
+    if(light_length <= GMON_MAX_REQUIRED_LIGHT_LENGTH_TICKS) {
+        stationSysEnterCritical();
+        gmon_light_requied_daylength_ticks = light_length;
+        stationSysExitCritical();
+    } else {
+        status = GMON_RESP_INVALID_REQ;
+    }
+    return status;
+} // end of staSetRequiredDaylenTicks
 
 void staUpdateLightChkInterval(unsigned int netconn_interval, unsigned short num_records_kept)
 {

@@ -5,18 +5,19 @@
 extern "C" {
 #endif
 
-gMonStatus  stationNetConnInit(void **netconn);
+gMonStatus  stationNetConnInit(void **connobj);
 
-gMonStatus  stationNetConnDeinit(void *netconn);
+gMonStatus  stationNetConnDeinit(void *connobj);
 
-gMonStatus  stationNetConnEstablish(void *netconn);
+gMonStatus  stationNetConnEstablish(void *connobj);
 
-gMonStatus  stationNetConnClose(void *netconn);
+gMonStatus  stationNetConnClose(void *connobj);
 
-gMonStatus  stationNetConnSend(void *netconn, gmonStr_t *app_msg);
+gMonStatus  stationNetConnSend(void *connobj, gmonStr_t *app_msg);
 
-gMonStatus  stationNetConnRecv(void *netconn, gmonStr_t *app_msg, int timeout_ms);
+gMonStatus  stationNetConnRecv(void *connobj, gmonStr_t *app_msg, int timeout_ms);
 
+gMonStatus  staSetNetConnTaskInterval(gardenMonitor_t  *gmon, unsigned int new_interval);
 
 void  stationNetConnHandlerTaskFn(void* params);
 

@@ -9,7 +9,7 @@ gMonStatus  staDaylightTrackInit(void);
 
 gMonStatus  staDaylightTrackRefreshSensorData(unsigned int *out);
 
-void  staSetRequiredDaylenTicks(unsigned int light_length);
+gMonStatus  staSetRequiredDaylenTicks(unsigned int light_length);
 
 unsigned int  staRefreshRequiredLightLength(gMonOutDevStatus bulb_status, unsigned int actual_light_ticks);
 

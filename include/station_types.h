@@ -18,7 +18,7 @@ typedef enum {
     GMON_RESP_TIMEOUT         = -7,  // network connection timeout, or read sensor timeout
     GMON_RESP_ERR_NOT_SUPPORT = -8,
     GMON_RESP_MALFORMED_DATA  = -9,
-    GMON_RESP_INVALID_REQ     = -10, // invalid request from the peer
+    GMON_RESP_INVALID_REQ     = -10, // invalid request from the remote user to configure system
     GMON_RESP_SENSOR_FAIL     = -11, // operation related to sensor (e.g. read) failed
     GMON_RESP_CTRL_FAIL       = -12, // control failure e.g. pump, fan, lamp doesn't work when
                                      // user need to change their state
@@ -92,8 +92,28 @@ typedef struct {
         unsigned int  default_ms;
         unsigned int  curr_ms;
     } sensor_read_interval;
-    void         *netconn;
-    unsigned int  netconn_interval_ms;
+    struct {
+        void         *handle_obj;
+        unsigned int  interval_ms;
+    } netconn;
+    struct {
+        struct {
+            struct {
+                gMonStatus  sensorread;
+                gMonStatus  netconn;
+            } interval;
+            struct {
+                gMonStatus  air_temp;
+                gMonStatus  soil_moist;
+                gMonStatus  lightness;
+                gMonStatus  daylength;
+            } threshold;
+        } status ;
+        struct {
+            unsigned int  ticks;
+            unsigned int  days ;
+        } last_update;
+    } user_ctrl;
 } gardenMonitor_t;
 
 #ifdef __cplusplus

@@ -12,7 +12,7 @@ static unsigned int gmon_bulb_max_worktime_default;
 gMonStatus  staOutdevInitGenericPump(gMonOutDev_t *dev)
 {
     if(dev == NULL) { return GMON_RESP_ERRARGS; }
-    dev->threshold     = GMON_CFG_OUTDEV_TRIG_THRESHOLD_PUMP;
+    staSetTrigThresholdPump(dev, (unsigned int)GMON_CFG_OUTDEV_TRIG_THRESHOLD_PUMP);
     dev->status        = GMON_OUT_DEV_STATUS_OFF;
     dev->max_worktime  = GMON_CFG_OUTDEV_MAX_WORKTIME_PUMP;
     dev->min_resttime  = GMON_CFG_OUTDEV_MIN_RESTTIME_PUMP;
@@ -27,7 +27,7 @@ gMonStatus  staOutdevDeinitGenericPump(void)
 gMonStatus  staOutdevInitGenericFan(gMonOutDev_t *dev)
 {
     if(dev == NULL) { return GMON_RESP_ERRARGS; }
-    dev->threshold    = GMON_CFG_OUTDEV_TRIG_THRESHOLD_FAN;
+    staSetTrigThresholdFan(dev, (unsigned int)GMON_CFG_OUTDEV_TRIG_THRESHOLD_FAN);
     dev->status       = GMON_OUT_DEV_STATUS_OFF;
     dev->max_worktime = GMON_CFG_OUTDEV_MAX_WORKTIME_FAN;
     dev->min_resttime = GMON_CFG_OUTDEV_MIN_RESTTIME_FAN;
@@ -42,12 +42,11 @@ gMonStatus  staOutdevDeinitGenericFan(void)
 gMonStatus  staOutdevInitGenericBulb(gMonOutDev_t *dev)
 {
     if(dev == NULL) { return GMON_RESP_ERRARGS; }
-    dev->threshold     = GMON_CFG_OUTDEV_TRIG_THRESHOLD_BULB;
+    staSetTrigThresholdBulb(dev, (unsigned int)GMON_CFG_OUTDEV_TRIG_THRESHOLD_BULB);
     dev->status        = GMON_OUT_DEV_STATUS_OFF;
     dev->max_worktime  = 0;
     dev->min_resttime  = GMON_CFG_OUTDEV_MIN_RESTTIME_BULB;
     // blub device is mapped to light sensor, which is read in about every 10 to 30 minutes
-    dev->sensor_read_interval = staGetLightChkInterval();
     gmon_bulb_max_worktime_default = GMON_CFG_OUTDEV_MAX_WORKTIME_BULB;
     return GMON_RESP_OK;
 } // end of staOutdevInitGenericBulb
@@ -57,6 +56,43 @@ gMonStatus  staOutdevDeinitGenericBulb(void)
     return GMON_RESP_OK;
 } // end of staOutdevDeinitGenericBulb
 
+
+static gMonStatus  staSetTrigThresholdGenericOutdev(gMonOutDev_t *dev, unsigned int new_val, unsigned int max_thre, unsigned int min_thre)
+{
+    gMonStatus status = GMON_RESP_OK;
+    if(dev != NULL) {
+        if(new_val >= min_thre && new_val <= max_thre) {
+            dev->threshold = new_val;
+        } else {
+            status = GMON_RESP_INVALID_REQ;
+        }
+    } else {
+        status = GMON_RESP_ERRARGS;
+    }
+    return status;
+} // end of staSetTrigThresholdGenericOutdev
+
+
+gMonStatus  staSetTrigThresholdPump(gMonOutDev_t *dev, unsigned int new_val)
+{
+    return  staSetTrigThresholdGenericOutdev(dev, new_val, 
+                (unsigned int)GMON_MAX_OUTDEV_TRIG_THRESHOLD_PUMP,
+                (unsigned int)GMON_MIN_OUTDEV_TRIG_THRESHOLD_PUMP);
+} // end of staSetTrigThresholdPump
+
+gMonStatus  staSetTrigThresholdFan(gMonOutDev_t *dev, unsigned int new_val)
+{
+    return  staSetTrigThresholdGenericOutdev(dev, new_val,
+                (unsigned int)GMON_MAX_OUTDEV_TRIG_THRESHOLD_FAN,
+                (unsigned int)GMON_MIN_OUTDEV_TRIG_THRESHOLD_FAN);
+} // end of staSetTrigThresholdFan
+ 
+gMonStatus  staSetTrigThresholdBulb(gMonOutDev_t *dev, unsigned int new_val)
+{
+    return  staSetTrigThresholdGenericOutdev(dev, new_val,
+                (unsigned int)GMON_MAX_OUTDEV_TRIG_THRESHOLD_BULB,
+                (unsigned int)GMON_MIN_OUTDEV_TRIG_THRESHOLD_BULB);
+} // end of staSetTrigThresholdBulb
 
 
 static void  staRefreshBulbMaxWorktime(gMonOutDev_t *dev)
@@ -121,6 +157,7 @@ void  stationOutDevCtrlTaskFn(void* params)
                 status = GMON_OUTDEV_TRIG_FN_PUMP(&gmon->outdev.pump, new_record->soil_moist);
             }
             if(new_record->flgs.avail_air_temp) {
+                gmon->outdev.fan.sensor_read_interval = staGetTicksSinceLastAirCondRecording();
                 status = GMON_OUTDEV_TRIG_FN_FAN(&gmon->outdev.fan  , new_record->air_temp);
             }
             if(new_record->flgs.avail_lightness) {
@@ -131,8 +168,6 @@ void  stationOutDevCtrlTaskFn(void* params)
             staFreeSensorRecord(new_record);
             new_record = NULL;
         }
-        // TODO: poll another message queue from network component, remote backend server may
-        //       send modification request (from user) about threshold of each sensor value.
     } // end of for loop
 } // end of stationOutDevCtrlTaskFn
 

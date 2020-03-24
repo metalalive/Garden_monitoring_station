@@ -6,7 +6,6 @@ static unsigned int  gmon_aircond_chk_interval_tick;
 
 gMonStatus  staAirCondTrackInit(void)
 {
-    staUpdateAirCondChkInterval((unsigned int)GMON_CFG_NETCONN_START_INTERVAL_MS , (unsigned short)GMON_CFG_NUM_SENSOR_RECORDS_KEEP);
     return GMON_RESP_OK;
 } // end of staAirCondTrackInit
 
@@ -47,4 +46,9 @@ unsigned int staGetAirCondChkInterval(void)
 {
     return gmon_aircond_chk_interval_tick;
 } // end of staGetAirCondChkInterval
+
+unsigned int  staGetTicksSinceLastAirCondRecording(void)
+{
+    return gmon_aircond_ticks_since_last_recording;
+}
 

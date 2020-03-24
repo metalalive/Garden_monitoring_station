@@ -11,7 +11,13 @@ gMonStatus  staAppMsgDeinit(void);
 
 gMonStatus  staAddRecordToAppMsg(gmonSensorRecord_t  *new_record);
 
-const gmonStr_t* staGetAppMsgOutflight(void);
+gmonStr_t*  staGetAppMsgOutflight(void);
+
+gmonStr_t*  staGetAppMsgInflight(void);
+
+gMonStatus  staRefreshAppMsgOutflight(void);
+
+gMonStatus  staDecodeAppMsgInflight(gardenMonitor_t *gmon);
 
 //// gMonStatus  staRefreshParamFromAppMsg(void);
 

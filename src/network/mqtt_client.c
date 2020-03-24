@@ -27,33 +27,33 @@ static gMonStatus  mqttRespToGMonResp(mqttRespStatus status_in)
 } // end of mqttRespToGMonResp
 
 
-gMonStatus  stationNetConnInit(void **netconn)
+gMonStatus  stationNetConnInit(void **connobj)
 {
     const int cmd_timeout_ms = 6000;
     mqttCtx_t     *mctx = NULL;
     gMonStatus     status   = GMON_RESP_OK;
     mqttRespStatus mqtt_status = MQTT_RESP_OK;
-    if(netconn == NULL) {
+    if(connobj == NULL) {
         status = GMON_RESP_ERRARGS;
     } else {
         mqtt_status = mqttClientInit(&mctx, cmd_timeout_ms);
         status = mqttRespToGMonResp(mqtt_status);
         if(mqtt_status == MQTT_RESP_OK) {
-            *(mqttCtx_t **)netconn = mctx;
+            *(mqttCtx_t **)connobj = mctx;
         }
     }
     return status;
 } // end of stationNetConnInit
 
 
-gMonStatus  stationNetConnDeinit(void *netconn)
+gMonStatus  stationNetConnDeinit(void *connobj)
 {
     mqttCtx_t   *mctx = NULL;
     gMonStatus   status   = GMON_RESP_OK;
-    if(netconn == NULL) {
+    if(connobj == NULL) {
         status = GMON_RESP_ERRARGS;
     } else {
-        mctx = (mqttCtx_t *)netconn;
+        mctx = (mqttCtx_t *)connobj;
         if(mctx->drbg != NULL) {
             mqttDRBGdeinit(mctx->drbg);
             mctx->drbg = NULL;
@@ -64,13 +64,13 @@ gMonStatus  stationNetConnDeinit(void *netconn)
 } // end of stationNetConnDeinit
 
 
-gMonStatus  stationNetConnEstablish(void *netconn)
+gMonStatus  stationNetConnEstablish(void *connobj)
 {
-    if(netconn == NULL) { return GMON_RESP_ERRARGS; }
+    if(connobj == NULL) { return GMON_RESP_ERRARGS; }
     mqttRespStatus  status = MQTT_RESP_OK;
     mqttCtx_t    *mctx = NULL;
 
-    mctx = (mqttCtx_t *)netconn;
+    mctx = (mqttCtx_t *)connobj;
     if(mctx->drbg == NULL) {
         status = mqttDRBGinit(&mctx->drbg);
         if(status != MQTT_RESP_OK) { goto done; }
@@ -83,41 +83,54 @@ done:
 } // end of stationNetConnEstablish
 
 
-gMonStatus  stationNetConnClose(void *netconn)
+gMonStatus  stationNetConnClose(void *connobj)
 {
-    if(netconn == NULL) { return GMON_RESP_ERRARGS; }
+    if(connobj == NULL) { return GMON_RESP_ERRARGS; }
     mqttRespStatus  status = MQTT_RESP_OK;
     mqttCtx_t    *mctx = NULL;
 
-    mctx = (mqttCtx_t *)netconn;
+    mctx = (mqttCtx_t *)connobj;
     //// status = mqttSendDisconnect( mctx );
     //// status =  mqttNetconnStop( mctx );
     return mqttRespToGMonResp(status);
 } // end of stationNetConnClose
 
 
-gMonStatus  stationNetConnSend(void *netconn, gmonStr_t *app_msg)
+gMonStatus  stationNetConnSend(void *connobj, gmonStr_t *app_msg)
 {
-    if(netconn == NULL || app_msg == NULL || app_msg->data == NULL) {
+    if(connobj == NULL || app_msg == NULL || app_msg->data == NULL) {
         return GMON_RESP_ERRARGS;
     }
     mqttRespStatus  status = MQTT_RESP_OK;
     mqttCtx_t    *mctx = NULL;
 
-    mctx = (mqttCtx_t *)netconn;
+    mctx = (mqttCtx_t *)connobj;
     return mqttRespToGMonResp(status);
 } // end of stationNetConnSend
 
 
-gMonStatus  stationNetConnRecv(void *netconn, gmonStr_t *app_msg, int timeout_ms)
+
+static const char* gmon_test_recv_user_msg = "\
+{\
+\"interval\":{\"sensorread\":3450,\"netconn\":67890},\
+\"threshold\":{\"soilmoist\":1234,\"airtemp\":101,\"light\":4321,\"daylength\":36005000}\
+}";
+
+
+gMonStatus  stationNetConnRecv(void *connobj, gmonStr_t *app_msg, int timeout_ms)
 {
-    if(netconn == NULL || app_msg == NULL || app_msg->data == NULL) {
+    if(connobj == NULL || app_msg == NULL || app_msg->data == NULL) {
         return GMON_RESP_ERRARGS;
     }
     mqttRespStatus  status = MQTT_RESP_OK;
     mqttCtx_t    *mctx = NULL;
 
-    mctx = (mqttCtx_t *)netconn;
+    // TODO: only for testing purpose
+    short len = XSTRLEN(gmon_test_recv_user_msg);
+    XASSERT(len <= app_msg->len);
+    XMEMCPY(app_msg->data, gmon_test_recv_user_msg, len);
+
+    mctx = (mqttCtx_t *)connobj;
     return mqttRespToGMonResp(status);
 } // end of stationNetConnRecv
 

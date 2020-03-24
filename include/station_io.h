@@ -47,6 +47,10 @@ gMonStatus  staOutdevDeinitGenericBulb(void);
 
 gMonOutDevStatus  staOutDevMeasureWorkingTime(gMonOutDev_t *dev);
 
+gMonStatus  staSetDefaultSensorReadInterval(gardenMonitor_t *gmon, unsigned int new_interval);
+gMonStatus  staSetTrigThresholdPump(gMonOutDev_t *dev, unsigned int new_val);
+gMonStatus  staSetTrigThresholdFan(gMonOutDev_t *dev, unsigned int new_val);
+gMonStatus  staSetTrigThresholdBulb(gMonOutDev_t *dev, unsigned int new_val);
 
 
 void  stationSensorReaderTaskFn(void* params);

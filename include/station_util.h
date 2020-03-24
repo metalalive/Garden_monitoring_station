@@ -20,6 +20,9 @@ void  staReverseString(unsigned char *str, unsigned int sz);
 
 unsigned int staCvtFloatToStr(unsigned char *outstr, float num, unsigned short precision);
 
+gMonStatus   staChkIntFromStr(unsigned char *str, size_t sz);
+
+int          staCvtIntFromStr(unsigned char *str, size_t sz);
 
 #ifdef __cplusplus
 }

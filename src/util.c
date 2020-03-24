@@ -56,13 +56,13 @@ unsigned int staCvtFloatToStr(unsigned char *outstr, float num, unsigned short p
         num = num * -1;
     }
     curr_out_p = outstr;
-    // firstly, process integral parts
+    // firstly, process the integral part
     tmp = (unsigned int) num;
     while(tmp > 0) {
         *curr_out_p++ = GMON_NUMTOCHAR(tmp % 10);
         tmp /= 10;
     }
-    tmp = (unsigned int)(curr_out_p - outstr); // number of chars written
+    tmp = (unsigned int)(curr_out_p - outstr); // number of chars written to the integral part
     if(tmp == 0) {
         tmp = 1;
         *curr_out_p++ = GMON_NUMTOCHAR(0);
@@ -70,7 +70,7 @@ unsigned int staCvtFloatToStr(unsigned char *outstr, float num, unsigned short p
         staReverseString(outstr, tmp);
     }
     num_chr += tmp;
-    // secondly, check if any fraction parts to be processed.
+    // secondly, check if any digit in the fraction part to be processed.
     tmp = (unsigned int) num;
     num = num - (float)tmp;
     if(num > 0.f && precision > 0) {
@@ -87,4 +87,54 @@ unsigned int staCvtFloatToStr(unsigned char *outstr, float num, unsigned short p
     return num_chr;
 } // end of staCvtFloatToStr
 
+
+gMonStatus   staChkIntFromStr(unsigned char *str, size_t sz)
+{
+    const uint8_t  base = 10;
+    uint8_t  diff = 0;
+    size_t   idx = 0;
+    gMonStatus status = GMON_RESP_OK;
+    if(str == NULL || sz == 0) {
+        return status;
+    }
+    if(str[0] == '-') {
+        str++;  sz--;
+    }
+    for(idx = 0; idx < sz; idx++) {
+        diff = str[idx] - '0';
+        if(diff >= base) {
+            status = GMON_RESP_MALFORMED_DATA;
+            break;
+        }
+    } // end of for loop
+    return status;
+} // end of staChkIntFromStr
+
+
+int   staCvtIntFromStr(unsigned char *str, size_t sz)
+{
+    const uint8_t  base = 10;
+    int      out = 0;
+    size_t   idx = 0;
+    uint8_t  diff = 0;
+    uint8_t  negate = 1;
+    if(str == NULL || sz == 0) {
+        return out;
+    }
+    if(str[0] == '-') {
+        str++;  sz--;
+        negate = -1;
+    }
+    for(idx = 0; idx < sz; idx++) {
+        diff = str[idx] - '0';
+        if(diff >= base) {
+            out = -1;
+            break;
+        } else {
+            out = out * base + diff;
+        }
+    } // end of for loop
+    out = out * negate;
+    return out;
+} // end of staCvtIntFromStr
 

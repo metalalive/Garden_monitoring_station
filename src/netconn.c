@@ -1,6 +1,5 @@
 #include "station_include.h"
 
-extern stationSysMsgbox_t  sensor_to_netconn_buf;
 // encoding / decoding message sent from the peer / received from the peer,
 // JSON data structure is applied to this project as application-level data
 // message transmitting among connections.
@@ -16,55 +15,70 @@ extern stationSysMsgbox_t  sensor_to_netconn_buf;
 // collecting parameters of environment around the garden, then:
 // * encode the message with these parameters to JSON-based string.
 // * send encoded message out (any network protocol implemented in src/network)
-static gMonStatus staEncodeOutflightAppMsg(const gmonStr_t **msg_out)
+
+gMonStatus  staSetNetConnTaskInterval(gardenMonitor_t  *gmon, unsigned int new_interval)
 {
-    const uint32_t  block_time = 0;
-    gmonSensorRecord_t  *new_record = NULL;
-    gMonStatus status = GMON_RESP_OK;
-    uint8_t  num_records_read = 0;
-    do {
-        status = staSysMsgBoxGet(sensor_to_netconn_buf, (void **)&new_record, block_time);
-        if(new_record != NULL) {
-            // contruct JSON-data with sensor records, append to application bytes
-            staAddRecordToAppMsg(new_record);
-            staFreeSensorRecord(new_record);
-            new_record = NULL;
-            num_records_read++;
+    gMonStatus  status = GMON_RESP_OK;
+    if(gmon != NULL) {
+        if(new_interval >= GMON_MIN_NETCONN_START_INTERVAL_MS && new_interval <= GMON_MAX_NETCONN_START_INTERVAL_MS) {
+            gmon->netconn.interval_ms = new_interval;
+            staUpdateAirCondChkInterval(new_interval, (unsigned short)GMON_CFG_NUM_SENSOR_RECORDS_KEEP);
+            staUpdateLightChkInterval(new_interval, (unsigned short)GMON_CFG_NUM_SENSOR_RECORDS_KEEP);
+        } else {
+            status = GMON_RESP_INVALID_REQ;
         }
-    } while (status == GMON_RESP_OK);
-    if(num_records_read == 0) {
-        status = GMON_RESP_SKIP;
     } else {
-        *msg_out = staGetAppMsgOutflight();
-        status = GMON_RESP_OK;
+        status = GMON_RESP_ERRARGS;
     }
     return status;
-} // end of staEncodeOutflightAppMsg
+} // end of staSetNetConnTaskInterval
 
 
 void  stationNetConnHandlerTaskFn(void* params)
-{ 
-    const gmonStr_t  *app_msg_send = NULL;
-    const gmonStr_t  *app_msg_recv = NULL;
+{
+    const int   read_timeout_ms = 6000;
+    gmonStr_t  *app_msg_send = NULL;
+    gmonStr_t  *app_msg_recv = NULL;
     gardenMonitor_t    *gmon = NULL;
-    gMonStatus status = GMON_RESP_OK;
+    gMonStatus  status = GMON_RESP_OK;
+    uint8_t     num_reconn = 0;
+    uint8_t     num_read_user_msg = 0;
 
     gmon = (gardenMonitor_t *)params;
-    gmon->netconn_interval_ms = GMON_CFG_NETCONN_START_INTERVAL_MS;
+    //// staSetNetConnTaskInterval(gmon, (unsigned int)GMON_CFG_NETCONN_START_INTERVAL_MS);
+    app_msg_recv = staGetAppMsgInflight();
+    app_msg_send = staGetAppMsgOutflight();
+
     while(1) {
-        stationSysDelayMs(gmon->netconn_interval_ms);
-        status = staEncodeOutflightAppMsg(&app_msg_send);
+        stationSysDelayMs(gmon->netconn.interval_ms);
+        status = staRefreshAppMsgOutflight();
         if(status == GMON_RESP_SKIP) { continue; }
         // TODO: pause irrigation if pump hasn't been turned off.
-        // TODO: start network connection to MQTT broker
-        status = stationNetConnEstablish(gmon->netconn);
-        if(status != GMON_RESP_OK) { continue; }
-        // TODO: publish encoded JSON data
-        // TODO: check any update from user including : threshold of each output device trigger,
-        //       time interval of the working tasks, it must be JSON-based
-        status = stationNetConnClose(gmon->netconn);
-        // TODO: return connection status to display device ?
+        // start network connection to MQTT broker
+        num_reconn = 3;
+        while (num_reconn > 0) {
+            status = stationNetConnEstablish(gmon->netconn.handle_obj);
+            if(status == GMON_RESP_OK) {
+                // publish encoded JSON data
+                status  = stationNetConnSend(gmon->netconn.handle_obj, app_msg_send);
+            }
+            if(status == GMON_RESP_OK) {
+                num_read_user_msg = 2;
+                // check any update from user including : threshold of each output device trigger,
+                // time interval of the working tasks, it must be JSON-based
+                while(num_read_user_msg > 0) {
+                    status  = stationNetConnRecv(gmon->netconn.handle_obj, app_msg_recv, read_timeout_ms);
+                    num_read_user_msg = (status == GMON_RESP_OK)? 0: (num_read_user_msg - 1);
+                } //  end of while loop num_read_user_msg
+            }
+            stationNetConnClose(gmon->netconn.handle_obj);
+            num_reconn = (status == GMON_RESP_OK)? 0: (num_reconn - 1);
+        } // end of while loop num_reconn
         // TODO: decode received JSON data (as user update)
+        if(status == GMON_RESP_OK) {
+            status = staDecodeAppMsgInflight(gmon);
+        }
+        // TODO: return connection status to display device, with status
         // TODO: resume irrigation if necessary (may recheck the updated threshold of soil moisture)
     } // end of loop
 } // end of stationNetConnHandlerTaskFn

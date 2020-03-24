@@ -7,13 +7,15 @@ static gMonStatus stationInit(gardenMonitor_t **gmon)
     if(gmon == NULL) { return GMON_RESP_ERRARGS; }
     gMonStatus status = GMON_RESP_OK;
     *gmon = XCALLOC(sizeof(gardenMonitor_t), 0x1);
+    status = staSetNetConnTaskInterval(*gmon, (unsigned int)GMON_CFG_NETCONN_START_INTERVAL_MS);
+    if(status < 0) { goto done; }
     status = staAppMsgInit();
     if(status < 0) { goto done; }
     status = staDaylightTrackInit();
     if(status < 0) { goto done; }
     status = staAirCondTrackInit();
     if(status < 0) { goto done; }
-    status = stationNetConnInit(&(*gmon)->netconn);
+    status = stationNetConnInit(&(*gmon)->netconn.handle_obj);
     if(status < 0) { goto done; }
     status = stationSysInit();// TODO: 
     if(status < 0) { goto done; }
@@ -28,10 +30,10 @@ static gMonStatus stationDeinit(gardenMonitor_t *gmon)
     if(gmon == NULL) { return GMON_RESP_ERRARGS; }
     gMonStatus status = GMON_RESP_OK;
     status = stationIOdeinit();
-    status = stationNetConnDeinit(gmon->netconn);
+    status = stationNetConnDeinit(gmon->netconn.handle_obj);
     status = stationPlatformDeinit();
     status = staAppMsgDeinit();
-    gmon->netconn = NULL;
+    gmon->netconn.handle_obj = NULL;
     XMEMFREE(gmon);
     return status;
 } // end of stationDeinit

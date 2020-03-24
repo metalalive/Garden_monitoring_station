@@ -55,7 +55,9 @@ C_INCLUDES += \
 -Ithird_party/MQTT_Client/third_party/ESP8266_AT_parser/Drivers/STM32F4xx_HAL_Driver/Inc/Legacy \
 -Ithird_party/MQTT_Client/third_party/ESP8266_AT_parser/Drivers/CMSIS/Device/ST/STM32F4xx/Include \
 -Ithird_party/MQTT_Client/third_party/ESP8266_AT_parser/Drivers/CMSIS/Include \
--Ithird_party/MQTT_Client/include/system/platform/arm/armv7m/stm
+-Ithird_party/MQTT_Client/include/system/platform/arm/armv7m/stm \
+-Ithird_party/jsmn
+
 
 # C defines
 C_DEFS += -DUSE_HAL_DRIVER  -DSTM32F446xx  -DHAL_ADC_MODULE_ENABLED
@@ -186,7 +188,7 @@ clean:
 
 # optional function for those who use code navigation tools e.g. ctags
 update_navigator:
-	@rm -rf ./tags; ctags -R ./include ./src  ./third_party/MQTT_Client/third_party/ESP8266_AT_parser
+	@rm -rf ./tags; ctags -R ./include ./src  ./third_party/MQTT_Client/third_party/ESP8266_AT_parser  ./third_party/jsmn
 
 dbg_server:
 	@$(DBG_SERVER_CMD)

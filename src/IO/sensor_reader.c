@@ -146,16 +146,32 @@ static void staAdjustSensorReadInterval(gardenMonitor_t *gmon)
     if(new_refresh_time != gmon->sensor_read_interval.curr_ms) {
         gmon->sensor_read_interval.curr_ms     = new_refresh_time;
         gmon->outdev.pump.sensor_read_interval = new_refresh_time;
-        gmon->outdev.fan.sensor_read_interval  = new_refresh_time;
     }
 } // end of staAdjustSensorReadInterval
+
+
+gMonStatus  staSetDefaultSensorReadInterval(gardenMonitor_t *gmon, unsigned int new_interval)
+{
+    gMonStatus status = GMON_RESP_OK;
+    if(gmon != NULL) {
+        if(new_interval >= GMON_MIN_SENSOR_READ_INTERVAL_MS && new_interval <= GMON_MAX_SENSOR_READ_INTERVAL_MS) {
+            gmon->sensor_read_interval.default_ms = new_interval;
+        } else {
+            status = GMON_RESP_INVALID_REQ;
+        }
+    } else {
+        status = GMON_RESP_ERRARGS;
+    }
+    return status;
+} // end of staSetDefaultSensorReadInterval
 
 
 gMonStatus  stationIOinit(gardenMonitor_t *gmon)
 {
     gMonStatus status = GMON_RESP_OK;
     if(gmon == NULL) { status = GMON_RESP_ERRARGS; goto done;}
-    gmon->sensor_read_interval.default_ms = GMON_CFG_SENSOR_READ_INTERVAL_MS;
+    status = staSetDefaultSensorReadInterval(gmon, (unsigned int)GMON_CFG_SENSOR_READ_INTERVAL_MS);
+    if(status < 0) { goto done; }
     status = GMON_SENSOR_INIT_FN_SOIL_MOIST();
     if(status < 0) { goto done; }
     status = GMON_SENSOR_INIT_FN_LIGHT();

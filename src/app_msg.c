@@ -1,6 +1,7 @@
 #include "station_include.h"
+#include "jsmn.h"
 
-// topic : garden/log/userID
+// topic : garden/log
 // message :
 // {
 //     "records": [
@@ -12,7 +13,7 @@
 // }
 // 
 // 
-// topic : garden/control/userID
+// topic : garden/control
 // message :
 // {
 //    "interval":  {"sensorread": 1200000, "netconn":3600000 },
@@ -63,6 +64,8 @@ typedef struct {
     unsigned  char  *val_pos[GMON_APPMSG_NUM_RECORDS];
 } gmonMsgItem_t;
 
+extern stationSysMsgbox_t  sensor_to_netconn_buf;
+
 static gmonStr_t  gmon_appmsg_outflight;
 static gmonStr_t  gmon_appmsg_inflight;
 static short      gmon_appmsg_outflight_num_avail_records;
@@ -82,6 +85,10 @@ static gmonMsgItem_t gmon_appmsg_ctrl_threshold[GMON_APPMSG_NUM_ITEMS_PER_THRESH
     {(const char *)&(GMON_APPMSG_DATA_NAME_LIGHT    ),(unsigned short)GMON_APPMSG_DATA_SZ_LIGHT    , },
     {(const char *)&(GMON_APPMSG_DATA_NAME_DAYLENGTH),(unsigned short)GMON_APPMSG_DATA_SZ_DAYLENGTH, },
 }; // gmon_appmsg_ctrl_threshold
+
+#define  GMON_NUM_JSON_TOKEN_DECODE  18
+jsmntok_t    gmon_json_decode_token[GMON_NUM_JSON_TOKEN_DECODE];
+jsmn_parser  gmon_json_decoder;
 
 
 static void staAppMsgCalcRequiredBufSz(unsigned short *outlen, unsigned short *inlen)
@@ -206,11 +213,118 @@ gMonStatus  staAddRecordToAppMsg(gmonSensorRecord_t  *new_record)
 } // end of staAddRecordToAppMsg
 
 
-const gmonStr_t* staGetAppMsgOutflight(void)
+gMonStatus staRefreshAppMsgOutflight(void)
 {
-    // TODO: fill zero to all other items of available recrods
+    const uint32_t  block_time = 0;
+    gmonSensorRecord_t  *new_record = NULL;
+    gMonStatus status = GMON_RESP_OK;
+    uint8_t  num_records_read = 0;
+    do {
+        status = staSysMsgBoxGet(sensor_to_netconn_buf, (void **)&new_record, block_time);
+        if(new_record != NULL) {
+            // contruct JSON-data with sensor records, append to application bytes
+            staAddRecordToAppMsg(new_record);
+            staFreeSensorRecord(new_record);
+            new_record = NULL;
+            num_records_read++;
+        }
+    } while (status == GMON_RESP_OK);
+    // TODO: fill zero to all other items that are not updated with new value
     staAppMsgOutResetAllRecords();
-    return (const gmonStr_t *)&gmon_appmsg_outflight;
+    status = (num_records_read == 0)? GMON_RESP_SKIP: GMON_RESP_OK;
+    return status;
+} // end of staRefreshAppMsgOutflight
+
+
+static  gMonStatus  staDecodeMsgCvtStrToInt(jsmntok_t *tokn, int *out)
+{
+    unsigned char  *user_var_name = NULL;
+    int    user_var_len  = 0;
+    gMonStatus status = GMON_RESP_OK;
+    user_var_len  =  tokn->end - tokn->start;
+    user_var_name = &gmon_appmsg_inflight.data[tokn->start];
+    status = staChkIntFromStr(user_var_name, user_var_len);
+    if(status == GMON_RESP_OK) {
+        *out = staCvtIntFromStr(user_var_name, user_var_len);
+    }
+    return status;
+} // end of staDecodeMsgCvtStrToInt
+
+
+// decode JSON-based message sent by remote backend server, the message may contain modification request
+// e.g. threshold to trigger each output device, time interval to send logs to remote backend service ...
+// the function below checks each node of the JSON message, update everything specified by remote user after
+// successful decoding process.
+gMonStatus  staDecodeAppMsgInflight(gardenMonitor_t *gmon)
+{
+    unsigned char  *user_var_name = NULL;
+    int    user_var_len  = 0;
+    int    parsed_int   = 0;
+    short  r  = 0;
+    short  idx = 0;
+    gMonStatus status = GMON_RESP_OK;
+
+    jsmn_init(&gmon_json_decoder);
+    r = (short) jsmn_parse(&gmon_json_decoder, gmon_appmsg_inflight.data,  gmon_appmsg_inflight.len,
+                   &gmon_json_decode_token[0], GMON_NUM_JSON_TOKEN_DECODE);
+    if(r > 0) {
+        for(idx = 0; (idx < r) && (status == GMON_RESP_OK); idx++) {
+            if(gmon_json_decode_token[idx].type == JSMN_STRING) {
+                user_var_len  =  gmon_json_decode_token[idx].end - gmon_json_decode_token[idx].start;
+                user_var_name = &gmon_appmsg_inflight.data[gmon_json_decode_token[idx].start];
+                if(XSTRNCMP(GMON_APPMSG_DATA_NAME_SENSORREAD, user_var_name, user_var_len) == 0) {
+                    status = staDecodeMsgCvtStrToInt(&gmon_json_decode_token[idx + 1], &parsed_int);
+                    if(status == GMON_RESP_OK) {
+                        gmon->user_ctrl.status.interval.sensorread  = staSetDefaultSensorReadInterval(gmon, (unsigned int)parsed_int);
+                    }
+                } else if(XSTRNCMP(GMON_APPMSG_DATA_NAME_NETCONN  , user_var_name, user_var_len) == 0) {
+                    status = staDecodeMsgCvtStrToInt(&gmon_json_decode_token[idx + 1], &parsed_int);
+                    if(status == GMON_RESP_OK) {
+                        gmon->user_ctrl.status.interval.netconn = staSetNetConnTaskInterval(gmon, (unsigned int)parsed_int);
+                    }
+                } else if(XSTRNCMP(GMON_APPMSG_DATA_NAME_SOILMOIST, user_var_name, user_var_len) == 0) {
+                    status = staDecodeMsgCvtStrToInt(&gmon_json_decode_token[idx + 1], &parsed_int);
+                    if(status == GMON_RESP_OK) {
+                        gmon->user_ctrl.status.threshold.soil_moist = staSetTrigThresholdPump(&gmon->outdev.pump , (unsigned int)parsed_int);
+                    }
+                } else if(XSTRNCMP(GMON_APPMSG_DATA_NAME_AIRTEMP , user_var_name, user_var_len) == 0) {
+                    status = staDecodeMsgCvtStrToInt(&gmon_json_decode_token[idx + 1], &parsed_int);
+                    if(status == GMON_RESP_OK) {
+                        gmon->user_ctrl.status.threshold.air_temp = staSetTrigThresholdFan(&gmon->outdev.fan, (unsigned int)parsed_int);
+                    }
+                } else if(XSTRNCMP(GMON_APPMSG_DATA_NAME_LIGHT    , user_var_name, user_var_len) == 0) {
+                    status = staDecodeMsgCvtStrToInt(&gmon_json_decode_token[idx + 1], &parsed_int);
+                    if(status == GMON_RESP_OK) {
+                        gmon->user_ctrl.status.threshold.lightness = staSetTrigThresholdBulb(&gmon->outdev.bulb, (unsigned int)parsed_int);
+                    }
+                } else if(XSTRNCMP(GMON_APPMSG_DATA_NAME_DAYLENGTH, user_var_name, user_var_len) == 0) {
+                    status = staDecodeMsgCvtStrToInt(&gmon_json_decode_token[idx + 1], &parsed_int);
+                    if(status == GMON_RESP_OK) {
+                        gmon->user_ctrl.status.threshold.daylength = staSetRequiredDaylenTicks((unsigned int)parsed_int);
+                    }
+                }
+            } // if token is json string
+        } // end of for loop
+        if(status == GMON_RESP_OK) {
+            gmon->user_ctrl.last_update.ticks = stationGetTicksPerDay();
+            gmon->user_ctrl.last_update.days  = stationGetDays();
+        }
+    } else {
+        status = GMON_RESP_ERR_MSG_DECODE ;
+    }
+    // clean up all received bytes after decoding process
+    XMEMSET(gmon_appmsg_inflight.data, GMON_JSON_WHITESPACE, sizeof(char) * gmon_appmsg_inflight.len);
+    return status;
+} // end of staDecodeAppMsgInflight
+
+
+gmonStr_t* staGetAppMsgOutflight(void)
+{
+    return &gmon_appmsg_outflight;
 } // end of staGetAppMsgOutflight
 
+gmonStr_t*  staGetAppMsgInflight(void)
+{
+    return &gmon_appmsg_inflight;
+} // end of staGetAppMsgInflight
 
