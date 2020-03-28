@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-gMonStatus  stationNetConnInit(void **connobj);
+gMonStatus  stationNetConnInit(gardenMonitor_t *gmon);
 
 gMonStatus  stationNetConnDeinit(void *connobj);
 

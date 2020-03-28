@@ -188,7 +188,8 @@ clean:
 
 # optional function for those who use code navigation tools e.g. ctags
 update_navigator:
-	@rm -rf ./tags; ctags -R ./include ./src  ./third_party/MQTT_Client/third_party/ESP8266_AT_parser  ./third_party/jsmn
+	@rm -rf ./tags; ctags -R ./include ./src  ./third_party/MQTT_Client/third_party/ESP8266_AT_parser \
+           ./third_party/MQTT_Client/src  ./third_party/MQTT_Client/include  ./third_party/jsmn
 
 dbg_server:
 	@$(DBG_SERVER_CMD)

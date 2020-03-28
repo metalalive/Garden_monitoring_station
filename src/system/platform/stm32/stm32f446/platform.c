@@ -87,7 +87,13 @@ static HAL_StatusTypeDef SystemClock_Config(void)
     RCC_OscInitStruct.HSIState = RCC_HSI_ON;
     RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
     RCC_OscInitStruct.LSIState = RCC_LSI_ON;
-    RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+    RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+    RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+    RCC_OscInitStruct.PLL.PLLM = 8;
+    RCC_OscInitStruct.PLL.PLLN = 80;
+    RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+    RCC_OscInitStruct.PLL.PLLQ = 2;
+    RCC_OscInitStruct.PLL.PLLR = 2;
     status = HAL_RCC_OscConfig(&RCC_OscInitStruct);
     if (status != HAL_OK) { goto done; }
     // Initializes the CPU, AHB and APB busses clocks
@@ -95,9 +101,9 @@ static HAL_StatusTypeDef SystemClock_Config(void)
                                 |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
     RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
     RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
     RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
-    status =  HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0);
+    status =  HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2);
     if (status != HAL_OK) { goto done;  }
     // initialize clocks for RTC
     PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_RTC;
@@ -147,8 +153,6 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
     if(hadc->Instance == ADC1) {
         // Peripheral clock enable
         __HAL_RCC_ADC1_CLK_ENABLE();
-        __HAL_RCC_GPIOA_CLK_ENABLE();
-        __HAL_RCC_GPIOB_CLK_ENABLE();
         // ADC1 GPIO Configuration    
         // PA6     ------> ADC1_IN6 
         // PA7     ------> ADC1_IN7
@@ -212,9 +216,9 @@ gMonStatus  stationPlatformInit(void)
     status = SystemClock_Config();
 #endif  // end of GMON_CFG_SKIP_PLATFORM_INIT
     // GPIO Ports Clock Enable
-    __HAL_RCC_GPIOA_CLK_ENABLE();
     __HAL_RCC_GPIOC_CLK_ENABLE();
     __HAL_RCC_GPIOB_CLK_ENABLE();
+    __HAL_RCC_GPIOA_CLK_ENABLE();
     status = STM32_HAL_ADC1_Init();
     if(status != HAL_OK) { goto done; }
     status = STM32_HAL_timer_us_Init(); // initialize 1 us timer

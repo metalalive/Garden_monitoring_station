@@ -30,6 +30,7 @@ gMonStatus  staSetNetConnTaskInterval(gardenMonitor_t  *gmon, unsigned int new_i
     } else {
         status = GMON_RESP_ERRARGS;
     }
+    XASSERT(status >= 0);
     return status;
 } // end of staSetNetConnTaskInterval
 
@@ -40,9 +41,10 @@ void  stationNetConnHandlerTaskFn(void* params)
     gmonStr_t  *app_msg_send = NULL;
     gmonStr_t  *app_msg_recv = NULL;
     gardenMonitor_t    *gmon = NULL;
-    gMonStatus  status = GMON_RESP_OK;
+    gMonStatus  send_status = GMON_RESP_OK;
+    gMonStatus  recv_status = GMON_RESP_OK; // this station might not always receive update from remote user
+    gMonStatus  decode_status = GMON_RESP_OK;
     uint8_t     num_reconn = 0;
-    uint8_t     num_read_user_msg = 0;
 
     gmon = (gardenMonitor_t *)params;
     //// staSetNetConnTaskInterval(gmon, (unsigned int)GMON_CFG_NETCONN_START_INTERVAL_MS);
@@ -51,35 +53,31 @@ void  stationNetConnHandlerTaskFn(void* params)
 
     while(1) {
         stationSysDelayMs(gmon->netconn.interval_ms);
-        status = staRefreshAppMsgOutflight();
-        if(status == GMON_RESP_SKIP) { continue; }
-        // TODO: pause irrigation if pump hasn't been turned off.
+        send_status = staRefreshAppMsgOutflight();
+        if(send_status == GMON_RESP_SKIP) { continue; }
+        // pause the working output device(s) that requires to rapidly frequently refresh sensor data due to the network latency.
+        staPauseWorkingRealtimeOutdevs(gmon);
         // start network connection to MQTT broker
         num_reconn = 3;
         while (num_reconn > 0) {
-            status = stationNetConnEstablish(gmon->netconn.handle_obj);
-            if(status == GMON_RESP_OK) {
+            send_status = stationNetConnEstablish(gmon->netconn.handle_obj);
+            if(send_status == GMON_RESP_OK) {
                 // publish encoded JSON data
-                status  = stationNetConnSend(gmon->netconn.handle_obj, app_msg_send);
+                send_status  = stationNetConnSend(gmon->netconn.handle_obj, app_msg_send);
             }
-            if(status == GMON_RESP_OK) {
-                num_read_user_msg = 2;
+            if(send_status == GMON_RESP_OK) {
                 // check any update from user including : threshold of each output device trigger,
                 // time interval of the working tasks, it must be JSON-based
-                while(num_read_user_msg > 0) {
-                    status  = stationNetConnRecv(gmon->netconn.handle_obj, app_msg_recv, read_timeout_ms);
-                    num_read_user_msg = (status == GMON_RESP_OK)? 0: (num_read_user_msg - 1);
-                } //  end of while loop num_read_user_msg
+                recv_status  = stationNetConnRecv(gmon->netconn.handle_obj, app_msg_recv, read_timeout_ms);
             }
             stationNetConnClose(gmon->netconn.handle_obj);
-            num_reconn = (status == GMON_RESP_OK)? 0: (num_reconn - 1);
+            num_reconn = (send_status == GMON_RESP_OK)? 0: (num_reconn - 1);
         } // end of while loop num_reconn
-        // TODO: decode received JSON data (as user update)
-        if(status == GMON_RESP_OK) {
-            status = staDecodeAppMsgInflight(gmon);
+        // decode received JSON data (as user update)
+        if(recv_status == GMON_RESP_OK) {
+            decode_status = staDecodeAppMsgInflight(gmon);
+            // TODO: return connection status to display device, with status
         }
-        // TODO: return connection status to display device, with status
-        // TODO: resume irrigation if necessary (may recheck the updated threshold of soil moisture)
     } // end of loop
 } // end of stationNetConnHandlerTaskFn
 

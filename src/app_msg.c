@@ -305,10 +305,8 @@ gMonStatus  staDecodeAppMsgInflight(gardenMonitor_t *gmon)
                 }
             } // if token is json string
         } // end of for loop
-        if(status == GMON_RESP_OK) {
-            gmon->user_ctrl.last_update.ticks = stationGetTicksPerDay();
-            gmon->user_ctrl.last_update.days  = stationGetDays();
-        }
+        gmon->user_ctrl.last_update.ticks = stationGetTicksPerDay();
+        gmon->user_ctrl.last_update.days  = stationGetDays();
     } else {
         status = GMON_RESP_ERR_MSG_DECODE ;
     }

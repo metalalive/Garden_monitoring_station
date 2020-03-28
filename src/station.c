@@ -15,9 +15,9 @@ static gMonStatus stationInit(gardenMonitor_t **gmon)
     if(status < 0) { goto done; }
     status = staAirCondTrackInit();
     if(status < 0) { goto done; }
-    status = stationNetConnInit(&(*gmon)->netconn.handle_obj);
+    status = stationNetConnInit(*gmon);
     if(status < 0) { goto done; }
-    status = stationSysInit();// TODO: 
+    status = stationSysInit();
     if(status < 0) { goto done; }
     status = stationIOinit(*gmon);
 done:

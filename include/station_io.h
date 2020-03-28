@@ -52,6 +52,8 @@ gMonStatus  staSetTrigThresholdPump(gMonOutDev_t *dev, unsigned int new_val);
 gMonStatus  staSetTrigThresholdFan(gMonOutDev_t *dev, unsigned int new_val);
 gMonStatus  staSetTrigThresholdBulb(gMonOutDev_t *dev, unsigned int new_val);
 
+gMonStatus  staPauseWorkingRealtimeOutdevs(gardenMonitor_t *gmon);
+
 
 void  stationSensorReaderTaskFn(void* params);
 

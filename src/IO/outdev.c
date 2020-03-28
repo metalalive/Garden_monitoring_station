@@ -95,12 +95,27 @@ gMonStatus  staSetTrigThresholdBulb(gMonOutDev_t *dev, unsigned int new_val)
 } // end of staSetTrigThresholdBulb
 
 
+gMonStatus  staPauseWorkingRealtimeOutdevs(gardenMonitor_t *gmon)
+{
+    if(gmon == NULL) { return GMON_RESP_ERRARGS; }
+    gMonOutDev_t  *dev = NULL;
+    gMonStatus  status = GMON_RESP_OK;
+    dev = &gmon->outdev.pump;
+    if(dev->status == GMON_OUT_DEV_STATUS_ON) {
+        dev->curr_worktime = dev->max_worktime;
+        status = GMON_OUTDEV_TRIG_FN_PUMP(dev, (dev->threshold + 1));
+        XASSERT(dev->status == GMON_OUT_DEV_STATUS_PAUSE);
+    }
+    return status;
+} // end of staPauseWorkingRealtimeOutdevs
+
+
+
 static void  staRefreshBulbMaxWorktime(gMonOutDev_t *dev)
 { // gradually increasing the max. working time only when the bulb device is NOT in working mode.
     dev->sensor_read_interval = staGetTicksSinceLastLightRecording();
     dev->max_worktime = staRefreshRequiredLightLength(dev->status, dev->sensor_read_interval);
 } // end of staRefreshBulbMaxWorktime
-
 
 
 gMonOutDevStatus  staOutDevMeasureWorkingTime(gMonOutDev_t *dev)
