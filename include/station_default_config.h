@@ -91,6 +91,23 @@ extern "C" {
     #define  GMON_OUTDEV_TRIG_FN_BULB(dev, lightness) GMON_RESP_OK
 #endif // end of GMON_CFG_ENABLE_OUTDEV_BULB
 
+
+#ifdef  GMON_CFG_ENABLE_DISPLAY
+    #define  GMON_DISPLAY_DEV_INIT_FN()             staDisplayDevInit()
+    #define  GMON_DISPLAY_DEV_DEINIT_FN()           staDisplayDevDeInit()
+    #define  GMON_DISPLAY_DEV_GET_SCR_WIDTH()       staDisplayDevGetScreenWidth()
+    #define  GMON_DISPLAY_DEV_GET_SCR_HEIGHT()      staDisplayDevGetScreenHeight()
+    #define  GMON_DISPLAY_DEV_REFRESH_SCREEN_FN()           staDisplayRefreshScreen()
+    #define  GMON_DISPLAY_DEV_PRINT_STRING_FN(printinfo)    staDiplayDevPrintString((printinfo))
+#else
+    #define  GMON_DISPLAY_DEV_INIT_FN()             GMON_RESP_OK
+    #define  GMON_DISPLAY_DEV_DEINIT_FN()           GMON_RESP_OK
+    #define  GMON_DISPLAY_DEV_GET_SCR_WIDTH()       GMON_RESP_OK
+    #define  GMON_DISPLAY_DEV_GET_SCR_HEIGHT()      GMON_RESP_OK
+    #define  GMON_DISPLAY_DEV_REFRESH_SCREEN_FN()           GMON_RESP_OK
+    #define  GMON_DISPLAY_DEV_PRINT_STRING_FN(printinfo)    GMON_RESP_OK
+#endif // end of GMON_CFG_ENABLE_DISPLAY
+
 #define  GMON_MIN_OUTDEV_TRIG_THRESHOLD_BULB  10
 #define  GMON_MAX_OUTDEV_TRIG_THRESHOLD_BULB  200
 #define  GMON_MIN_OUTDEV_TRIG_THRESHOLD_PUMP  250
@@ -189,6 +206,11 @@ extern "C" {
 #define  GMON_SENSOR_READ_INTERVAL_MS_PUMP_ON  (GMON_CFG_SENSOR_READ_INTERVAL_MS <  400 ? GMON_CFG_SENSOR_READ_INTERVAL_MS: 400)
 #define  GMON_SENSOR_READ_INTERVAL_MS_FAN_ON   (GMON_CFG_SENSOR_READ_INTERVAL_MS < 1500 ? GMON_CFG_SENSOR_READ_INTERVAL_MS: 1500)
 
+#define  GMON_DISPLAY_NUM_PRINT_STRINGS  4
+
+#ifndef  GMON_CFG_DISPLAY_SCREEN_REFRESH_TIME_MS
+    #define  GMON_CFG_DISPLAY_SCREEN_REFRESH_TIME_MS  100
+#endif // end if GMON_CFG_DISPLAY_SCREEN_REFRESH_TIME_MS
 
 
 #ifdef __cplusplus

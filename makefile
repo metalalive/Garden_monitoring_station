@@ -14,8 +14,11 @@ src/aircond_track.c \
 src/netconn.c \
 src/app_msg.c \
 src/IO/sensor_reader.c \
-src/IO/outdev.c \
+src/IO/outdev.c  \
+src/IO/display.c \
+src/IO/display/textfonts.c \
 src/IO/relay/SRD-0xVDC-SL-C.c \
+src/IO/display/SSD1315_OLED.c \
 src/IO/YL69.c \
 src/IO/LDR.c  \
 src/IO/DHT11.c
@@ -25,7 +28,8 @@ src/network/mqtt_client.c \
 src/system/middleware/ESP_AT_parser/middleware.c \
 src/system/platform/stm32/stm32f446/platform.c \
 third_party/MQTT_Client/generate/src/mqtt_generate.c \
-third_party/MQTT_Client/third_party/ESP8266_AT_parser/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc.c
+third_party/MQTT_Client/third_party/ESP8266_AT_parser/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc.c \
+third_party/MQTT_Client/third_party/ESP8266_AT_parser/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_spi.c
 
 C_ENTRY_FILE = src/station.c
 
@@ -60,7 +64,7 @@ C_INCLUDES += \
 
 
 # C defines
-C_DEFS += -DUSE_HAL_DRIVER  -DSTM32F446xx  -DHAL_ADC_MODULE_ENABLED
+C_DEFS += -DUSE_HAL_DRIVER  -DSTM32F446xx  -DHAL_ADC_MODULE_ENABLED -DHAL_SPI_MODULE_ENABLED
 # ASM sources
 ASM_SOURCES += third_party/MQTT_Client/src/system/platform/arm/armv7m/stm/bootcode_stm32f446.s
 # link script

@@ -5,7 +5,7 @@ extern stationSysMsgbox_t  sensor_to_ctrldev_buf;
 // , since the maximum working time of a bulb would be adjust every 24 hours for unstable natural light environment
 // e.g. the plant you grow need 7 hours growing light every day but your garden can only provide 4 hours natural
 //      light per day
-// TODO, recheck if ti's necessary to use this
+// TODO, recheck if It's necessary to use this
 static unsigned int gmon_bulb_max_worktime_default;
 
 
@@ -179,7 +179,10 @@ void  stationOutDevCtrlTaskFn(void* params)
                 staRefreshBulbMaxWorktime(&gmon->outdev.bulb);
                 status = GMON_OUTDEV_TRIG_FN_BULB(&gmon->outdev.bulb, new_record->lightness);
             }
-            // TODO: status of each output device may be passed to display device or logged to remote backend server
+            // status of each output device, and data read from sensors, network connectivity status,
+            // end of may be passed to display device.
+            staUpdatePrintStrSensorData(gmon, new_record);
+            staUpdatePrintStrOutDevStatus(gmon);
             staFreeSensorRecord(new_record);
             new_record = NULL;
         }

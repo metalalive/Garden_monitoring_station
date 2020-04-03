@@ -76,6 +76,12 @@ typedef struct {
 } gMonOutDev_t;
 
 
+typedef struct {
+    gmonStr_t     print_str[GMON_DISPLAY_NUM_PRINT_STRINGS];
+    unsigned int  interval_ms;
+} gMonDisplay_t;
+
+
 // collecting all information, network handling objects in this application
 typedef struct {
     struct {
@@ -87,6 +93,7 @@ typedef struct {
         void *sensor_reader;
         void *dev_controller;
         void *netconn_handler;
+        void *display_handler;
     } tasks;
     struct {
         unsigned int  default_ms;
@@ -95,6 +102,10 @@ typedef struct {
     struct {
         void         *handle_obj;
         unsigned int  interval_ms;
+        struct {
+            gMonStatus  sent;
+            gMonStatus  recv;
+        } status;
     } netconn;
     struct {
         struct {
@@ -114,6 +125,7 @@ typedef struct {
             unsigned int  days ;
         } last_update;
     } user_ctrl;
+    gMonDisplay_t  display;
 } gardenMonitor_t;
 
 #ifdef __cplusplus

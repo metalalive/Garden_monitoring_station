@@ -5,14 +5,27 @@
 typedef struct {
     GPIO_TypeDef *port;
     uint16_t      pin;
+    uint8_t       alternate;
 } hal_pinout_t;
+
+typedef struct {
+    SPI_HandleTypeDef  *handler;
+    hal_pinout_t  SCK;
+    hal_pinout_t  MOSI;
+    hal_pinout_t  MISO;
+} hal_spi_pinout_t; // TODO I2C pinout structure
 
 static TIM_HandleTypeDef  hal_tim_us; // timer that increment counter every 1 microsecond
 static ADC_HandleTypeDef  hadc1; // used as analog input of soil moisture sensor
-static hal_pinout_t       hal_air_temp_read_pin = {GPIOB, GPIO_PIN_8};
-static hal_pinout_t       hal_pump_write_pin = {GPIOC, GPIO_PIN_13};
-static hal_pinout_t       hal_fan_write_pin  = {GPIOC, GPIO_PIN_1}; // PC14, PC15 are reserved for RCC LSE clock
-static hal_pinout_t       hal_bulb_write_pin = {GPIOC, GPIO_PIN_0};
+static SPI_HandleTypeDef  hspi2;
+static hal_pinout_t       hal_air_temp_read_pin = {GPIOB, GPIO_PIN_8, 0};
+static hal_pinout_t       hal_pump_write_pin = {GPIOC, GPIO_PIN_13, 0};
+static hal_pinout_t       hal_fan_write_pin  = {GPIOC, GPIO_PIN_1, 0}; // PC14, PC15 are reserved for RCC LSE clock
+static hal_pinout_t       hal_bulb_write_pin = {GPIOC, GPIO_PIN_0, 0};
+static hal_pinout_t       hal_display_rst_pin = {GPIOB, GPIO_PIN_14, 0};
+static hal_pinout_t       hal_display_dc_pin  = {GPIOB, GPIO_PIN_15, 0};
+static hal_spi_pinout_t   hal_display_spi_pins;
+
 
 #ifndef GMON_CFG_SKIP_PLATFORM_INIT
 //
@@ -138,6 +151,7 @@ done:
     return status;
 } // end of STM32_HAL_timer_us_Init
 
+
 void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim_base)
 {
     if(htim_base->Instance==TIM1) {
@@ -184,6 +198,46 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* hadc)
 } // end of HAL_ADC_MspDeInit
 
 
+void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
+{
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    if(hspi->Instance == SPI2) {
+        // Peripheral clock enable
+        __HAL_RCC_SPI2_CLK_ENABLE();
+        // SPI2 GPIO Configuration    
+        // PC3     ------> SPI2_MOSI
+        // PB13    ------> SPI2_SCK 
+        GPIO_InitStruct.Pin = hal_display_spi_pins.MOSI.pin;
+        GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+        GPIO_InitStruct.Pull = GPIO_NOPULL;
+        GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+        GPIO_InitStruct.Alternate = hal_display_spi_pins.MOSI.alternate;
+        HAL_GPIO_Init(hal_display_spi_pins.MOSI.port, &GPIO_InitStruct);
+
+        GPIO_InitStruct.Pin = hal_display_spi_pins.SCK.pin;
+        GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+        GPIO_InitStruct.Pull = GPIO_NOPULL;
+        GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+        GPIO_InitStruct.Alternate = hal_display_spi_pins.SCK.alternate;
+        HAL_GPIO_Init(hal_display_spi_pins.SCK.port, &GPIO_InitStruct);
+    }
+} // end of HAL_SPI_MspInit
+
+
+void HAL_SPI_MspDeInit(SPI_HandleTypeDef* hspi)
+{
+    if(hspi->Instance == SPI2) {
+        // SPI2 GPIO Configuration    
+        // PC3     ------> SPI2_MOSI
+        // PB13    ------> SPI2_SCK 
+        HAL_GPIO_DeInit(hal_display_spi_pins.MOSI.port, hal_display_spi_pins.MOSI.pin);
+        HAL_GPIO_DeInit(hal_display_spi_pins.SCK.port,  hal_display_spi_pins.SCK.pin);
+        // Peripheral clock disable
+        __HAL_RCC_SPI2_CLK_DISABLE();
+    }
+} // end of HAL_SPI_MspDeInit
+
+
 static gMonStatus STM32_HAL_ADC1_Init(void)
 { // Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
   // in this proejct, multi-channel ADC will be configured, one of the channels is used for analog signal
@@ -204,6 +258,27 @@ static gMonStatus STM32_HAL_ADC1_Init(void)
     status = HAL_ADC_Init(&hadc1);
     return  (status == HAL_OK ? GMON_RESP_OK: GMON_RESP_ERR);
 } // end of STM32_HAL_ADC1_Init
+
+
+static gMonStatus STM32_HAL_SPI2_Init(void)
+{ // SPI2 parameter configuration
+    HAL_StatusTypeDef  status = HAL_OK;
+    hspi2.Instance = SPI2;
+    hspi2.Init.Mode = SPI_MODE_MASTER;
+    hspi2.Init.Direction = SPI_DIRECTION_1LINE;
+    hspi2.Init.DataSize = SPI_DATASIZE_8BIT;
+    hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
+    hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
+    hspi2.Init.NSS = SPI_NSS_SOFT;
+    hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
+    hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
+    hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
+    hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+    hspi2.Init.CRCPolynomial = 10;
+    status = HAL_SPI_Init(&hspi2);
+    return  (status == HAL_OK ? GMON_RESP_OK: GMON_RESP_ERR);
+} // end of STM32_HAL_SPI2_Init
+
 
 
 gMonStatus  stationPlatformInit(void)
@@ -357,7 +432,75 @@ gMonStatus  staOutDevPlatformInitBulb(void **pinstruct)
     if(pinstruct == NULL) { return GMON_RESP_ERRARGS; }
     *(hal_pinout_t **)pinstruct = &hal_bulb_write_pin;
     return  GMON_RESP_OK;
-}
+} // end of staOutDevPlatformInitBulb
+
+
+gMonStatus  staOutDevPlatformInitDisplay(uint8_t  comm_protocal_id, void **pinstruct)
+{
+    if(pinstruct == NULL) { return GMON_RESP_ERRARGS; }
+    gMonStatus  status = GMON_RESP_OK;
+
+    switch(comm_protocal_id) {
+        case GMON_PLATFORM_DISPLAY_SPI:
+            hal_display_spi_pins.handler = &hspi2;
+            hal_display_spi_pins.SCK.port  = GPIOB;
+            hal_display_spi_pins.SCK.pin   = GPIO_PIN_13;
+            hal_display_spi_pins.SCK.alternate = GPIO_AF5_SPI2;
+            hal_display_spi_pins.MOSI.port = GPIOC;
+            hal_display_spi_pins.MOSI.pin  = GPIO_PIN_3;
+            hal_display_spi_pins.MOSI.alternate = GPIO_AF5_SPI2;
+            hal_display_spi_pins.MISO.port = NULL;
+            hal_display_spi_pins.MISO.pin  = 0;
+            hal_display_spi_pins.MISO.alternate  = 0;
+            status = STM32_HAL_SPI2_Init();
+            if(status != GMON_RESP_OK) { break; }
+            *(hal_spi_pinout_t **)pinstruct = &hal_display_spi_pins;
+            break;
+        case GMON_PLATFORM_DISPLAY_I2C: // TODO
+        default:
+            status = GMON_RESP_ERR_NOT_SUPPORT;
+            break;
+    } // end of switch case
+    return  status;
+} // end of staOutDevPlatformInitDisplay
+
+
+void*  staPlatformiGetDisplayRstPin(void)
+{
+    return (void *)&hal_display_rst_pin;
+} // end of staPlatformiGetDisplayRstPin
+
+
+void*  staPlatformiGetDisplayDataCmdPin(void)
+{
+    return (void *)&hal_display_dc_pin;
+} // end of staPlatformiGetDisplayDataCmdPin
+
+
+gMonStatus  staOutDevPlatformDeinitDisplay(void *pinstruct)
+{
+    if(pinstruct == NULL) { return GMON_RESP_ERRARGS; }
+    HAL_StatusTypeDef  status = HAL_OK;
+    if(pinstruct == &hal_display_spi_pins) {
+        status = HAL_SPI_DeInit(hal_display_spi_pins.handler);
+    }
+    return  (status == HAL_OK ? GMON_RESP_OK: GMON_RESP_ERR);
+} // end of staOutDevPlatformDeinitDisplay
+
+
+gMonStatus  staPlatformSPItransmit(void *pinstruct, unsigned char *pData, unsigned short sz)
+{
+    if(pinstruct == NULL || pData == NULL || sz == 0) {
+        return GMON_RESP_ERRARGS;
+    }
+    hal_spi_pinout_t  *spi = NULL;
+    HAL_StatusTypeDef  status = HAL_OK;
+
+    spi = (hal_spi_pinout_t*) pinstruct;
+    status = HAL_SPI_Transmit(spi->handler, pData, sz, HAL_MAX_DELAY);
+    return  (status == HAL_OK ? GMON_RESP_OK: GMON_RESP_ERR);
+} // end of staPlatformSPItransmit
+
 
 gMonStatus  staPlatformDelayUs(uint16_t us)
 {

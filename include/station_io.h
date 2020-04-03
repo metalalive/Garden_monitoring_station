@@ -5,6 +5,21 @@
 extern "C" {
 #endif
 
+typedef struct {
+    uint16_t      width;
+    uint16_t      height;
+    const unsigned short *bitmap;
+} gmonPrintFont_t;
+
+
+typedef struct {
+    gmonStr_t  str;
+    gmonPrintFont_t  *font;
+    short  posx;
+    short  posy;
+} gmonPrintInfo_t;
+
+
 gMonStatus  stationIOinit(gardenMonitor_t *gmon);
 gMonStatus  stationIOdeinit(void);
 
@@ -35,6 +50,14 @@ gMonStatus  staOutdevInitBulb(gMonOutDev_t *dev);
 gMonStatus  staOutdevDeinitBulb(void);
 gMonStatus  staOutdevTrigBulb(gMonOutDev_t *dev, unsigned int lightness);
 
+gMonStatus  staDisplayDevInit(void);
+gMonStatus  staDisplayDevDeInit(void);
+gMonStatus  staDisplayRefreshScreen(void);
+unsigned short  staDisplayDevGetScreenWidth(void);
+unsigned short  staDisplayDevGetScreenHeight(void);
+gMonStatus  staDiplayDevPrintString(gmonPrintInfo_t *printinfo);
+gMonStatus  staDiplayDevPrintCustomPattern(gmonPrintInfo_t *printinfo); // TODO
+
 // generic functions to init device
 gMonStatus  staOutdevInitGenericPump(gMonOutDev_t *dev);
 gMonStatus  staOutdevDeinitGenericPump(void);
@@ -44,6 +67,12 @@ gMonStatus  staOutdevDeinitGenericFan(void);
 
 gMonStatus  staOutdevInitGenericBulb(gMonOutDev_t *dev);
 gMonStatus  staOutdevDeinitGenericBulb(void);
+
+gMonStatus  staDisplayInit(gardenMonitor_t *gmon);
+gMonStatus  staDisplayDeInit(gardenMonitor_t *gmon);
+void        staUpdatePrintStrSensorData(gardenMonitor_t  *gmon, gmonSensorRecord_t  *new_record);
+void        staUpdatePrintStrOutDevStatus(gardenMonitor_t  *gmon);
+void        staUpdatePrintStrThreshold(gardenMonitor_t *gmon);
 
 gMonOutDevStatus  staOutDevMeasureWorkingTime(gMonOutDev_t *dev);
 
@@ -58,6 +87,8 @@ gMonStatus  staPauseWorkingRealtimeOutdevs(gardenMonitor_t *gmon);
 void  stationSensorReaderTaskFn(void* params);
 
 void  stationOutDevCtrlTaskFn(void* params);
+
+void  stationDisplayTaskFn(void* params);
 
 #ifdef __cplusplus
 }

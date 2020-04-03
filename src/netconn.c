@@ -42,8 +42,7 @@ void  stationNetConnHandlerTaskFn(void* params)
     gmonStr_t  *app_msg_recv = NULL;
     gardenMonitor_t    *gmon = NULL;
     gMonStatus  send_status = GMON_RESP_OK;
-    gMonStatus  recv_status = GMON_RESP_OK; // this station might not always receive update from remote user
-    gMonStatus  decode_status = GMON_RESP_OK;
+    gMonStatus  recv_status = GMON_RESP_OK;
     uint8_t     num_reconn = 0;
 
     gmon = (gardenMonitor_t *)params;
@@ -58,6 +57,7 @@ void  stationNetConnHandlerTaskFn(void* params)
         // pause the working output device(s) that requires to rapidly frequently refresh sensor data due to the network latency.
         staPauseWorkingRealtimeOutdevs(gmon);
         // start network connection to MQTT broker
+        recv_status = GMON_RESP_SKIP; // this station might not always receive update from remote user
         num_reconn = 3;
         while (num_reconn > 0) {
             send_status = stationNetConnEstablish(gmon->netconn.handle_obj);
@@ -75,9 +75,14 @@ void  stationNetConnHandlerTaskFn(void* params)
         } // end of while loop num_reconn
         // decode received JSON data (as user update)
         if(recv_status == GMON_RESP_OK) {
-            decode_status = staDecodeAppMsgInflight(gmon);
-            // TODO: return connection status to display device, with status
+            staDecodeAppMsgInflight(gmon);
+            staUpdatePrintStrThreshold(gmon); // update threshold data to display device
         }
+        gmon->user_ctrl.last_update.ticks = stationGetTicksPerDay();
+        gmon->user_ctrl.last_update.days  = stationGetDays();
+        gmon->netconn.status.sent = send_status;
+        gmon->netconn.status.recv = recv_status;
+        staUpdatePrintStrNetConn(gmon);  // update network connection status to display device
     } // end of loop
 } // end of stationNetConnHandlerTaskFn
 
