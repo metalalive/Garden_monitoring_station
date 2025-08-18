@@ -1,0 +1,4 @@
+.aider*
+third_party/
+mqttclient.conf
+

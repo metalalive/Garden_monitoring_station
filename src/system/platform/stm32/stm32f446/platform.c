@@ -82,10 +82,10 @@ static HAL_StatusTypeDef STM32_HAL_Init(void)
     STM32_HAL_MspInit();
     return HAL_OK;
 } // end of STM32_HAL_Init
+#endif  // end of GMON_CFG_SKIP_PLATFORM_INIT
 
 
-static HAL_StatusTypeDef SystemClock_Config(void)
-{
+HAL_StatusTypeDef SystemClock_Config(void) {
     HAL_StatusTypeDef status = HAL_OK;
     RCC_OscInitTypeDef RCC_OscInitStruct = {0};
     RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
@@ -125,7 +125,6 @@ static HAL_StatusTypeDef SystemClock_Config(void)
 done:
     return status;
 } // end of SystemClock_Config
-#endif  // end of GMON_CFG_SKIP_PLATFORM_INIT
 
 
 static HAL_StatusTypeDef  STM32_HAL_timer_us_Init(void)

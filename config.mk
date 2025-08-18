@@ -1,0 +1,12 @@
+
+_APP_SYS_INCLUDE = $(MONT_STATION_PROJ_HOME)/include/system
+_APP_SYS_SOURCE = $(MONT_STATION_PROJ_HOME)/src/system
+
+APPCFG_MIDDLEWARE_C_INCLUDES = $(_APP_SYS_INCLUDE)/middleware/ESP_AT_parser
+
+APPCFG_HW_C_INCLUDES = $(_APP_SYS_INCLUDE)/platform/stm32/stm32f446
+
+APPCFG_ASM_SOURCES = $(_APP_SYS_SOURCE)/platform/stm32/stm32f446/bootcode_stm32f446.s
+
+APP_LINK_SCRIPT = $(_APP_SYS_SOURCE)/platform/stm32/stm32f446/stm32f446_flash.ld
+

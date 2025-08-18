@@ -74,6 +74,8 @@ void        staUpdatePrintStrSensorData(gardenMonitor_t  *gmon, gmonSensorRecord
 void        staUpdatePrintStrOutDevStatus(gardenMonitor_t  *gmon);
 void        staUpdatePrintStrThreshold(gardenMonitor_t *gmon);
 
+void  staUpdatePrintStrNetConn(gardenMonitor_t *);
+
 gMonOutDevStatus  staOutDevMeasureWorkingTime(gMonOutDev_t *dev);
 
 gMonStatus  staSetDefaultSensorReadInterval(gardenMonitor_t *gmon, unsigned int new_interval);
