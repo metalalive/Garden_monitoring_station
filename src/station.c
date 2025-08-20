@@ -9,15 +9,15 @@ static gMonStatus stationInit(gardenMonitor_t **gmon)
     *gmon = XCALLOC(sizeof(gardenMonitor_t), 0x1);
     status = staSetNetConnTaskInterval(*gmon, (unsigned int)GMON_CFG_NETCONN_START_INTERVAL_MS);
     if(status < 0) { goto done; }
+    status = stationNetConnInit(*gmon);
+    if(status < 0) { goto done; }
+    status = stationSysInit();
+    if(status < 0) { goto done; }
     status = staAppMsgInit();
     if(status < 0) { goto done; }
     status = staDaylightTrackInit();
     if(status < 0) { goto done; }
     status = staAirCondTrackInit();
-    if(status < 0) { goto done; }
-    status = stationNetConnInit(*gmon);
-    if(status < 0) { goto done; }
-    status = stationSysInit();
     if(status < 0) { goto done; }
     status = stationIOinit(*gmon);
     if(status < 0) { goto done; }

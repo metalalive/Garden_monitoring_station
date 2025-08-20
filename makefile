@@ -24,7 +24,6 @@ BUILD_DIR = $(BUILD_DIR_TOP)
 # build the application
 #######################################
 
-
 build_exe: export MONT_STATION_PROJ_HOME := $(MONT_STATION_PROJ_HOME)
 build_exe:
 	@make config -C $(MQC_PROJ_HOME)  MQC_CFG_FULLPATH=$(MONT_STATION_PROJ_HOME)/mqttclient.conf
@@ -37,4 +36,10 @@ build_exe:
 
 clean:
 	@make clean  -C $(MQC_PROJ_HOME)  BUILD_DIR=$(BUILD_DIR)
+
+dbg_server:
+	@make dbg_server -C $(MQC_PROJ_HOME)
+
+dbg_client:
+	@make dbg_client -C $(MQC_PROJ_HOME)  GDB_SCRIPT_PATH=${PWD}/app-debug.gdb
 

@@ -27,64 +27,6 @@ static hal_pinout_t       hal_display_dc_pin  = {GPIOB, GPIO_PIN_15, 0};
 static hal_spi_pinout_t   hal_display_spi_pins;
 
 
-#ifndef GMON_CFG_SKIP_PLATFORM_INIT
-//
-// @brief This function configures the source of the time base.
-//        The time source is configured  to have 1ms time base with a dedicated 
-//        Tick interrupt priority.
-// @note This function is called  automatically at the beginning of program after
-//       reset by HAL_Init() or at any time when clock is reconfigured  by HAL_RCC_ClockConfig().
-// @note In the default implementation, SysTick timer is the source of time base. 
-//       It is used to generate interrupts at regular time intervals. 
-//       Care must be taken if HAL_Delay() is called from a peripheral ISR process, 
-//       The SysTick interrupt must have higher priority (numerically lower)
-//       than the peripheral interrupt. Otherwise the caller ISR process will be blocked.
-//       The function is declared as __weak  to be overwritten  in case of other
-//       implementation  in user file.
-// @param TickPriority Tick interrupt priority.
-// @retval HAL status
-//
-__weak HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
-{
-  uwTickFreq = HAL_TICK_FREQ_DEFAULT;  // 1KHz
-  // Configure the SysTick to have interrupt in 1ms time basis
-  if (HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq() / (1000U / uwTickFreq)) > 0U) {
-      return HAL_ERROR;
-  }
-  // Configure the SysTick IRQ priority
-  if (TickPriority < (1UL << __NVIC_PRIO_BITS)) {
-      HAL_NVIC_SetPriority(SysTick_IRQn, TickPriority, 0U);
-      uwTickPrio = TickPriority;
-  } else {
-      return HAL_ERROR;
-  }
-  return HAL_OK; // Return function status
-} // end of HAL_InitTick
-
-
-static void STM32_HAL_MspInit(void)
-{
-  __HAL_RCC_SYSCFG_CLK_ENABLE();
-  __HAL_RCC_PWR_CLK_ENABLE();
-}
-
-static HAL_StatusTypeDef STM32_HAL_Init(void)
-{
-    // Configure Flash prefetch, Instruction cache, Data cache
-    __HAL_FLASH_INSTRUCTION_CACHE_ENABLE();
-    __HAL_FLASH_DATA_CACHE_ENABLE();
-    __HAL_FLASH_PREFETCH_BUFFER_ENABLE();
-    // Set Interrupt Group Priority 
-    HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
-    // Use systick as time base source and configure 1ms tick (default clock after Reset is HSI) 
-    HAL_InitTick(TICK_INT_PRIORITY);
-    // Init the low level hardware 
-    STM32_HAL_MspInit();
-    return HAL_OK;
-} // end of STM32_HAL_Init
-#endif  // end of GMON_CFG_SKIP_PLATFORM_INIT
-
-
 HAL_StatusTypeDef SystemClock_Config(void) {
     HAL_StatusTypeDef status = HAL_OK;
     RCC_OscInitTypeDef RCC_OscInitStruct = {0};
@@ -280,27 +222,22 @@ static gMonStatus STM32_HAL_SPI2_Init(void)
 
 
 
+// in this application , `HAL_Init` and `SystemClock_Config` are executed during
+// network initialization through `mqttClientInit` . 
 gMonStatus  stationPlatformInit(void)
 {
-    HAL_StatusTypeDef  status = HAL_OK;
-#ifndef GMON_CFG_SKIP_PLATFORM_INIT
-    // Reset of all peripherals, Initializes the Flash interface and the Systick. 
-    STM32_HAL_Init();
-    // Configure the system clock 
-    status = SystemClock_Config();
-#endif  // end of GMON_CFG_SKIP_PLATFORM_INIT
     // GPIO Ports Clock Enable
     __HAL_RCC_GPIOC_CLK_ENABLE();
     __HAL_RCC_GPIOB_CLK_ENABLE();
     __HAL_RCC_GPIOA_CLK_ENABLE();
-    status = STM32_HAL_ADC1_Init();
+    HAL_StatusTypeDef  status = STM32_HAL_ADC1_Init();
     if(status != HAL_OK) { goto done; }
     status = STM32_HAL_timer_us_Init(); // initialize 1 us timer
     if(status != HAL_OK) { goto done; }
     status = HAL_TIM_Base_Start(&hal_tim_us);
 done:
     return  (status == HAL_OK ? GMON_RESP_OK: GMON_RESP_ERR);
-} // end of stationPlatformInit
+}
 
 
 gMonStatus  stationPlatformDeinit(void)
@@ -324,13 +261,13 @@ gMonStatus  staSensorPlatformInitSoilMoist(void)
     sConfig.SamplingTime = ADC_SAMPLETIME_15CYCLES;
     status = HAL_ADC_ConfigChannel(&hadc1, &sConfig);
     return  (status == HAL_OK ? GMON_RESP_OK: GMON_RESP_ERR);
-} // end of staSensorPlatformInitSoilMoist
+}
 
 
 gMonStatus  staSensorPlatformDeInitSoilMoist(void)
 {
     return  GMON_RESP_OK;
-} // end of staSensorPlatformDeInitSoilMoist
+}
 
 
 gMonStatus  staSensorPlatformInitLight(void)
@@ -355,7 +292,7 @@ done:
 gMonStatus  staSensorPlatformDeInitLight(void)
 {
     return  GMON_RESP_OK;
-} // end of staSensorPlatformDeInitLight
+}
 
 
 
@@ -417,21 +354,21 @@ gMonStatus  staOutDevPlatformInitPump(void **pinstruct)
     if(pinstruct == NULL) { return GMON_RESP_ERRARGS; }
     *(hal_pinout_t **)pinstruct = &hal_pump_write_pin;
     return  GMON_RESP_OK;
-} // end of staOutDevPlatformInitPump
+}
 
 gMonStatus  staOutDevPlatformInitFan(void **pinstruct)
 {
     if(pinstruct == NULL) { return GMON_RESP_ERRARGS; }
     *(hal_pinout_t **)pinstruct = &hal_fan_write_pin;
     return  GMON_RESP_OK;
-} // end of staOutDevPlatformInitFan
+}
 
 gMonStatus  staOutDevPlatformInitBulb(void **pinstruct)
 {
     if(pinstruct == NULL) { return GMON_RESP_ERRARGS; }
     *(hal_pinout_t **)pinstruct = &hal_bulb_write_pin;
     return  GMON_RESP_OK;
-} // end of staOutDevPlatformInitBulb
+}
 
 
 gMonStatus  staOutDevPlatformInitDisplay(uint8_t  comm_protocal_id, void **pinstruct)
@@ -467,13 +404,13 @@ gMonStatus  staOutDevPlatformInitDisplay(uint8_t  comm_protocal_id, void **pinst
 void*  staPlatformiGetDisplayRstPin(void)
 {
     return (void *)&hal_display_rst_pin;
-} // end of staPlatformiGetDisplayRstPin
+}
 
 
 void*  staPlatformiGetDisplayDataCmdPin(void)
 {
     return (void *)&hal_display_dc_pin;
-} // end of staPlatformiGetDisplayDataCmdPin
+}
 
 
 gMonStatus  staOutDevPlatformDeinitDisplay(void *pinstruct)
@@ -507,7 +444,7 @@ gMonStatus  staPlatformDelayUs(uint16_t us)
     __HAL_TIM_SET_COUNTER(&hal_tim_us, 0);
     while(__HAL_TIM_GET_COUNTER(&hal_tim_us) < us);
     return  (status == HAL_OK ? GMON_RESP_OK: GMON_RESP_ERR);
-} // end of staPlatformDelayUs
+}
 
 
 gMonStatus  staPlatformPinSetDirection(void *pinstruct, uint8_t direction)
