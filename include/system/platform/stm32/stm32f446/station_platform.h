@@ -46,6 +46,12 @@ uint8_t     staPlatformReadPin(void *pinstruct);
 
 gMonStatus  staPlatformDelayUs(uint16_t us);
 
+// direction :
+// - 1: transition from LOW to HIGH
+// - 0: transition from HIGH to LOW
+// us : pulse length in microseconds
+gMonStatus  staPlatformMeasurePulse(void *pinstruct, uint8_t *direction, uint16_t *us);
+
 void*  staPlatformiGetDisplayRstPin(void);
 void*  staPlatformiGetDisplayDataCmdPin(void);
 
