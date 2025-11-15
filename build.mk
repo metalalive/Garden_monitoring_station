@@ -28,7 +28,7 @@ _C_SOURCES_FUNC = \
     src/IO/display/textfonts.c \
     src/IO/relay/SRD-0xVDC-SL-C.c \
     src/IO/display/SSD1315_OLED.c \
-    src/IO/YL69.c \
+    src/IO/soilsensor.c \
     src/IO/LDR.c  \
     src/IO/DHT11.c
 

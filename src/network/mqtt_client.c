@@ -205,6 +205,8 @@ gMonStatus  stationNetConnEstablish(void *connobj)
         status = mqttDRBGinit(&mctx->drbg);
         if(status != MQTT_RESP_OK) { goto done; }
     }
+    status = mqttSysNetInit();
+    if(status != MQTT_RESP_OK) { goto done; }
     status = mqttNetconnStart( mctx );
     if(status != MQTT_RESP_OK) { goto done; }
     mqttSetupCmdConnect(&mctx->send_pkt.conn);
@@ -225,15 +227,15 @@ gMonStatus  stationNetConnClose(void *connobj)
 {
     if(connobj == NULL) { return GMON_RESP_ERRARGS; }
     mqttRespStatus  status = MQTT_RESP_OK;
-    mqttCtx_t    *mctx = NULL;
 
-    mctx = (mqttCtx_t *)connobj;
+    mqttCtx_t    *mctx = (mqttCtx_t *)connobj;
     mqttSetupCmdDisconnect(&mctx->send_pkt.disconn);
     status = mqttSendDisconnect(mctx);
     mqttCleanCmdDisconnect(&mctx->send_pkt.disconn);
     status = mqttNetconnStop(mctx);
+    mqttSysNetDeInit();
     return mqttRespToGMonResp(status);
-} // end of stationNetConnClose
+}
 
 
 gMonStatus  stationNetConnSend(void *connobj, gmonStr_t *app_msg)

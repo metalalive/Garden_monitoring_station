@@ -68,7 +68,7 @@ static void  stationInitTaskFn(void *param)
     gmon->tasks.dev_controller = (void *)task_ptr;
 
     task_ptr = NULL;
-    task_stack_size = 0x13e;
+    task_stack_size = 0x158;
     stationSysCreateTask("netConnHandler", (stationSysTaskFn_t)stationNetConnHandlerTaskFn,
                       (void *)gmon, task_stack_size, (GMON_TASKS_PRIO_MIN + 1), isPrivileged, &task_ptr);
     gmon->tasks.netconn_handler = (void *)task_ptr;
