@@ -96,10 +96,9 @@ static gMonStatus staOLEDcmdInit(void)
     uint8_t idx = 0; gMonStatus status = GMON_RESP_OK;
     status  = staDisplaySetGPIOpin(ssd1315_display_pin_rst, GMON_PLATFORM_PIN_RESET);
     if(status < 0) { goto done; }
-    stationSysDelayUs(10000);  // wait for at least 3 us after reset assertion
+    stationSysDelayUs(6);  // wait for at least 3 us after reset assertion
     status  = staDisplaySetGPIOpin(ssd1315_display_pin_rst, GMON_PLATFORM_PIN_SET);
     if(status < 0) { goto done; }
-    for(idx=0; idx<10; idx++) { stationSysDelayUs(20000); } // wait for 1 ms after reset de-assertion
     status = staOLEDsendCmd(0xAE); // display OFF, go to sleep mode to modify configuration
     if(status < 0) { goto done; }
     // set memory addressing mode, LSB 2 bit is for specifying address mode ...

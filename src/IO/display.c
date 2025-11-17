@@ -87,7 +87,7 @@ gMonStatus  staDisplayInit(gardenMonitor_t *gmon)
 
     gmon_txt_font_11x18.width  = 11;
     gmon_txt_font_11x18.height = 18;
-    gmon_txt_font_11x18.bitmap = &gmon_txt_font_bitmap_11x18;
+    gmon_txt_font_11x18.bitmap = gmon_txt_font_bitmap_11x18;
 
     display = &gmon->display;
     display->interval_ms = GMON_CFG_DISPLAY_SCREEN_REFRESH_TIME_MS;

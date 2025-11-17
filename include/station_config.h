@@ -5,8 +5,6 @@
 extern "C" {
 #endif
 
-// skip platform initialization code if the third-party software you are using will do the job instead
-#define  GMON_CFG_SKIP_PLATFORM_INIT
 // number of records read from sensors temporarily kept in the platform before they're sent out through internet
 // (e.g. might be remote MQTT broker & another backend server waiting for these data from this station)
 #define  GMON_CFG_NUM_SENSOR_RECORDS_KEEP  5

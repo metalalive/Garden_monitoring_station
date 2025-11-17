@@ -39,11 +39,18 @@ gMonStatus  staOutDevPlatformInitDisplay(uint8_t  comm_protocal_id, void **pinst
 gMonStatus  staOutDevPlatformDeinitDisplay(void *pinstruct);
 
 gMonStatus  staPlatformPinSetDirection(void *pinstruct, uint8_t direction);
+gMonStatus  staPlatformSPItransmit(void *pinstruct, unsigned char *pData, unsigned short sz);
 
 gMonStatus  staPlatformWritePin(void *pinstruct, uint8_t new_state);
 uint8_t     staPlatformReadPin(void *pinstruct);
 
 gMonStatus  staPlatformDelayUs(uint16_t us);
+
+// direction :
+// - 1: transition from LOW to HIGH
+// - 0: transition from HIGH to LOW
+// us : pulse length in microseconds
+gMonStatus  staPlatformMeasurePulse(void *pinstruct, uint8_t *direction, uint16_t *us);
 
 void*  staPlatformiGetDisplayRstPin(void);
 void*  staPlatformiGetDisplayDataCmdPin(void);

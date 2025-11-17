@@ -1,0 +1,6 @@
+.aider*
+.claude*
+third_party/
+app-debug.gdb
+mqttclient.conf
+

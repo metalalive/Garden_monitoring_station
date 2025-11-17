@@ -1,4 +1,6 @@
 #include "station_include.h"
+// current implementation can fit with following sensors : 
+// e.g. YL69, Capactive Soil Moisture Sensor v1.2
 
 gMonStatus  staSensorInitSoilMoist(void)
 {

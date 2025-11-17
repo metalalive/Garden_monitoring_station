@@ -1,6 +1,7 @@
 #include "station_include.h"
 
 #define PLATFORM_ONE_MHZ  1000000
+#define APP_APB2CLK_DIVIDER  RCC_HCLK_DIV1 // PCLK2 freq. == HCLK
 
 typedef struct {
     GPIO_TypeDef *port;
@@ -15,7 +16,10 @@ typedef struct {
     hal_pinout_t  MISO;
 } hal_spi_pinout_t; // TODO I2C pinout structure
 
-static TIM_HandleTypeDef  hal_tim_us; // timer that increment counter every 1 microsecond
+// timer that increments counter every 1 microsecond in non-blocking manner,
+// all functions in this module accessing this timer are NOT thread-safe, callers
+// must handle race condition by themselves.
+static TIM_HandleTypeDef  hal_tim_us;
 static ADC_HandleTypeDef  hadc1; // used as analog input of soil moisture sensor
 static SPI_HandleTypeDef  hspi2;
 static hal_pinout_t       hal_air_temp_read_pin = {GPIOB, GPIO_PIN_8, 0};
@@ -27,65 +31,7 @@ static hal_pinout_t       hal_display_dc_pin  = {GPIOB, GPIO_PIN_15, 0};
 static hal_spi_pinout_t   hal_display_spi_pins;
 
 
-#ifndef GMON_CFG_SKIP_PLATFORM_INIT
-//
-// @brief This function configures the source of the time base.
-//        The time source is configured  to have 1ms time base with a dedicated 
-//        Tick interrupt priority.
-// @note This function is called  automatically at the beginning of program after
-//       reset by HAL_Init() or at any time when clock is reconfigured  by HAL_RCC_ClockConfig().
-// @note In the default implementation, SysTick timer is the source of time base. 
-//       It is used to generate interrupts at regular time intervals. 
-//       Care must be taken if HAL_Delay() is called from a peripheral ISR process, 
-//       The SysTick interrupt must have higher priority (numerically lower)
-//       than the peripheral interrupt. Otherwise the caller ISR process will be blocked.
-//       The function is declared as __weak  to be overwritten  in case of other
-//       implementation  in user file.
-// @param TickPriority Tick interrupt priority.
-// @retval HAL status
-//
-__weak HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
-{
-  uwTickFreq = HAL_TICK_FREQ_DEFAULT;  // 1KHz
-  // Configure the SysTick to have interrupt in 1ms time basis
-  if (HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq() / (1000U / uwTickFreq)) > 0U) {
-      return HAL_ERROR;
-  }
-  // Configure the SysTick IRQ priority
-  if (TickPriority < (1UL << __NVIC_PRIO_BITS)) {
-      HAL_NVIC_SetPriority(SysTick_IRQn, TickPriority, 0U);
-      uwTickPrio = TickPriority;
-  } else {
-      return HAL_ERROR;
-  }
-  return HAL_OK; // Return function status
-} // end of HAL_InitTick
-
-
-static void STM32_HAL_MspInit(void)
-{
-  __HAL_RCC_SYSCFG_CLK_ENABLE();
-  __HAL_RCC_PWR_CLK_ENABLE();
-}
-
-static HAL_StatusTypeDef STM32_HAL_Init(void)
-{
-    // Configure Flash prefetch, Instruction cache, Data cache
-    __HAL_FLASH_INSTRUCTION_CACHE_ENABLE();
-    __HAL_FLASH_DATA_CACHE_ENABLE();
-    __HAL_FLASH_PREFETCH_BUFFER_ENABLE();
-    // Set Interrupt Group Priority 
-    HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
-    // Use systick as time base source and configure 1ms tick (default clock after Reset is HSI) 
-    HAL_InitTick(TICK_INT_PRIORITY);
-    // Init the low level hardware 
-    STM32_HAL_MspInit();
-    return HAL_OK;
-} // end of STM32_HAL_Init
-
-
-static HAL_StatusTypeDef SystemClock_Config(void)
-{
+HAL_StatusTypeDef SystemClock_Config(void) {
     HAL_StatusTypeDef status = HAL_OK;
     RCC_OscInitTypeDef RCC_OscInitStruct = {0};
     RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
@@ -115,7 +61,7 @@ static HAL_StatusTypeDef SystemClock_Config(void)
     RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
     RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
     RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
-    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+    RCC_ClkInitStruct.APB2CLKDivider = APP_APB2CLK_DIVIDER;
     status =  HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2);
     if (status != HAL_OK) { goto done;  }
     // initialize clocks for RTC
@@ -125,7 +71,6 @@ static HAL_StatusTypeDef SystemClock_Config(void)
 done:
     return status;
 } // end of SystemClock_Config
-#endif  // end of GMON_CFG_SKIP_PLATFORM_INIT
 
 
 static HAL_StatusTypeDef  STM32_HAL_timer_us_Init(void)
@@ -133,8 +78,15 @@ static HAL_StatusTypeDef  STM32_HAL_timer_us_Init(void)
     HAL_StatusTypeDef status = HAL_OK;
     TIM_ClockConfigTypeDef  sClockSourceConfig = {0};
     TIM_MasterConfigTypeDef sMasterConfig = {0};
+    // Note timer 1 is clocked by PCLK2
+    // PCLK2 freq. == HCLK , which means APB2 clock prescaler is zero ,
+    // no need to double the timer frequency here
+    uint32_t tim1_clk_hz = HAL_RCC_GetPCLK2Freq();
+    if (APP_APB2CLK_DIVIDER != RCC_HCLK_DIV1) {
+        tim1_clk_hz = tim1_clk_hz << 1;
+    }
     hal_tim_us.Instance = TIM1;
-    hal_tim_us.Init.Prescaler = (HAL_RCC_GetHCLKFreq() / (2 * PLATFORM_ONE_MHZ)) - 1; // TODO: figure out how prescaler works in STM32 timer
+    hal_tim_us.Init.Prescaler = (tim1_clk_hz / PLATFORM_ONE_MHZ) - 1;
     hal_tim_us.Init.CounterMode = TIM_COUNTERMODE_UP;
     hal_tim_us.Init.Period = 0xffff - 1;
     hal_tim_us.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -281,27 +233,22 @@ static gMonStatus STM32_HAL_SPI2_Init(void)
 
 
 
+// in this application , `HAL_Init` and `SystemClock_Config` are executed during
+// network initialization through `mqttClientInit` . 
 gMonStatus  stationPlatformInit(void)
 {
-    HAL_StatusTypeDef  status = HAL_OK;
-#ifndef GMON_CFG_SKIP_PLATFORM_INIT
-    // Reset of all peripherals, Initializes the Flash interface and the Systick. 
-    STM32_HAL_Init();
-    // Configure the system clock 
-    status = SystemClock_Config();
-#endif  // end of GMON_CFG_SKIP_PLATFORM_INIT
     // GPIO Ports Clock Enable
     __HAL_RCC_GPIOC_CLK_ENABLE();
     __HAL_RCC_GPIOB_CLK_ENABLE();
     __HAL_RCC_GPIOA_CLK_ENABLE();
-    status = STM32_HAL_ADC1_Init();
+    HAL_StatusTypeDef  status = STM32_HAL_ADC1_Init();
     if(status != HAL_OK) { goto done; }
     status = STM32_HAL_timer_us_Init(); // initialize 1 us timer
     if(status != HAL_OK) { goto done; }
     status = HAL_TIM_Base_Start(&hal_tim_us);
 done:
     return  (status == HAL_OK ? GMON_RESP_OK: GMON_RESP_ERR);
-} // end of stationPlatformInit
+}
 
 
 gMonStatus  stationPlatformDeinit(void)
@@ -325,13 +272,13 @@ gMonStatus  staSensorPlatformInitSoilMoist(void)
     sConfig.SamplingTime = ADC_SAMPLETIME_15CYCLES;
     status = HAL_ADC_ConfigChannel(&hadc1, &sConfig);
     return  (status == HAL_OK ? GMON_RESP_OK: GMON_RESP_ERR);
-} // end of staSensorPlatformInitSoilMoist
+}
 
 
 gMonStatus  staSensorPlatformDeInitSoilMoist(void)
 {
     return  GMON_RESP_OK;
-} // end of staSensorPlatformDeInitSoilMoist
+}
 
 
 gMonStatus  staSensorPlatformInitLight(void)
@@ -356,7 +303,7 @@ done:
 gMonStatus  staSensorPlatformDeInitLight(void)
 {
     return  GMON_RESP_OK;
-} // end of staSensorPlatformDeInitLight
+}
 
 
 
@@ -418,21 +365,21 @@ gMonStatus  staOutDevPlatformInitPump(void **pinstruct)
     if(pinstruct == NULL) { return GMON_RESP_ERRARGS; }
     *(hal_pinout_t **)pinstruct = &hal_pump_write_pin;
     return  GMON_RESP_OK;
-} // end of staOutDevPlatformInitPump
+}
 
 gMonStatus  staOutDevPlatformInitFan(void **pinstruct)
 {
     if(pinstruct == NULL) { return GMON_RESP_ERRARGS; }
     *(hal_pinout_t **)pinstruct = &hal_fan_write_pin;
     return  GMON_RESP_OK;
-} // end of staOutDevPlatformInitFan
+}
 
 gMonStatus  staOutDevPlatformInitBulb(void **pinstruct)
 {
     if(pinstruct == NULL) { return GMON_RESP_ERRARGS; }
     *(hal_pinout_t **)pinstruct = &hal_bulb_write_pin;
     return  GMON_RESP_OK;
-} // end of staOutDevPlatformInitBulb
+}
 
 
 gMonStatus  staOutDevPlatformInitDisplay(uint8_t  comm_protocal_id, void **pinstruct)
@@ -468,13 +415,13 @@ gMonStatus  staOutDevPlatformInitDisplay(uint8_t  comm_protocal_id, void **pinst
 void*  staPlatformiGetDisplayRstPin(void)
 {
     return (void *)&hal_display_rst_pin;
-} // end of staPlatformiGetDisplayRstPin
+}
 
 
 void*  staPlatformiGetDisplayDataCmdPin(void)
 {
     return (void *)&hal_display_dc_pin;
-} // end of staPlatformiGetDisplayDataCmdPin
+}
 
 
 gMonStatus  staOutDevPlatformDeinitDisplay(void *pinstruct)
@@ -502,14 +449,35 @@ gMonStatus  staPlatformSPItransmit(void *pinstruct, unsigned char *pData, unsign
 } // end of staPlatformSPItransmit
 
 
-gMonStatus  staPlatformDelayUs(uint16_t us)
-{
-    HAL_StatusTypeDef  status = HAL_OK;
+gMonStatus  staPlatformDelayUs(uint16_t us) {
     __HAL_TIM_SET_COUNTER(&hal_tim_us, 0);
     while(__HAL_TIM_GET_COUNTER(&hal_tim_us) < us);
-    return  (status == HAL_OK ? GMON_RESP_OK: GMON_RESP_ERR);
-} // end of staPlatformDelayUs
+    return  GMON_RESP_OK;
+}
 
+gMonStatus  staPlatformMeasurePulse(void *pinstruct, uint8_t *direction, uint16_t *us) {
+    if (pinstruct == NULL || direction == NULL || us == NULL) {
+        return GMON_RESP_ERRARGS;
+    }
+    hal_pinout_t      *hal_pinstruct = (hal_pinout_t *)pinstruct;
+    uint32_t           current_counter;
+    // reset timer to zero
+    __HAL_TIM_SET_COUNTER(&hal_tim_us, 0);
+    // read initial state of the given GPIO pin pinstruct, record it to a local variable, say s0
+    GPIO_PinState  s0 = HAL_GPIO_ReadPin(hal_pinstruct->port, hal_pinstruct->pin);
+    // read the same GPIO pin in a loop until the state is changed.
+    do {
+        current_counter = __HAL_TIM_GET_COUNTER(&hal_tim_us);
+        // if the timer value is about to exceed its max representable value, return appropriate error
+        if (current_counter >= 0xFF80) { // max limited period is 0xFF80. Check before it wraps.
+            return GMON_RESP_TIMEOUT; // Represents a "read sensor timeout"
+        }
+    } while (HAL_GPIO_ReadPin(hal_pinstruct->port, hal_pinstruct->pin) == s0);
+    // retrieve timer value , write it to given argument us
+    *us = (uint16_t)current_counter;
+    *direction = (s0 == GPIO_PIN_RESET) ? 1 : 0;
+    return GMON_RESP_OK;
+}
 
 gMonStatus  staPlatformPinSetDirection(void *pinstruct, uint8_t direction)
 {
@@ -530,7 +498,7 @@ gMonStatus  staPlatformPinSetDirection(void *pinstruct, uint8_t direction)
             break;
         case GMON_PLATFORM_PIN_DIRECTION_IN :
             GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-            GPIO_InitStruct.Pull = GPIO_PULLDOWN; //GPIO_NOPULL;
+            GPIO_InitStruct.Pull = GPIO_NOPULL; // GPIO_PULLDOWN;
             break;
         default:
             status = HAL_ERROR;
