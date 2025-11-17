@@ -2,6 +2,8 @@ MQC_PROJ_HOME ?= /path/to/proj/mqtt-client/
 
 DEBUG ?= yes
 
+DBG_CLIENT_SCRIPT_PATH ?= app-debug.gdb
+
 # extra defined parameters users want to specify
 EXTRA_C_DEFS ?= 
 
@@ -37,9 +39,12 @@ build_exe:
 clean:
 	@make clean  -C $(MQC_PROJ_HOME)  BUILD_DIR=$(BUILD_DIR)
 
+help:
+	@cat ./doc/build-help-doc
+
 dbg_server:
 	@make dbg_server -C $(MQC_PROJ_HOME)
 
 dbg_client:
-	@make dbg_client -C $(MQC_PROJ_HOME)  GDB_SCRIPT_PATH=${PWD}/app-debug.gdb
+	@make dbg_client -C $(MQC_PROJ_HOME)  GDB_SCRIPT_PATH=${PWD}/$(DBG_CLIENT_SCRIPT_PATH)
 

@@ -1,0 +1,31 @@
+--------------------------------------------------------------
+-- MAKE COMMANDS FOR GARDEN MONITOR EDGE-DEVICE APPLICATION --
+--------------------------------------------------------------
+
+This document describes the 'make' commands available for building and managing the Garden Monitor Edge-Device application. This project relies on an external MQTT client C library, whose path is specified by the 'MQC_PROJ_HOME' variable.
+
+ESSENTIAL VARIABLE: MQC_PROJ_HOME
+
+'MQC_PROJ_HOME' is a crucial variable that points to the root directory of the 'mqtt-client' C library. This library provides essential MQTT communication functionalities. You must ensure this variable is correctly set, either in your environment or directly in the 'makefile'.
+
+Example:
+  make build_exe MQC_PROJ_HOME=/path/to/your/mqtt-client/
+
+AVAILABLE COMMANDS:
+
+  make build_exe
+    Builds the complete Garden Monitor Edge application executable. This command first configures, builds, and links the necessary third-party libraries and the MQTT client library from the 'MQC_PROJ_HOME' directory, and then builds the application itself.
+
+  make clean
+    Removes all generated build artifacts for both the Garden Monitor Edge application and the associated MQTT client library.
+
+  make dbg_server
+    Starts a debugging server (e.g., GDB server for hardware debugging) by delegating to the 'dbg_server' target within the 'MQC_PROJ_HOME' project. This is typically used to connect a debugger to the target hardware.
+
+  make dbg_client
+    Starts a debugging client (e.g., GDB client) connected to the debugging server. It uses the 'app-debug.gdb' script located in the current project directory for configuration. This allows you to debug the application running on the target.
+
+    Parameter: DBG_CLIENT_SCRIPT_PATH
+      Specifies the relative path to the GDB client script to be used. By default, it refers to 'app-debug.gdb' within the current project directory.
+      Example: make dbg_client DBG_CLIENT_SCRIPT_PATH=my_debugger_script.gdb
+
