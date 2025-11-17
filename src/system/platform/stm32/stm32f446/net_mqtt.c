@@ -1,5 +1,6 @@
 #include "stm32f4xx_hal.h"
 #include "FreeRTOS.h"
+#include "pin_map.h"
 
 extern void STM32_generic_USART_IRQHandler(UART_HandleTypeDef *);
 extern void STM32_generic_DMAstream_IRQHandler(DMA_HandleTypeDef *);
@@ -131,19 +132,19 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart) {
         // USART3 GPIO Configuration
         // PC5     ------> USART3_RX
         // PB10    ------> USART3_TX
-        GPIO_InitStruct.Pin = GPIO_PIN_5;
+        GPIO_InitStruct.Pin = HW_ESP8266_UART_RX_PIN;
         GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
         GPIO_InitStruct.Pull = GPIO_PULLUP;
         GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-        GPIO_InitStruct.Alternate = GPIO_AF7_USART3;
-        HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+        GPIO_InitStruct.Alternate = HW_ESP8266_UART_RX_AF;
+        HAL_GPIO_Init(HW_ESP8266_UART_RX_PORT, &GPIO_InitStruct);
 
-        GPIO_InitStruct.Pin = GPIO_PIN_10;
+        GPIO_InitStruct.Pin = HW_ESP8266_UART_TX_PIN;
         GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
         GPIO_InitStruct.Pull = GPIO_PULLUP;
         GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-        GPIO_InitStruct.Alternate = GPIO_AF7_USART3;
-        HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+        GPIO_InitStruct.Alternate = HW_ESP8266_UART_TX_AF;
+        HAL_GPIO_Init(HW_ESP8266_UART_TX_PORT, &GPIO_InitStruct);
     }
 } // end of HAL_UART_MspInit
 
@@ -154,8 +155,8 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef *huart) {
         // USART3 GPIO Configuration
         // PC5     ------> USART3_RX
         // PB10    ------> USART3_TX
-        HAL_GPIO_DeInit(GPIOB, GPIO_PIN_10);
-        HAL_GPIO_DeInit(GPIOC, GPIO_PIN_5);
+        HAL_GPIO_DeInit(HW_ESP8266_UART_TX_PORT, HW_ESP8266_UART_TX_PIN);
+        HAL_GPIO_DeInit(HW_ESP8266_UART_RX_PORT, HW_ESP8266_UART_RX_PIN);
     }
 } // end of HAL_UART_MspDeInit
 
@@ -172,23 +173,23 @@ HAL_StatusTypeDef STM32_HAL_GPIO_Init(void) {
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
     // configure network device RST pin
-    GPIO_InitStruct.Pin = ESP8266_RST_PINNUM;
+    GPIO_InitStruct.Pin = HW_ESP8266_RST_PIN;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(ESP8266_RST_PINGRP, &GPIO_InitStruct);
+    HAL_GPIO_Init(HW_ESP8266_RST_PORT, &GPIO_InitStruct);
     // Configure GPIO pin for sonar sensor
-    GPIO_InitStruct.Pin = ENTROPY_HCSR04_OUT_PINNUM;
+    GPIO_InitStruct.Pin = HW_ENTROPY_TRIG_PIN;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(ENTROPY_HCSR04_OUT_GRP, &GPIO_InitStruct);
-    GPIO_InitStruct.Pin = ENTROPY_HCSR04_IN_PINNUM;
+    HAL_GPIO_Init(HW_ENTROPY_TRIG_PORT, &GPIO_InitStruct);
+    GPIO_InitStruct.Pin = HW_ENTROPY_ECHO_PIN;
     GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(ENTROPY_HCSR04_IN_GRP, &GPIO_InitStruct);
+    HAL_GPIO_Init(HW_ENTROPY_ECHO_PORT, &GPIO_InitStruct);
     HAL_GPIO_WritePin(GPIOH, GPIO_PIN_0, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(ESP8266_RST_PINGRP, ESP8266_RST_PINNUM, GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(ENTROPY_HCSR04_OUT_GRP, ENTROPY_HCSR04_OUT_PINNUM, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(HW_ESP8266_RST_PORT, HW_ESP8266_RST_PIN, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(HW_ENTROPY_TRIG_PORT, HW_ENTROPY_TRIG_PIN, GPIO_PIN_RESET);
     return HAL_OK;
 }

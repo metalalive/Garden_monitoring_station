@@ -34,8 +34,8 @@ _C_SOURCES_FUNC = \
 
 _C_SOURCES_3PTY = \
     src/system/middleware/ESP_AT_parser/middleware.c \
-    src/system/platform/stm32/stm32f446/platform.c \
-    src/system/platform/stm32/stm32f446/stm32f446_config.c
+    src/system/platform/stm32/stm32f446/iodev.c \
+    src/system/platform/stm32/stm32f446/net_mqtt.c
 
 _APP_C_SRCS = $(_C_ENTRY_FILE) $(_C_SOURCES_FUNC) $(_C_SOURCES_3PTY)
 
