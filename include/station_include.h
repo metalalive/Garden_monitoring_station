@@ -10,6 +10,7 @@ extern "C" {
 #include "station_types.h"
 #include "station_platform.h"
 #include "station_middleware.h"
+#include "station_monitor.h"
 #include "station_app_msg.h"
 #include "station_network.h"
 #include "station_io.h"

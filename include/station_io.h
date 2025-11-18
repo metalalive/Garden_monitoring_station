@@ -20,10 +20,10 @@ typedef struct {
 } gmonPrintInfo_t;
 
 
-gMonStatus  stationIOinit(gardenMonitor_t *gmon);
-gMonStatus  stationIOdeinit(void);
+gMonStatus  stationIOinit(gardenMonitor_t *);
+gMonStatus  stationIOdeinit(gardenMonitor_t *);
 
-gMonStatus  staFreeSensorRecord(gmonSensorRecord_t* record);
+gMonStatus  staFreeSensorEvent(gmonEvent_t *);
 
 gMonStatus  staSensorInitSoilMoist(void);
 gMonStatus  staSensorDeInitSoilMoist(void);
@@ -68,11 +68,11 @@ gMonStatus  staOutdevDeinitGenericFan(void);
 gMonStatus  staOutdevInitGenericBulb(gMonOutDev_t *dev);
 gMonStatus  staOutdevDeinitGenericBulb(void);
 
-gMonStatus  staDisplayInit(gardenMonitor_t *gmon);
-gMonStatus  staDisplayDeInit(gardenMonitor_t *gmon);
-void        staUpdatePrintStrSensorData(gardenMonitor_t  *gmon, gmonSensorRecord_t  *new_record);
-void        staUpdatePrintStrOutDevStatus(gardenMonitor_t  *gmon);
-void        staUpdatePrintStrThreshold(gardenMonitor_t *gmon);
+gMonStatus  staDisplayInit(gardenMonitor_t *);
+gMonStatus  staDisplayDeInit(gardenMonitor_t *);
+void        staUpdatePrintStrSensorData(gardenMonitor_t  *, gmonEvent_t *);
+void        staUpdatePrintStrOutDevStatus(gardenMonitor_t  *);
+void        staUpdatePrintStrThreshold(gardenMonitor_t *);
 
 void  staUpdatePrintStrNetConn(gardenMonitor_t *);
 

@@ -2,58 +2,58 @@
 
 #define  GMON_SENSOR_RECORD_LIST_SZ   (GMON_CFG_NUM_SENSOR_RECORDS_KEEP << 1)
 
-stationSysMsgbox_t  sensor_to_ctrldev_buf;
-stationSysMsgbox_t  sensor_to_netconn_buf;
-static gmonSensorRecord_t   gmon_avail_record_list[GMON_SENSOR_RECORD_LIST_SZ];
-static gmonSensorRecord_t  *gmon_latest_sensor_data;
+static gmonEvent_t   gmon_avail_record_list[GMON_SENSOR_RECORD_LIST_SZ];
 
-static gmonSensorRecord_t* staAllocSensorRecord(void)
-{
-    gmonSensorRecord_t *out = NULL;
+static gmonEvent_t* staAllocSensorEvent(void) {
+    gmonEvent_t *out = NULL;
     uint16_t  idx = 0;
+    stationSysEnterCritical();
     for(idx = 0; idx < GMON_SENSOR_RECORD_LIST_SZ; idx++) {
         if(gmon_avail_record_list[idx].flgs.alloc == 0) {
-            gmon_avail_record_list[idx].flgs.alloc = 1;
             out = &gmon_avail_record_list[idx];
+            XMEMSET(out, 0x00, sizeof(gmonEvent_t));
+            out->flgs.alloc = 1;
             break;
         }
-    } // end of for loop
+    }
+    stationSysExitCritical();
     XASSERT(out != NULL); // check whether there's no item available
     return out;
-} // end of staAllocSensorRecord
+}
 
-
-gMonStatus  staFreeSensorRecord(gmonSensorRecord_t* record)
-{ // TODO: make it observable to network component, since we need to send collected sensor read data to remote backend server
-    gmonSensorRecord_t *addr_start = NULL;
-    gmonSensorRecord_t *addr_end  = NULL;
+gMonStatus  staFreeSensorEvent(gmonEvent_t* record) {
+    gmonEvent_t *addr_start = NULL, *addr_end  = NULL;
+    gMonStatus status = GMON_RESP_OK;
     uint16_t  idx = 0;
+    stationSysEnterCritical();
     addr_start = &gmon_avail_record_list[0];
     addr_end   = &gmon_avail_record_list[GMON_SENSOR_RECORD_LIST_SZ];
     if((record < addr_start) || (addr_end <= record)) {
-        return GMON_RESP_ERRMEM;
-    } // memory out of range
+        status = GMON_RESP_ERRMEM;
+        goto done;
+    }
     for(idx = 0; idx < GMON_SENSOR_RECORD_LIST_SZ; idx++) {
         addr_start = &gmon_avail_record_list[idx];
         addr_end   = &gmon_avail_record_list[idx + 1];
         if((record > addr_start) && (record < addr_end)) {
-            return GMON_RESP_ERRMEM; // memory not aligned
+            status = GMON_RESP_ERRMEM; // memory not aligned
+            break;
         } else if (record == addr_start) {
             if(addr_start->flgs.alloc != 0) {
                 addr_start->flgs.alloc = 0;
             }
             break;
         }
-    } // end of for loop
-    return GMON_RESP_OK;
-} // end of staFreeSensorRecord
+    }
+done:
+    stationSysExitCritical();
+    return status;
+}
 
-
-gMonStatus  staCpySensorRecord(gmonSensorRecord_t  *dst, gmonSensorRecord_t *src, size_t  sz)
-{
+gMonStatus  staCpySensorEvent(gmonEvent_t  *dst, gmonEvent_t *src, size_t  sz) {
     unsigned int  idx = 0;
     gMonStatus status = GMON_RESP_OK;
-    if(dst == NULL || src == NULL || sz < 0) {
+    if(dst == NULL || src == NULL || sz == 0) {
         return GMON_RESP_ERRARGS;
     }
     for(idx = 0; idx < sz; idx++) {
@@ -61,77 +61,41 @@ gMonStatus  staCpySensorRecord(gmonSensorRecord_t  *dst, gmonSensorRecord_t *src
             status = GMON_RESP_ERRMEM;
             break;
         }
-    } // end of for lopp
+    }
     if(status == GMON_RESP_OK) {
-        XMEMCPY(dst, src, sizeof(gmonSensorRecord_t) * sz);
+        XMEMCPY(dst, src, sizeof(gmonEvent_t) * sz);
     }
     return status;
-} // end of staCpySensorRecord
+}
 
 
-static gMonStatus  staAddNewRecordToMsgBuf(stationSysMsgbox_t msgbuf, gmonSensorRecord_t *msg, uint32_t block_time)
-{
-    gMonStatus status = GMON_RESP_OK;
-    status = staSysMsgBoxPut(msgbuf, (void *)msg, block_time);
+static gMonStatus  staAddEventToMsgPipe(
+    stationSysMsgbox_t msgbuf, gmonEvent_t *msg, uint32_t block_time
+) {
+    gMonStatus status = staSysMsgBoxPut(msgbuf, (void *)msg, block_time);
     if(status != GMON_RESP_OK) {
         // if message box is full, abandon the oldest item of the message box, ensure all
         // available items in the message box are up-to-date.
-        gmonSensorRecord_t  *oldest_record = NULL;
+        gmonEvent_t  *oldest_record = NULL;
         status = staSysMsgBoxGet(msgbuf, (void **)&oldest_record, block_time);
         XASSERT((status == GMON_RESP_OK) && (oldest_record != NULL));
-        staFreeSensorRecord(oldest_record);
+        staFreeSensorEvent(oldest_record);
         // try adding new record again
         status = staSysMsgBoxPut(msgbuf, (void *)msg, block_time);
         XASSERT(status == GMON_RESP_OK);
     }
     return status;
-} // end of staAddNewRecordToMsgBuf
+}
 
-
-static gMonStatus  staNotifyOthersWithNewRecord(gmonSensorRecord_t *new_record, uint32_t block_time)
-{
-    gmonSensorRecord_t  *record_tmp = NULL;
-    gMonStatus status = GMON_RESP_OK;
-    unsigned char all_data_ready = 1;
-
-    staAddNewRecordToMsgBuf(sensor_to_ctrldev_buf, new_record, block_time);
-    if(new_record->flgs.avail_soil_moist != 0) {
-        gmon_latest_sensor_data->flgs.avail_soil_moist = new_record->flgs.avail_soil_moist;
-        gmon_latest_sensor_data->soil_moist = new_record->soil_moist;
-    }
-    if(new_record->flgs.avail_air_temp != 0) {
-        gmon_latest_sensor_data->flgs.avail_air_temp = new_record->flgs.avail_air_temp;
-        gmon_latest_sensor_data->air_temp = new_record->air_temp;
-    }
-    if(new_record->flgs.avail_air_humid != 0) {
-        gmon_latest_sensor_data->flgs.avail_air_humid = new_record->flgs.avail_air_humid;
-        gmon_latest_sensor_data->air_humid = new_record->air_humid;
-    }
-    if(new_record->flgs.avail_lightness != 0) {
-        gmon_latest_sensor_data->flgs.avail_lightness = new_record->flgs.avail_lightness;
-        gmon_latest_sensor_data->lightness = new_record->lightness;
-    }
-    gmon_latest_sensor_data->curr_ticks = new_record->curr_ticks;
-    gmon_latest_sensor_data->curr_days  = new_record->curr_days ;
-    all_data_ready &= gmon_latest_sensor_data->flgs.avail_soil_moist;
-    all_data_ready &= gmon_latest_sensor_data->flgs.avail_air_temp ;
-    all_data_ready &= gmon_latest_sensor_data->flgs.avail_air_humid;
-    all_data_ready &= gmon_latest_sensor_data->flgs.avail_lightness;
-    if(all_data_ready != 0) {
-        record_tmp = staAllocSensorRecord();
-        status = staCpySensorRecord(record_tmp, gmon_latest_sensor_data, (size_t)0x1);
-        staAddNewRecordToMsgBuf(sensor_to_netconn_buf, record_tmp, block_time);
-        gmon_latest_sensor_data->flgs.avail_soil_moist = 0;
-        gmon_latest_sensor_data->flgs.avail_air_temp   = 0;
-        gmon_latest_sensor_data->flgs.avail_air_humid  = 0;
-        gmon_latest_sensor_data->flgs.avail_lightness  = 0;
-    }
+static gMonStatus  staNotifyOthersWithEvent(gardenMonitor_t *gmon, gmonEvent_t *event, uint32_t block_time) {
+    gmonEvent_t  *event_copy = staAllocSensorEvent();
+    gMonStatus status = staCpySensorEvent(event_copy, event, (size_t)0x1);
+    staAddEventToMsgPipe(gmon->msgpipe.sensor2display, event, block_time);
+    staAddEventToMsgPipe(gmon->msgpipe.sensor2net, event_copy, block_time);
     return status;
-} // end of staNotifyOthersWithNewRecord
+}
 
-
-static void staAdjustSensorReadInterval(gardenMonitor_t *gmon)
-{
+static void staAdjustSensorReadInterval(gardenMonitor_t *gmon) {
     unsigned int new_refresh_time = 0;
     //// bulb_status = gmon->outdev.bulb.status;
     gMonOutDevStatus  pump_status = gmon->outdev.pump.status;
@@ -144,11 +108,10 @@ static void staAdjustSensorReadInterval(gardenMonitor_t *gmon)
         new_refresh_time = gmon->sensor_read_interval.default_ms;
     }
     if(new_refresh_time != gmon->sensor_read_interval.curr_ms) {
-        gmon->sensor_read_interval.curr_ms     = new_refresh_time;
+        gmon->sensor_read_interval.curr_ms = new_refresh_time;
         gmon->outdev.pump.sensor_read_interval = new_refresh_time;
     }
-} // end of staAdjustSensorReadInterval
-
+}
 
 gMonStatus  staSetDefaultSensorReadInterval(gardenMonitor_t *gmon, unsigned int new_interval)
 {
@@ -163,11 +126,9 @@ gMonStatus  staSetDefaultSensorReadInterval(gardenMonitor_t *gmon, unsigned int 
         status = GMON_RESP_ERRARGS;
     }
     return status;
-} // end of staSetDefaultSensorReadInterval
+}
 
-
-gMonStatus  stationIOinit(gardenMonitor_t *gmon)
-{
+gMonStatus  stationIOinit(gardenMonitor_t *gmon) {
     gMonStatus status = GMON_RESP_OK;
     if(gmon == NULL) { status = GMON_RESP_ERRARGS; goto done;}
     status = staSetDefaultSensorReadInterval(gmon, (unsigned int)GMON_CFG_SENSOR_READ_INTERVAL_MS);
@@ -185,24 +146,36 @@ gMonStatus  stationIOinit(gardenMonitor_t *gmon)
     status = GMON_OUTDEV_INIT_FN_BULB(&gmon->outdev.bulb);
     if(status < 0) { goto done; }
     staAdjustSensorReadInterval(gmon);
-    sensor_to_ctrldev_buf = staSysMsgBoxCreate( GMON_CFG_NUM_SENSOR_RECORDS_KEEP );
-    XASSERT(sensor_to_ctrldev_buf != NULL);
-    sensor_to_netconn_buf = staSysMsgBoxCreate( GMON_CFG_NUM_SENSOR_RECORDS_KEEP );
-    XASSERT(sensor_to_netconn_buf != NULL);
-    XMEMSET(&gmon_avail_record_list[0], 0x00, sizeof(gmonSensorRecord_t) * GMON_SENSOR_RECORD_LIST_SZ);
-    gmon_latest_sensor_data = staAllocSensorRecord();
+    gmon->msgpipe.sensor2display = staSysMsgBoxCreate( GMON_CFG_NUM_SENSOR_RECORDS_KEEP );
+    XASSERT(gmon->msgpipe.sensor2display != NULL);
+    gmon->msgpipe.sensor2net = staSysMsgBoxCreate( GMON_CFG_NUM_SENSOR_RECORDS_KEEP );
+    XASSERT(gmon->msgpipe.sensor2net != NULL);
+    XMEMSET(&gmon_avail_record_list[0], 0x00, sizeof(gmonEvent_t) * GMON_SENSOR_RECORD_LIST_SZ);
 done:
     return status;
 } // end of stationIOinit
 
 
-gMonStatus  stationIOdeinit(void)
-{
+gMonStatus  stationIOdeinit(gardenMonitor_t *gmon) {
     gMonStatus status = GMON_RESP_OK;
-    staSysMsgBoxDelete( &sensor_to_ctrldev_buf );
-    XASSERT(sensor_to_ctrldev_buf == NULL);
-    staSysMsgBoxDelete( &sensor_to_netconn_buf ); // TODO: verify
-    XASSERT(sensor_to_netconn_buf == NULL);
+    gmonEvent_t  *event_to_free = NULL;
+
+    // Free any remaining events in the message queues
+    while(staSysMsgBoxGet(gmon->msgpipe.sensor2display, (void **)&event_to_free, 0) == GMON_RESP_OK) {
+        staFreeSensorEvent(event_to_free);
+        event_to_free = NULL;
+    }
+    while(staSysMsgBoxGet(gmon->msgpipe.sensor2net, (void **)&event_to_free, 0) == GMON_RESP_OK) {
+        staFreeSensorEvent(event_to_free);
+        event_to_free = NULL;
+    }
+
+    staSysMsgBoxDelete( &gmon->msgpipe.sensor2display );
+    XASSERT(gmon->msgpipe.sensor2display == NULL);
+    staSysMsgBoxDelete( &gmon->msgpipe.sensor2net );
+    XASSERT(gmon->msgpipe.sensor2net == NULL);
+
+    // Deinitialize output devices and sensors
     status = GMON_OUTDEV_DEINIT_FN_BULB();
     if(status < 0) { goto done; }
     status = GMON_OUTDEV_DEINIT_FN_FAN();
@@ -219,53 +192,62 @@ done:
 } // end of stationIOdeinit
 
 
-void  stationSensorReaderTaskFn(void* params)
-{
-    gardenMonitor_t    *gmon = NULL;
-    gmonSensorRecord_t *new_record = NULL;
+void  stationSensorReaderTaskFn(void* params) {
     const uint32_t  block_time = 0;
-    unsigned int    soil_moist = 0;
-    unsigned int    lightness = 0;
-    float  air_temp   = 0.f;
-    float  air_humid  = 0.f;
+    unsigned int    soil_moist = 0, lightness = 0,  curr_ticks = 0,  curr_days  = 0;
+    float  air_temp   = 0.f,  air_humid  = 0.f;
     gMonStatus status = GMON_RESP_OK;
+    gmonEvent_t        *event = NULL;
 
-    gmon = (gardenMonitor_t *)params;
+    gardenMonitor_t *gmon = (gardenMonitor_t *)params;
     while(1) {
-        new_record = staAllocSensorRecord();
-        // read value from sensors to the message queue (for communicating device-controller task)
+        curr_ticks = stationGetTicksPerDay();
+        curr_days  = stationGetDays();
+
+        // 1. Read Soil Moisture and create an event
         status = GMON_SENSOR_READ_FN_SOIL_MOIST(&soil_moist);
         if(status == GMON_RESP_OK) {
-            new_record->soil_moist = soil_moist;
-            new_record->flgs.avail_soil_moist = 1;
-        } else {
-            new_record->flgs.avail_soil_moist = 0;
+            event = staAllocSensorEvent();
+            if (event != NULL) {
+                event->event_type      = GMON_EVENT_SOIL_MOISTURE_UPDATED;
+                event->data.soil_moist = soil_moist;
+                event->curr_ticks      = curr_ticks;
+                event->curr_days       = curr_days;
+                staNotifyOthersWithEvent(gmon, event, block_time);
+            }
         }
+
+        // 2. Read Lightness and create an event (based on the instruction, lightness is valid for THRESHOLD_EXCEEDED)
         status = staDaylightTrackRefreshSensorData(&lightness);
         if(status == GMON_RESP_OK) {
-            new_record->lightness = lightness;
-            new_record->flgs.avail_lightness  = 1;
-        } else {
-            new_record->flgs.avail_lightness  = 0;
+            event = staAllocSensorEvent();
+            if (event != NULL) {
+                event->event_type      = GMON_EVENT_LIGHTNESS_UPDATED;
+                event->data.lightness  = lightness;
+                event->curr_ticks      = curr_ticks;
+                event->curr_days       = curr_days;
+                staNotifyOthersWithEvent(gmon, event, block_time);
+            }
         }
+
+        // 3. Read Air Temperature and Humidity and create an event
         status = staAirCondTrackRefreshSensorData(&air_temp, &air_humid);
         if(status == GMON_RESP_OK) {
-            new_record->air_temp  = air_temp ;
-            new_record->air_humid = air_humid;
-            new_record->flgs.avail_air_temp   = 1;
-            new_record->flgs.avail_air_humid  = 1;
-        } else {
-            new_record->flgs.avail_air_temp   = 0;
-            new_record->flgs.avail_air_humid  = 0;
-        } // end of if all read data are OK from sensor
-        new_record->curr_ticks = stationGetTicksPerDay();
-        new_record->curr_days  = stationGetDays();
-        status = staNotifyOthersWithNewRecord(new_record, block_time);
+            event = staAllocSensorEvent();
+            if (event != NULL) {
+                event->event_type      = GMON_EVENT_AIR_TEMP_UPDATED;
+                event->data.air_temp   = air_temp ;
+                event->data.air_humid  = air_humid;
+                event->curr_ticks      = curr_ticks;
+                event->curr_days       = curr_days;
+                staNotifyOthersWithEvent(gmon, event, block_time);
+            }
+        }
+
         stationSysDelayMs(gmon->sensor_read_interval.curr_ms); // sleep for a while
         // check any of output device is working, then reduce the daley time of this task
         // e.g. pump is working, so it needs to refresh data from soil moisture sensor more frequently.
         staAdjustSensorReadInterval(gmon);
-    } // end of loop
+    }
 } // end of stationSensorReaderTaskFn
-
 

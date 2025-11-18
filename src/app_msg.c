@@ -64,7 +64,18 @@ typedef struct {
     unsigned  char  *val_pos[GMON_APPMSG_NUM_RECORDS];
 } gmonMsgItem_t;
 
-extern stationSysMsgbox_t  sensor_to_netconn_buf;
+typedef struct {
+    GMON_SENSORDATA_COMMON_FIELDS;
+    unsigned int  curr_ticks;
+    unsigned int  curr_days ;
+    struct {
+        uint8_t air_val_written:1;
+        uint8_t soil_val_written:1;
+        uint8_t light_val_written:1;
+    } flgs;
+} gmonSensorRecord_t;
+
+static gmonSensorRecord_t  gmon_latest_sensor_data[GMON_APPMSG_NUM_RECORDS] = {0};
 
 static gmonStr_t  gmon_appmsg_outflight;
 static gmonStr_t  gmon_appmsg_inflight;
@@ -77,24 +88,22 @@ static gmonMsgItem_t gmon_appmsg_log_records[GMON_APPMSG_NUM_ITEMS_PER_RECORD] =
     {(const char *)&(GMON_APPMSG_DATA_NAME_LIGHT    ),(unsigned short)GMON_APPMSG_DATA_SZ_LIGHT    , },
     {(const char *)&(GMON_APPMSG_DATA_NAME_TICKS    ),(unsigned short)GMON_APPMSG_DATA_SZ_TICKS    , },
     {(const char *)&(GMON_APPMSG_DATA_NAME_DAYS     ),(unsigned short)GMON_APPMSG_DATA_SZ_DAYS     , },
-}; // gmon_appmsg_log_records
+};
 
 static gmonMsgItem_t gmon_appmsg_ctrl_threshold[GMON_APPMSG_NUM_ITEMS_PER_THRESHOLD_NODE] = {
     {(const char *)&(GMON_APPMSG_DATA_NAME_SOILMOIST),(unsigned short)GMON_APPMSG_DATA_SZ_SOILMOIST, },
     {(const char *)&(GMON_APPMSG_DATA_NAME_AIRTEMP  ),(unsigned short)GMON_APPMSG_DATA_SZ_AIRTEMP  , },
     {(const char *)&(GMON_APPMSG_DATA_NAME_LIGHT    ),(unsigned short)GMON_APPMSG_DATA_SZ_LIGHT    , },
     {(const char *)&(GMON_APPMSG_DATA_NAME_DAYLENGTH),(unsigned short)GMON_APPMSG_DATA_SZ_DAYLENGTH, },
-}; // gmon_appmsg_ctrl_threshold
+};
 
 #define  GMON_NUM_JSON_TOKEN_DECODE  18
 jsmntok_t    gmon_json_decode_token[GMON_NUM_JSON_TOKEN_DECODE];
 jsmn_parser  gmon_json_decoder;
 
 
-static void staAppMsgCalcRequiredBufSz(unsigned short *outlen, unsigned short *inlen)
-{
-    unsigned short  len = 0;
-    unsigned short  idx = 0;
+static void staAppMsgCalcRequiredBufSz(unsigned short *outlen, unsigned short *inlen) {
+    unsigned short  len = 0, idx = 0;
     *outlen  = 5 + XSTRLEN(GMON_APPMSG_DATA_NAME_RECORDS) + 2;
     len  = 2 + 3 * GMON_APPMSG_NUM_ITEMS_PER_RECORD + (GMON_APPMSG_NUM_ITEMS_PER_RECORD - 1);
     for(idx = 0; idx < GMON_APPMSG_NUM_ITEMS_PER_RECORD; idx++) {
@@ -111,8 +120,7 @@ static void staAppMsgCalcRequiredBufSz(unsigned short *outlen, unsigned short *i
         len += XSTRLEN(gmon_appmsg_ctrl_threshold[idx].name) + gmon_appmsg_ctrl_threshold[idx].val_sz;
     }
     *inlen  += len;
-} // end of staAppMsgCalcRequiredBufSz
-
+}
 
 static  void staParseFixedPartsOutAppMsg(gmonStr_t *outmsg)
 {
@@ -154,12 +162,10 @@ static  void staParseFixedPartsOutAppMsg(gmonStr_t *outmsg)
 
 static void  staAppMsgOutResetAllRecords(void) {
    gmon_appmsg_outflight_num_avail_records = GMON_APPMSG_NUM_RECORDS;
-} // end of staAppMsgOutResetAllRecords
+    XMEMSET(&gmon_latest_sensor_data[0], 0x00, GMON_APPMSG_NUM_RECORDS * sizeof(gmonSensorRecord_t));
+}
 
-
-
-gMonStatus  staAppMsgInit(void)
-{
+gMonStatus  staAppMsgInit(void) {
     unsigned char  *buf = NULL;
     gMonStatus status = GMON_RESP_OK;
     // parse fixed parts of outflight application messages on initialization
@@ -170,74 +176,49 @@ gMonStatus  staAppMsgInit(void)
     staParseFixedPartsOutAppMsg(&gmon_appmsg_outflight);
     staAppMsgOutResetAllRecords();
     return status;
-} // end of staAppMsgInit
+}
 
-
-gMonStatus  staAppMsgDeinit(void)
-{
+gMonStatus  staAppMsgDeinit(void) {
     XMEMFREE(gmon_appmsg_outflight.data);
     gmon_appmsg_outflight.data = NULL;
     gmon_appmsg_inflight.data  = NULL;
     return GMON_RESP_OK;
-} // end of staAppMsgDeinit
+}
 
-
-gMonStatus  staAddRecordToAppMsg(gmonSensorRecord_t  *new_record)
-{
-    if(new_record == NULL) { return GMON_RESP_ERRARGS; }
-    gMonStatus status = GMON_RESP_OK;
+static void  renderRecords2AppMsg(gmonSensorRecord_t *record) {
     uint32_t   num_chr = 0;
     short      idx = 0, jdx = 0;
-    if(gmon_appmsg_outflight_num_avail_records > 0) {
-        idx = GMON_APPMSG_NUM_RECORDS - gmon_appmsg_outflight_num_avail_records;
-        gmon_appmsg_outflight_num_avail_records--;
-        for(jdx = 0; jdx < GMON_APPMSG_NUM_ITEMS_PER_RECORD; jdx++) {
-            XMEMSET(gmon_appmsg_log_records[jdx].val_pos[idx], GMON_JSON_WHITESPACE, gmon_appmsg_log_records[jdx].val_sz);
-        }
-        num_chr = staCvtUNumToStr(gmon_appmsg_log_records[0].val_pos[idx], new_record->soil_moist);
-        XASSERT(num_chr <= gmon_appmsg_log_records[0].val_sz);
-        num_chr = staCvtUNumToStr(gmon_appmsg_log_records[3].val_pos[idx], new_record->lightness );
-        XASSERT(num_chr <= gmon_appmsg_log_records[3].val_sz);
-        num_chr = staCvtUNumToStr(gmon_appmsg_log_records[4].val_pos[idx], new_record->curr_ticks);
-        XASSERT(num_chr <= gmon_appmsg_log_records[4].val_sz);
-        num_chr = staCvtUNumToStr(gmon_appmsg_log_records[5].val_pos[idx], new_record->curr_days );
-        XASSERT(num_chr <= gmon_appmsg_log_records[5].val_sz);
-        num_chr = staCvtFloatToStr(gmon_appmsg_log_records[1].val_pos[idx], new_record->air_temp, 0x2);
-        XASSERT(num_chr <= gmon_appmsg_log_records[1].val_sz);
-        num_chr = staCvtFloatToStr(gmon_appmsg_log_records[2].val_pos[idx], new_record->air_humid, 0x2);
-        XASSERT(num_chr <= gmon_appmsg_log_records[2].val_sz);
-    } else {
-        status = GMON_RESP_SKIP;
+    XASSERT(gmon_appmsg_outflight_num_avail_records > 0);
+    idx = GMON_APPMSG_NUM_RECORDS - gmon_appmsg_outflight_num_avail_records;
+    gmon_appmsg_outflight_num_avail_records--;
+    for(jdx = 0; jdx < GMON_APPMSG_NUM_ITEMS_PER_RECORD; jdx++) {
+        XMEMSET(gmon_appmsg_log_records[jdx].val_pos[idx], GMON_JSON_WHITESPACE, gmon_appmsg_log_records[jdx].val_sz);
     }
-    return status;
-} // end of staAddRecordToAppMsg
+    num_chr = staCvtUNumToStr(gmon_appmsg_log_records[0].val_pos[idx], record->soil_moist);
+    XASSERT(num_chr <= gmon_appmsg_log_records[0].val_sz);
+    num_chr = staCvtUNumToStr(gmon_appmsg_log_records[3].val_pos[idx], record->lightness );
+    XASSERT(num_chr <= gmon_appmsg_log_records[3].val_sz);
+    num_chr = staCvtUNumToStr(gmon_appmsg_log_records[4].val_pos[idx], record->curr_ticks);
+    XASSERT(num_chr <= gmon_appmsg_log_records[4].val_sz);
+    num_chr = staCvtUNumToStr(gmon_appmsg_log_records[5].val_pos[idx], record->curr_days );
+    XASSERT(num_chr <= gmon_appmsg_log_records[5].val_sz);
+    num_chr = staCvtFloatToStr(gmon_appmsg_log_records[1].val_pos[idx], record->air_temp, 0x2);
+    XASSERT(num_chr <= gmon_appmsg_log_records[1].val_sz);
+    num_chr = staCvtFloatToStr(gmon_appmsg_log_records[2].val_pos[idx], record->air_humid, 0x2);
+    XASSERT(num_chr <= gmon_appmsg_log_records[2].val_sz);
+} // end of renderRecords2AppMsg
 
 
-gMonStatus staRefreshAppMsgOutflight(void)
-{
-    const uint32_t  block_time = 0;
-    gmonSensorRecord_t  *new_record = NULL;
-    gMonStatus status = GMON_RESP_OK;
-    uint8_t  num_records_read = 0;
-    do {
-        status = staSysMsgBoxGet(sensor_to_netconn_buf, (void **)&new_record, block_time);
-        if(new_record != NULL) {
-            // contruct JSON-data with sensor records, append to application bytes
-            staAddRecordToAppMsg(new_record);
-            staFreeSensorRecord(new_record);
-            new_record = NULL;
-            num_records_read++;
-        }
-    } while (status == GMON_RESP_OK);
-    // TODO: fill zero to all other items that are not updated with new value
+gMonStatus staRefreshAppMsgOutflight(gardenMonitor_t *gmon) {
+    for (uint8_t idx = 0; idx < GMON_APPMSG_NUM_RECORDS; idx++) {
+        renderRecords2AppMsg(&gmon_latest_sensor_data[idx]);
+    }
     staAppMsgOutResetAllRecords();
-    status = (num_records_read == 0)? GMON_RESP_SKIP: GMON_RESP_OK;
-    return status;
-} // end of staRefreshAppMsgOutflight
+    return GMON_RESP_OK;
+}
 
 
-static  gMonStatus  staDecodeMsgCvtStrToInt(jsmntok_t *tokn, int *out)
-{
+static  gMonStatus  staDecodeMsgCvtStrToInt(jsmntok_t *tokn, int *out) {
     unsigned char  *user_var_name = NULL;
     int    user_var_len  = 0;
     gMonStatus status = GMON_RESP_OK;
@@ -248,20 +229,17 @@ static  gMonStatus  staDecodeMsgCvtStrToInt(jsmntok_t *tokn, int *out)
         *out = staCvtIntFromStr(user_var_name, user_var_len);
     }
     return status;
-} // end of staDecodeMsgCvtStrToInt
+}
 
 
 // decode JSON-based message sent by remote backend server, the message may contain modification request
 // e.g. threshold to trigger each output device, time interval to send logs to remote backend service ...
 // the function below checks each node of the JSON message, update everything specified by remote user after
 // successful decoding process.
-gMonStatus  staDecodeAppMsgInflight(gardenMonitor_t *gmon)
-{
+gMonStatus  staDecodeAppMsgInflight(gardenMonitor_t *gmon) {
     unsigned char  *user_var_name = NULL;
-    int    user_var_len  = 0;
-    int    parsed_int   = 0;
-    short  r  = 0;
-    short  idx = 0;
+    int    user_var_len  = 0, parsed_int   = 0;
+    short  r  = 0, idx = 0;
     gMonStatus status = GMON_RESP_OK;
 
     jsmn_init(&gmon_json_decoder);
@@ -314,13 +292,63 @@ gMonStatus  staDecodeAppMsgInflight(gardenMonitor_t *gmon)
 } // end of staDecodeAppMsgInflight
 
 
-gmonStr_t* staGetAppMsgOutflight(void)
-{
+gmonStr_t* staGetAppMsgOutflight(void) {
     return &gmon_appmsg_outflight;
-} // end of staGetAppMsgOutflight
+}
 
-gmonStr_t*  staGetAppMsgInflight(void)
-{
+gmonStr_t*  staGetAppMsgInflight(void) {
     return &gmon_appmsg_inflight;
-} // end of staGetAppMsgInflight
+}
 
+static void staUpdateLastRecord(gmonSensorRecord_t *records, gmonEvent_t *evt) {
+    // `records[0]` represents the newest/currently aggregating record.
+    // `records[GMON_APPMSG_NUM_RECORDS - 1]` represents the oldest record.
+
+    // Check if the current aggregating record (`records[0]`) has collected all sensor data types.
+    if (records[0].flgs.air_val_written && records[0].flgs.soil_val_written && records[0].flgs.light_val_written) {
+        // If the current record is complete, shift all existing records to make space for a new one at `record[0]`.
+        // This effectively discards the oldest record (at `record[GMON_APPMSG_NUM_RECORDS - 1]`).
+        for (int i = GMON_APPMSG_NUM_RECORDS - 1; i > 0; i--) {
+            records[i] = records[i-1];
+        }
+        // Clear the new `records[0]` to prepare it for fresh aggregation of incoming events.
+        XMEMSET(&records[0], 0, sizeof(gmonSensorRecord_t));
+    }
+
+    // Update the current aggregating record (`record[0]`) with data from the new event.
+    records[0].curr_ticks = evt->curr_ticks;
+    records[0].curr_days  = evt->curr_days ;
+
+    switch(evt->event_type) {
+        case GMON_EVENT_SOIL_MOISTURE_UPDATED:
+            records[0].soil_moist = evt->data.soil_moist;
+            records[0].flgs.soil_val_written = 1;
+            break;
+        case GMON_EVENT_LIGHTNESS_UPDATED:
+            records[0].lightness = evt->data.lightness;
+            records[0].flgs.light_val_written = 1;
+            break;
+        case GMON_EVENT_AIR_TEMP_UPDATED:
+            records[0].air_temp = evt->data.air_temp;
+            records[0].air_humid = evt->data.air_humid;
+            records[0].flgs.air_val_written = 1;
+            break;
+        default:
+            break;
+    }
+}
+
+void  stationSensorDataAggregatorTaskFn(void *params) {
+    gardenMonitor_t    *gmon = (gardenMonitor_t *)params;
+    while (1) {
+        const uint32_t  block_time = 5000;
+        gmonEvent_t  *new_evt = NULL;
+        gMonStatus status = staSysMsgBoxGet(gmon->msgpipe.sensor2net, (void **)&new_evt, block_time);
+        if(new_evt != NULL) {
+            configASSERT(status == GMON_RESP_OK);
+            staUpdateLastRecord(gmon_latest_sensor_data, new_evt);
+            staFreeSensorEvent(new_evt);
+            new_evt = NULL;
+        }
+    }
+}

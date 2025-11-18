@@ -146,49 +146,45 @@ gMonStatus  staDisplayDeInit(gardenMonitor_t *gmon)
 
 
 
-void  staUpdatePrintStrSensorData(gardenMonitor_t  *gmon, gmonSensorRecord_t *new_record)
+void  staUpdatePrintStrSensorData(gardenMonitor_t  *gmon, gmonEvent_t *new_evt)
 {
     unsigned char  *dst_buf = NULL;
     const    char  *label_buf = NULL;
     uint8_t  num_chr = 0;
 
     stationSysEnterCritical();
-    {
-        if(new_record->flgs.avail_soil_moist) {
-            dst_buf = gmon_print_sensor_record_var_content_ptr[0];
-            XMEMSET(dst_buf, 0x20, gmon_print_sensor_record_fix_content_idx[1]);
-            num_chr = staCvtUNumToStr(dst_buf, new_record->soil_moist);
-            XASSERT(num_chr <= gmon_print_sensor_record_fix_content_idx[1]);
-            // describe moisture in textual way
-            if(new_record->soil_moist > gmon->outdev.pump.threshold) {
-                label_buf = GMON_PRINT_WORDS_DRY;
-            } else if(new_record->soil_moist > (gmon->outdev.pump.threshold >> 1)) {
-                label_buf = GMON_PRINT_WORDS_MOIST;
-            } else {
-                label_buf = GMON_PRINT_WORDS_WET;
-            }
-            dst_buf = gmon_print_sensor_record_var_content_ptr[1];
-            XMEMSET(dst_buf, 0x20, gmon_print_sensor_record_fix_content_idx[3]);
-            XMEMCPY(dst_buf, label_buf, XSTRLEN(label_buf));
+    if (new_evt->event_type == GMON_EVENT_SOIL_MOISTURE_UPDATED) {
+        dst_buf = gmon_print_sensor_record_var_content_ptr[0];
+        XMEMSET(dst_buf, 0x20, gmon_print_sensor_record_fix_content_idx[1]);
+        num_chr = staCvtUNumToStr(dst_buf, new_evt->data.soil_moist);
+        XASSERT(num_chr <= gmon_print_sensor_record_fix_content_idx[1]);
+        // describe moisture in textual way
+        if(new_evt->data.soil_moist > gmon->outdev.pump.threshold) {
+            label_buf = GMON_PRINT_WORDS_DRY;
+        } else if(new_evt->data.soil_moist > (gmon->outdev.pump.threshold >> 1)) {
+            label_buf = GMON_PRINT_WORDS_MOIST;
+        } else {
+            label_buf = GMON_PRINT_WORDS_WET;
         }
-        if(new_record->flgs.avail_air_temp) {
-            dst_buf = gmon_print_sensor_record_var_content_ptr[2];
-            XMEMSET(dst_buf, 0x20, gmon_print_sensor_record_fix_content_idx[5]);
-            num_chr = staCvtFloatToStr(dst_buf, new_record->air_temp, 0x1);
-            XASSERT(num_chr <= gmon_print_sensor_record_fix_content_idx[5]);
-        }
-        if(new_record->flgs.avail_air_humid) {
-            dst_buf = gmon_print_sensor_record_var_content_ptr[3];
-            XMEMSET(dst_buf, 0x20, gmon_print_sensor_record_fix_content_idx[7]);
-            num_chr = staCvtFloatToStr(dst_buf, new_record->air_humid, 0x1);
-            XASSERT(num_chr <= gmon_print_sensor_record_fix_content_idx[7]);
-        }
-        if(new_record->flgs.avail_lightness) {
-            dst_buf = gmon_print_sensor_record_var_content_ptr[4];
-            XMEMSET(dst_buf, 0x20, gmon_print_sensor_record_fix_content_idx[9]);
-            num_chr = staCvtUNumToStr(dst_buf, new_record->lightness);
-            XASSERT(num_chr <= gmon_print_sensor_record_fix_content_idx[9]);
-        }
+        dst_buf = gmon_print_sensor_record_var_content_ptr[1];
+        XMEMSET(dst_buf, 0x20, gmon_print_sensor_record_fix_content_idx[3]);
+        XMEMCPY(dst_buf, label_buf, XSTRLEN(label_buf));
+    }
+    if (new_evt->event_type == GMON_EVENT_AIR_TEMP_UPDATED) {
+        dst_buf = gmon_print_sensor_record_var_content_ptr[2];
+        XMEMSET(dst_buf, 0x20, gmon_print_sensor_record_fix_content_idx[5]);
+        num_chr = staCvtFloatToStr(dst_buf, new_evt->data.air_temp, 0x1);
+        XASSERT(num_chr <= gmon_print_sensor_record_fix_content_idx[5]);
+        dst_buf = gmon_print_sensor_record_var_content_ptr[3];
+        XMEMSET(dst_buf, 0x20, gmon_print_sensor_record_fix_content_idx[7]);
+        num_chr = staCvtFloatToStr(dst_buf, new_evt->data.air_humid, 0x1);
+        XASSERT(num_chr <= gmon_print_sensor_record_fix_content_idx[7]);
+    }
+    if (new_evt->event_type == GMON_EVENT_LIGHTNESS_UPDATED) {
+        dst_buf = gmon_print_sensor_record_var_content_ptr[4];
+        XMEMSET(dst_buf, 0x20, gmon_print_sensor_record_fix_content_idx[9]);
+        num_chr = staCvtUNumToStr(dst_buf, new_evt->data.lightness);
+        XASSERT(num_chr <= gmon_print_sensor_record_fix_content_idx[9]);
     }
     stationSysExitCritical();
 } // end of staUpdatePrintStrSensorData

@@ -1,6 +1,6 @@
 #include "station_include.h"
+#include "station_types.h"
 
-extern stationSysMsgbox_t  sensor_to_ctrldev_buf;
 // The parameters below are used to store default maximum continuously working time of user's bulb
 // , since the maximum working time of a bulb would be adjust every 24 hours for unstable natural light environment
 // e.g. the plant you grow need 7 hours growing light every day but your garden can only provide 4 hours natural
@@ -155,37 +155,40 @@ gMonOutDevStatus  staOutDevMeasureWorkingTime(gMonOutDev_t *dev)
 } // end of staOutDevMeasureWorkingTime
 
 
-void  stationOutDevCtrlTaskFn(void* params)
-{
+void  stationOutDevCtrlTaskFn(void* params) {
     const uint32_t  block_time = GMON_MAX_BLOCKTIME_SYS_MSGBOX;
-    gardenMonitor_t     *gmon = NULL;
-    gmonSensorRecord_t  *new_record = NULL;
+    gmonEvent_t  *new_evt = NULL;
     gMonStatus status = GMON_RESP_OK;
 
-    gmon = (gardenMonitor_t *)params;
+    gardenMonitor_t     *gmon =  (gardenMonitor_t *)params;
     while(1) {
-        status = staSysMsgBoxGet(sensor_to_ctrldev_buf, (void **)&new_record, block_time);
-        if(status == GMON_RESP_OK && new_record != NULL) {
-            // extract data, read record data, check them with threshold data received
-            // from remote backend service
-            if(new_record->flgs.avail_soil_moist) {
-                status = GMON_OUTDEV_TRIG_FN_PUMP(&gmon->outdev.pump, new_record->soil_moist);
+        status = staSysMsgBoxGet(gmon->msgpipe.sensor2display, (void **)&new_evt, block_time);
+        if(status == GMON_RESP_OK && new_evt != NULL) {
+            switch (new_evt->event_type) {
+                case GMON_EVENT_SOIL_MOISTURE_UPDATED:
+                    status = GMON_OUTDEV_TRIG_FN_PUMP(&gmon->outdev.pump, new_evt->data.soil_moist);
+                    break;
+                case GMON_EVENT_AIR_TEMP_UPDATED:
+                    gmon->outdev.fan.sensor_read_interval = staGetTicksSinceLastAirCondRecording();
+                    status = GMON_OUTDEV_TRIG_FN_FAN(&gmon->outdev.fan  , new_evt->data.air_temp);
+                    break;
+                case GMON_EVENT_LIGHTNESS_UPDATED:
+                    staRefreshBulbMaxWorktime(&gmon->outdev.bulb);
+                    status = GMON_OUTDEV_TRIG_FN_BULB(&gmon->outdev.bulb, new_evt->data.lightness);
+                    break;
+                default:
+                    // Handle other event types or log an error if necessary
+                    break;
             }
-            if(new_record->flgs.avail_air_temp) {
-                gmon->outdev.fan.sensor_read_interval = staGetTicksSinceLastAirCondRecording();
-                status = GMON_OUTDEV_TRIG_FN_FAN(&gmon->outdev.fan  , new_record->air_temp);
-            }
-            if(new_record->flgs.avail_lightness) {
-                staRefreshBulbMaxWorktime(&gmon->outdev.bulb);
-                status = GMON_OUTDEV_TRIG_FN_BULB(&gmon->outdev.bulb, new_record->lightness);
-            }
+
+
             // status of each output device, and data read from sensors, network connectivity status,
             // end of may be passed to display device.
-            staUpdatePrintStrSensorData(gmon, new_record);
+            staUpdatePrintStrSensorData(gmon, new_evt);
             staUpdatePrintStrOutDevStatus(gmon);
-            staFreeSensorRecord(new_record);
-            new_record = NULL;
+            staFreeSensorEvent(new_evt);
+            new_evt = NULL;
         }
     } // end of for loop
-} // end of stationOutDevCtrlTaskFn
+}
 

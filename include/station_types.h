@@ -41,22 +41,29 @@ typedef struct {
     unsigned char  *data;
 } gmonStr_t;
 
+typedef enum {
+    GMON_EVENT_SOIL_MOISTURE_UPDATED,
+    GMON_EVENT_AIR_TEMP_UPDATED,
+    GMON_EVENT_LIGHTNESS_UPDATED,
+} gmonEventType_t;
+
+#define GMON_SENSORDATA_COMMON_FIELDS \
+    float         air_temp; \
+    float         air_humid; \
+    unsigned int  soil_moist; \
+    unsigned int  lightness;
 
 typedef struct {
-    float         air_temp;
-    float         air_humid;
-    unsigned int  soil_moist;
-    unsigned int  lightness;
+    gmonEventType_t event_type;
+    union {
+        GMON_SENSORDATA_COMMON_FIELDS;
+    } data;
     unsigned int  curr_ticks;
     unsigned int  curr_days ;
     struct {
         unsigned char alloc:1;
-        unsigned char avail_air_temp:1;
-        unsigned char avail_air_humid:1;
-        unsigned char avail_soil_moist:1;
-        unsigned char avail_lightness:1;
     } flgs;
-} gmonSensorRecord_t;
+} gmonEvent_t;
 
 
 typedef struct {
@@ -80,53 +87,6 @@ typedef struct {
     gmonStr_t     print_str[GMON_DISPLAY_NUM_PRINT_STRINGS];
     unsigned int  interval_ms;
 } gMonDisplay_t;
-
-
-// collecting all information, network handling objects in this application
-typedef struct {
-    struct {
-        gMonOutDev_t bulb;
-        gMonOutDev_t pump;
-        gMonOutDev_t fan;
-    } outdev;
-    struct {
-        void *sensor_reader;
-        void *dev_controller;
-        void *netconn_handler;
-        void *display_handler;
-    } tasks;
-    struct {
-        unsigned int  default_ms;
-        unsigned int  curr_ms;
-    } sensor_read_interval;
-    struct {
-        void         *handle_obj;
-        unsigned int  interval_ms;
-        struct {
-            gMonStatus  sent;
-            gMonStatus  recv;
-        } status;
-    } netconn;
-    struct {
-        struct {
-            struct {
-                gMonStatus  sensorread;
-                gMonStatus  netconn;
-            } interval;
-            struct {
-                gMonStatus  air_temp;
-                gMonStatus  soil_moist;
-                gMonStatus  lightness;
-                gMonStatus  daylength;
-            } threshold;
-        } status ;
-        struct {
-            unsigned int  ticks;
-            unsigned int  days ;
-        } last_update;
-    } user_ctrl;
-    gMonDisplay_t  display;
-} gardenMonitor_t;
 
 #ifdef __cplusplus
 }

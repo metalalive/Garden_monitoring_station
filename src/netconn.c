@@ -38,21 +38,17 @@ gMonStatus  staSetNetConnTaskInterval(gardenMonitor_t  *gmon, unsigned int new_i
 void  stationNetConnHandlerTaskFn(void* params)
 {
     const int   read_timeout_ms = 6000;
-    gmonStr_t  *app_msg_send = NULL;
-    gmonStr_t  *app_msg_recv = NULL;
-    gardenMonitor_t    *gmon = NULL;
-    gMonStatus  send_status = GMON_RESP_OK;
-    gMonStatus  recv_status = GMON_RESP_OK;
+    gMonStatus  send_status = GMON_RESP_OK, recv_status = GMON_RESP_OK;
     uint8_t     num_reconn = 0;
 
-    gmon = (gardenMonitor_t *)params;
+    gardenMonitor_t    *gmon = (gardenMonitor_t *)params;
     //// staSetNetConnTaskInterval(gmon, (unsigned int)GMON_CFG_NETCONN_START_INTERVAL_MS);
-    app_msg_recv = staGetAppMsgInflight();
-    app_msg_send = staGetAppMsgOutflight();
+    gmonStr_t  *app_msg_recv = staGetAppMsgInflight();
+    gmonStr_t  *app_msg_send = staGetAppMsgOutflight();
 
     while(1) {
         stationSysDelayMs(gmon->netconn.interval_ms);
-        send_status = staRefreshAppMsgOutflight();
+        send_status = staRefreshAppMsgOutflight(gmon);
         if(send_status == GMON_RESP_SKIP) { continue; }
         // pause the working output device(s) that requires to rapidly frequently refresh sensor data due to the network latency.
         staPauseWorkingRealtimeOutdevs(gmon);

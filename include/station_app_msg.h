@@ -9,17 +9,15 @@ gMonStatus  staAppMsgInit(void);
 
 gMonStatus  staAppMsgDeinit(void);
 
-gMonStatus  staAddRecordToAppMsg(gmonSensorRecord_t  *new_record);
-
 gmonStr_t*  staGetAppMsgOutflight(void);
 
 gmonStr_t*  staGetAppMsgInflight(void);
 
-gMonStatus  staRefreshAppMsgOutflight(void);
+gMonStatus  staRefreshAppMsgOutflight(gardenMonitor_t *);
 
-gMonStatus  staDecodeAppMsgInflight(gardenMonitor_t *gmon);
+gMonStatus  staDecodeAppMsgInflight(gardenMonitor_t *);
 
-//// gMonStatus  staRefreshParamFromAppMsg(void);
+void  stationSensorDataAggregatorTaskFn(void* params);
 
 #ifdef __cplusplus
 }

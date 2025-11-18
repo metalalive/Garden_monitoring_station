@@ -32,7 +32,7 @@ static gMonStatus stationDeinit(gardenMonitor_t *gmon)
     if(gmon == NULL) { return GMON_RESP_ERRARGS; }
     gMonStatus status = GMON_RESP_OK;
     status = staDisplayDeInit(gmon);
-    status = stationIOdeinit();
+    status = stationIOdeinit(gmon);
     status = stationNetConnDeinit(gmon->netconn.handle_obj);
     status = stationPlatformDeinit();
     status = staAppMsgDeinit();
@@ -66,6 +66,12 @@ static void  stationInitTaskFn(void *param)
     stationSysCreateTask("outDevCtrler", (stationSysTaskFn_t)stationOutDevCtrlTaskFn,
                          (void *)gmon, task_stack_size, GMON_TASKS_PRIO_MIN, isPrivileged, &task_ptr);
     gmon->tasks.dev_controller = (void *)task_ptr;
+    
+    task_ptr = NULL;
+    task_stack_size = 0x38;
+    stationSysCreateTask("DataAggregator", (stationSysTaskFn_t)stationSensorDataAggregatorTaskFn,
+                         (void *)gmon, task_stack_size, GMON_TASKS_PRIO_MIN, isPrivileged, &task_ptr);
+    gmon->tasks.sensor_data_aggregator_net = (void *)task_ptr;
 
     task_ptr = NULL;
     task_stack_size = 0x158;
