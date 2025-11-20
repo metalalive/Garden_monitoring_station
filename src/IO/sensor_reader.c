@@ -4,7 +4,7 @@
 
 static gmonEvent_t   gmon_avail_record_list[GMON_SENSOR_RECORD_LIST_SZ];
 
-static gmonEvent_t* staAllocSensorEvent(void) {
+gmonEvent_t* staAllocSensorEvent(void) {
     gmonEvent_t *out = NULL;
     uint16_t  idx = 0;
     stationSysEnterCritical();
@@ -87,7 +87,7 @@ static gMonStatus  staAddEventToMsgPipe(
     return status;
 }
 
-static gMonStatus  staNotifyOthersWithEvent(gardenMonitor_t *gmon, gmonEvent_t *event, uint32_t block_time) {
+gMonStatus  staNotifyOthersWithEvent(gardenMonitor_t *gmon, gmonEvent_t *event, uint32_t block_time) {
     gmonEvent_t  *event_copy = staAllocSensorEvent();
     gMonStatus status = staCpySensorEvent(event_copy, event, (size_t)0x1);
     staAddEventToMsgPipe(gmon->msgpipe.sensor2display, event, block_time);
@@ -190,64 +190,3 @@ gMonStatus  stationIOdeinit(gardenMonitor_t *gmon) {
 done:
     return status;
 } // end of stationIOdeinit
-
-
-void  stationSensorReaderTaskFn(void* params) {
-    const uint32_t  block_time = 0;
-    unsigned int    soil_moist = 0, lightness = 0,  curr_ticks = 0,  curr_days  = 0;
-    float  air_temp   = 0.f,  air_humid  = 0.f;
-    gMonStatus status = GMON_RESP_OK;
-    gmonEvent_t        *event = NULL;
-
-    gardenMonitor_t *gmon = (gardenMonitor_t *)params;
-    while(1) {
-        curr_ticks = stationGetTicksPerDay();
-        curr_days  = stationGetDays();
-
-        // 1. Read Soil Moisture and create an event
-        status = GMON_SENSOR_READ_FN_SOIL_MOIST(&soil_moist);
-        if(status == GMON_RESP_OK) {
-            event = staAllocSensorEvent();
-            if (event != NULL) {
-                event->event_type      = GMON_EVENT_SOIL_MOISTURE_UPDATED;
-                event->data.soil_moist = soil_moist;
-                event->curr_ticks      = curr_ticks;
-                event->curr_days       = curr_days;
-                staNotifyOthersWithEvent(gmon, event, block_time);
-            }
-        }
-
-        // 2. Read Lightness and create an event (based on the instruction, lightness is valid for THRESHOLD_EXCEEDED)
-        status = staDaylightTrackRefreshSensorData(&lightness);
-        if(status == GMON_RESP_OK) {
-            event = staAllocSensorEvent();
-            if (event != NULL) {
-                event->event_type      = GMON_EVENT_LIGHTNESS_UPDATED;
-                event->data.lightness  = lightness;
-                event->curr_ticks      = curr_ticks;
-                event->curr_days       = curr_days;
-                staNotifyOthersWithEvent(gmon, event, block_time);
-            }
-        }
-
-        // 3. Read Air Temperature and Humidity and create an event
-        status = staAirCondTrackRefreshSensorData(&air_temp, &air_humid);
-        if(status == GMON_RESP_OK) {
-            event = staAllocSensorEvent();
-            if (event != NULL) {
-                event->event_type      = GMON_EVENT_AIR_TEMP_UPDATED;
-                event->data.air_temp   = air_temp ;
-                event->data.air_humid  = air_humid;
-                event->curr_ticks      = curr_ticks;
-                event->curr_days       = curr_days;
-                staNotifyOthersWithEvent(gmon, event, block_time);
-            }
-        }
-
-        stationSysDelayMs(gmon->sensor_read_interval.curr_ms); // sleep for a while
-        // check any of output device is working, then reduce the daley time of this task
-        // e.g. pump is working, so it needs to refresh data from soil moisture sensor more frequently.
-        staAdjustSensorReadInterval(gmon);
-    }
-} // end of stationSensorReaderTaskFn
-

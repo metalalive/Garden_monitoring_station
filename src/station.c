@@ -15,7 +15,7 @@ static gMonStatus stationInit(gardenMonitor_t **gmon)
     if(status < 0) { goto done; }
     status = staAppMsgInit();
     if(status < 0) { goto done; }
-    status = staDaylightTrackInit();
+    status = staDaylightTrackInit(*gmon);
     if(status < 0) { goto done; }
     status = staAirCondTrackInit();
     if(status < 0) { goto done; }
@@ -54,19 +54,24 @@ static void  stationInitTaskFn(void *param)
     unsigned  short   task_stack_size = 0;
     const unsigned char isPrivileged = 0x1;
 
-    gmon = (gardenMonitor_t *)param;
     task_ptr = NULL;
-    task_stack_size = 0x80;
-    stationSysCreateTask("sensorReader", (stationSysTaskFn_t)stationSensorReaderTaskFn,
+    task_stack_size = 0x80; // Use same stack size as sensorReader for consistency
+    stationSysCreateTask("pumpCtrler", (stationSysTaskFn_t)pumpControllerTaskFn,
                          (void *)gmon, task_stack_size, GMON_TASKS_PRIO_MIN, isPrivileged, &task_ptr);
-    gmon->tasks.sensor_reader = (void *)task_ptr;
+    gmon->tasks.pump_controller = (void *)task_ptr;
 
     task_ptr = NULL;
     task_stack_size = 0x80;
-    stationSysCreateTask("outDevCtrler", (stationSysTaskFn_t)stationOutDevCtrlTaskFn,
+    stationSysCreateTask("airMonitor", (stationSysTaskFn_t)airQualityMonitorTaskFn,
                          (void *)gmon, task_stack_size, GMON_TASKS_PRIO_MIN, isPrivileged, &task_ptr);
-    gmon->tasks.dev_controller = (void *)task_ptr;
+    gmon->tasks.air_quality_monitor = (void *)task_ptr;
     
+    task_ptr = NULL;
+    task_stack_size = 0x80;
+    stationSysCreateTask("lightCtrler", (stationSysTaskFn_t)lightControllerTaskFn,
+                         (void *)gmon, task_stack_size, GMON_TASKS_PRIO_MIN, isPrivileged, &task_ptr);
+    gmon->tasks.light_controller = (void *)task_ptr;
+
     task_ptr = NULL;
     task_stack_size = 0x38;
     stationSysCreateTask("DataAggregator", (stationSysTaskFn_t)stationSensorDataAggregatorTaskFn,

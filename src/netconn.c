@@ -22,8 +22,6 @@ gMonStatus  staSetNetConnTaskInterval(gardenMonitor_t  *gmon, unsigned int new_i
     if(gmon != NULL) {
         if(new_interval >= GMON_MIN_NETCONN_START_INTERVAL_MS && new_interval <= GMON_MAX_NETCONN_START_INTERVAL_MS) {
             gmon->netconn.interval_ms = new_interval;
-            staUpdateAirCondChkInterval(new_interval, (unsigned short)GMON_CFG_NUM_SENSOR_RECORDS_KEEP);
-            staUpdateLightChkInterval(new_interval, (unsigned short)GMON_CFG_NUM_SENSOR_RECORDS_KEEP);
         } else {
             status = GMON_RESP_INVALID_REQ;
         }

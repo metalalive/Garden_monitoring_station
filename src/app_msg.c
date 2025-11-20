@@ -278,7 +278,7 @@ gMonStatus  staDecodeAppMsgInflight(gardenMonitor_t *gmon) {
                 } else if(XSTRNCMP(GMON_APPMSG_DATA_NAME_DAYLENGTH, user_var_name, user_var_len) == 0) {
                     status = staDecodeMsgCvtStrToInt(&gmon_json_decode_token[idx + 1], &parsed_int);
                     if(status == GMON_RESP_OK) {
-                        gmon->user_ctrl.status.threshold.daylength = staSetRequiredDaylenTicks((unsigned int)parsed_int);
+                        gmon->user_ctrl.status.threshold.daylength = staSetRequiredDaylenTicks(gmon, (unsigned int)parsed_int);
                     }
                 }
             } // if token is json string

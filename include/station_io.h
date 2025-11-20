@@ -23,7 +23,9 @@ typedef struct {
 gMonStatus  stationIOinit(gardenMonitor_t *);
 gMonStatus  stationIOdeinit(gardenMonitor_t *);
 
+gmonEvent_t* staAllocSensorEvent(void);
 gMonStatus  staFreeSensorEvent(gmonEvent_t *);
+gMonStatus  staNotifyOthersWithEvent(gardenMonitor_t *, gmonEvent_t *, uint32_t block_time);
 
 gMonStatus  staSensorInitSoilMoist(void);
 gMonStatus  staSensorDeInitSoilMoist(void);
@@ -84,11 +86,6 @@ gMonStatus  staSetTrigThresholdFan(gMonOutDev_t *dev, unsigned int new_val);
 gMonStatus  staSetTrigThresholdBulb(gMonOutDev_t *dev, unsigned int new_val);
 
 gMonStatus  staPauseWorkingRealtimeOutdevs(gardenMonitor_t *gmon);
-
-
-void  stationSensorReaderTaskFn(void* params);
-
-void  stationOutDevCtrlTaskFn(void* params);
 
 void  stationDisplayTaskFn(void* params);
 

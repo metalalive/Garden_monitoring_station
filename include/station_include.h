@@ -17,6 +17,7 @@ extern "C" {
 #include "station_util.h"
 #include "station_daylight_track.h"
 #include "station_aircond_track.h"
+#include "station_soilcond_track.h"
 
 #ifdef __cplusplus
 }

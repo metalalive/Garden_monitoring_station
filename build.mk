@@ -19,6 +19,7 @@ _C_SOURCES_FUNC = \
     src/util.c \
     src/daylight_track.c \
     src/aircond_track.c \
+    src/soilcond_track.c \
     src/netconn.c \
     src/app_msg.c \
     src/network/mqtt_client.c \

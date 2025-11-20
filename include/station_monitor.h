@@ -18,8 +18,9 @@ typedef struct {
         gMonOutDev_t fan;
     } outdev;
     struct {
-        void *sensor_reader;
-        void *dev_controller;
+        void *pump_controller; // New task for pump control and soil moisture
+        void *air_quality_monitor;
+        void *light_controller;
         void *netconn_handler;
         void *sensor_data_aggregator_net;
         void *display_handler;
@@ -28,7 +29,7 @@ typedef struct {
     struct {
         unsigned int  default_ms;
         unsigned int  curr_ms;
-    } sensor_read_interval;
+    } sensor_read_interval; //TODO, remove
     struct {
         void         *handle_obj;
         unsigned int  interval_ms;
@@ -40,7 +41,7 @@ typedef struct {
     struct {
         struct {
             struct {
-                gMonStatus  sensorread;
+                gMonStatus  sensorread; // TODO, expand for each individual sensor
                 gMonStatus  netconn;
             } interval;
             struct {
@@ -54,6 +55,7 @@ typedef struct {
             unsigned int  ticks;
             unsigned int  days ;
         } last_update;
+        unsigned int  required_light_daylength_ticks;
     } user_ctrl;
     gMonDisplay_t  display;
 } gardenMonitor_t;

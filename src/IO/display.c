@@ -69,8 +69,7 @@ static void staInitPrintTxtVarPtr(gmonStr_t *str, const short *fx_content_idx, u
 
 // process record data from sensor or output contorl device
 // then feed the processed data to low-level display device
-gMonStatus  staDisplayInit(gardenMonitor_t *gmon)
-{
+gMonStatus  staDisplayInit(gardenMonitor_t *gmon) {
 #ifdef  GMON_CFG_ENABLE_DISPLAY
     if(gmon == NULL) { return GMON_RESP_ERRARGS; }
     const char *print_txt_list[GMON_DISPLAY_NUM_PRINT_STRINGS];
@@ -128,8 +127,7 @@ gMonStatus  staDisplayInit(gardenMonitor_t *gmon)
 } // end of staDisplayInit
 
 
-gMonStatus  staDisplayDeInit(gardenMonitor_t *gmon)
-{
+gMonStatus  staDisplayDeInit(gardenMonitor_t *gmon) {
 #ifdef  GMON_CFG_ENABLE_DISPLAY
     if(gmon == NULL) { return GMON_RESP_ERRARGS; }
     uint8_t  idx = 0;
@@ -141,10 +139,7 @@ gMonStatus  staDisplayDeInit(gardenMonitor_t *gmon)
 #else
     return  GMON_RESP_SKIP;
 #endif // end of GMON_CFG_ENABLE_DISPLAY
-} // end of staDisplayDeInit
-
-
-
+}
 
 void  staUpdatePrintStrSensorData(gardenMonitor_t  *gmon, gmonEvent_t *new_evt)
 {
@@ -217,8 +212,7 @@ void  staUpdatePrintStrThreshold(gardenMonitor_t *gmon)
 } // end of staUpdatePrintStrThreshold
 
 
-static const  char* staCvtOutDevStatusToStr(gMonOutDevStatus in)
-{
+static const  char* staCvtOutDevStatusToStr(gMonOutDevStatus in) {
     const  char* out = NULL;
     switch(in) {
         case GMON_OUT_DEV_STATUS_OFF  :
@@ -231,7 +225,7 @@ static const  char* staCvtOutDevStatusToStr(gMonOutDevStatus in)
             break;
     }
     return out;
-} // end of staCvtOutDevStatusToStr
+}
 
 
 static const  char* staCvtGMonStatusToStr(gMonStatus in)
@@ -317,22 +311,31 @@ void  staUpdatePrintStrNetConn(gardenMonitor_t  *gmon)
 } // end of staUpdatePrintStrNetConn
 
 
-
-
 void  stationDisplayTaskFn(void* params)
 {
-    gardenMonitor_t  *gmon = NULL;
-    uint16_t  screen_width = 0;
-    const uint16_t  maxnum_lines_cnt = 1000; // TODO: determine when to switch lines to show these information
-    uint16_t  switch_lines_cnt = 0;
+    gmonEvent_t  *new_evt = NULL;
+    gMonStatus status = GMON_RESP_OK;
+    uint16_t  screen_width = 0,  switch_lines_cnt = 0;
     uint8_t   idx = 0;
 
-    gmon = (gardenMonitor_t *)params;
+    const uint32_t  block_time = 0; // GMON_MAX_BLOCKTIME_SYS_MSGBOX;
+    const uint16_t  maxnum_lines_cnt = 1000;
+    gardenMonitor_t  *gmon = (gardenMonitor_t *)params;
     // Get screen size of low-level display device, figure out number of lines of string
     // can be printed on the screen every time.
     screen_width = GMON_DISPLAY_DEV_GET_SCR_WIDTH();
 
     while(1) {
+        status = staSysMsgBoxGet(gmon->msgpipe.sensor2display, (void **)&new_evt, block_time);
+        if(status == GMON_RESP_OK && new_evt != NULL) {
+            // status of each output device, and data read from sensors, network connectivity status,
+            // end of may be passed to display device.
+            staUpdatePrintStrSensorData(gmon, new_evt);
+            staUpdatePrintStrOutDevStatus(gmon);
+            staFreeSensorEvent(new_evt);
+            new_evt = NULL;
+        }
+
         if(switch_lines_cnt > maxnum_lines_cnt) { // switch lines after some amount of time passed
             uint16_t  tmp = gmon_print_info[0].posy;
             for(idx = 1; idx < GMON_DISPLAY_NUM_PRINT_STRINGS; idx++) {

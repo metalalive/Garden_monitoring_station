@@ -68,17 +68,20 @@ typedef struct {
 
 typedef struct {
     int             threshold;
-    unsigned int    max_worktime; // maximum time in milliseconds for a device that has been
-                                  // continuously working in one day, maximum value MUST NOT
-                                  // be greater than 1000 * 60 * 60 * 24 = 0x5265c00
-    unsigned int    curr_worktime; // current working time since this device is turned on last time
-    unsigned int    min_resttime; // minimum time in milliseconds to pause a device after it continuously
-                                  // worked overtime but still needs to work longer to change
-                                  // environment condition e.g. temperature drop, provide more growing
-                                  // light...etc.
-                                  // Again the maximum value MUST NOT be greater than 1000 * 60 * 60 * 24 = 0x5265c00
+    // maximum time in milliseconds for a device that has been
+    // continuously working in one day, maximum value MUST NOT
+    // be greater than 1000 * 60 * 60 * 24 = 0x5265c00
+    unsigned int    max_worktime;
+    // current working time since this device is turned on last time
+    unsigned int    curr_worktime;
+    // minimum time in milliseconds to pause a device after it continuously
+    // worked overtime but still needs to work longer to change
+    // environment condition e.g. temperature drop, provide more growing
+    // light...etc.
+    // Again the maximum value MUST NOT be greater than 1000 * 60 * 60 * 24 = 0x5265c00
+    unsigned int    min_resttime;
     unsigned int    curr_resttime;
-    unsigned int    sensor_read_interval;
+    unsigned int    sensor_read_interval; // delay time in milliseconds
     gMonOutDevStatus status;
 } gMonOutDev_t;
 
