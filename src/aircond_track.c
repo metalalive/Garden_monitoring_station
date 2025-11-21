@@ -22,10 +22,9 @@ void airQualityMonitorTaskFn(void* params) {
                 event->curr_days = stationGetDays();
                 staNotifyOthersWithEvent(gmon, event, block_time);
             }
-            gmon->outdev.fan.sensor_read_interval = 123; // FIXME, TODO, remove
-            status = GMON_OUTDEV_TRIG_FN_FAN(&gmon->outdev.fan , air_temp);
+            // The interval for fan will be updated by network handling task during runtime
+            status = GMON_OUTDEV_TRIG_FN_FAN(&gmon->outdev.fan , air_temp, &gmon->sensors.air_temp);
         }
-        // apply configurable delay time which will be updated by network handling task
-        stationSysDelayMs(gmon->outdev.fan.sensor_read_interval);
+        stationSysDelayMs(gmon->sensors.air_temp.read_interval_ms);
     }
 }

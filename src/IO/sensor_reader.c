@@ -95,43 +95,13 @@ gMonStatus  staNotifyOthersWithEvent(gardenMonitor_t *gmon, gmonEvent_t *event, 
     return status;
 }
 
-static void staAdjustSensorReadInterval(gardenMonitor_t *gmon) {
-    unsigned int new_refresh_time = 0;
-    //// bulb_status = gmon->outdev.bulb.status;
-    gMonOutDevStatus  pump_status = gmon->outdev.pump.status;
-    gMonOutDevStatus  fan_status  = gmon->outdev.fan.status;
-    if(pump_status == GMON_OUT_DEV_STATUS_ON || pump_status == GMON_OUT_DEV_STATUS_PAUSE) {
-        new_refresh_time = GMON_SENSOR_READ_INTERVAL_MS_PUMP_ON;
-    } else if (fan_status == GMON_OUT_DEV_STATUS_ON || fan_status == GMON_OUT_DEV_STATUS_PAUSE) {
-        new_refresh_time = GMON_SENSOR_READ_INTERVAL_MS_FAN_ON;
-    } else { // TODO: let users modify default time interval to refresh sensor data through backend service
-        new_refresh_time = gmon->sensor_read_interval.default_ms;
-    }
-    if(new_refresh_time != gmon->sensor_read_interval.curr_ms) {
-        gmon->sensor_read_interval.curr_ms = new_refresh_time;
-        gmon->outdev.pump.sensor_read_interval = new_refresh_time;
-    }
-}
-
-gMonStatus  staSetDefaultSensorReadInterval(gardenMonitor_t *gmon, unsigned int new_interval)
-{
-    gMonStatus status = GMON_RESP_OK;
-    if(gmon != NULL) {
-        if(new_interval >= GMON_MIN_SENSOR_READ_INTERVAL_MS && new_interval <= GMON_MAX_SENSOR_READ_INTERVAL_MS) {
-            gmon->sensor_read_interval.default_ms = new_interval;
-        } else {
-            status = GMON_RESP_INVALID_REQ;
-        }
-    } else {
-        status = GMON_RESP_ERRARGS;
-    }
-    return status;
-}
-
 gMonStatus  stationIOinit(gardenMonitor_t *gmon) {
     gMonStatus status = GMON_RESP_OK;
     if(gmon == NULL) { status = GMON_RESP_ERRARGS; goto done;}
-    status = staSetDefaultSensorReadInterval(gmon, (unsigned int)GMON_CFG_SENSOR_READ_INTERVAL_MS);
+    // Initialize default sensor reading intervals
+    gmon->sensors.soil_moist.read_interval_ms = GMON_CFG_SENSOR_READ_INTERVAL_MS;
+    gmon->sensors.air_temp.read_interval_ms   = GMON_CFG_SENSOR_READ_INTERVAL_MS;
+    gmon->sensors.light.read_interval_ms      = GMON_CFG_SENSOR_READ_INTERVAL_MS;
     if(status < 0) { goto done; }
     status = GMON_SENSOR_INIT_FN_SOIL_MOIST();
     if(status < 0) { goto done; }
@@ -145,7 +115,6 @@ gMonStatus  stationIOinit(gardenMonitor_t *gmon) {
     if(status < 0) { goto done; }
     status = GMON_OUTDEV_INIT_FN_BULB(&gmon->outdev.bulb);
     if(status < 0) { goto done; }
-    staAdjustSensorReadInterval(gmon);
     gmon->msgpipe.sensor2display = staSysMsgBoxCreate( GMON_CFG_NUM_SENSOR_RECORDS_KEEP );
     XASSERT(gmon->msgpipe.sensor2display != NULL);
     gmon->msgpipe.sensor2net = staSysMsgBoxCreate( GMON_CFG_NUM_SENSOR_RECORDS_KEEP );

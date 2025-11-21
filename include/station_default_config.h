@@ -35,61 +35,73 @@ extern "C" {
     #define  GMON_SENSOR_INIT_FN_SOIL_MOIST()         staSensorInitSoilMoist()
     #define  GMON_SENSOR_DEINIT_FN_SOIL_MOIST()       staSensorDeInitSoilMoist()
     #define  GMON_SENSOR_READ_FN_SOIL_MOIST(readout)  staSensorReadSoilMoist((readout))
+    #ifndef  GMON_CFG_SENSOR_READ_INTERVAL_MS_SOIL_MOIST
+        #define  GMON_CFG_SENSOR_READ_INTERVAL_MS_SOIL_MOIST  2000
+    #endif
 #else
     #define  GMON_SENSOR_INIT_FN_SOIL_MOIST()         GMON_RESP_OK
     #define  GMON_SENSOR_DEINIT_FN_SOIL_MOIST()       GMON_RESP_OK
     #define  GMON_SENSOR_READ_FN_SOIL_MOIST(readout)  GMON_RESP_OK
+    #define  GMON_CFG_SENSOR_READ_INTERVAL_MS_SOIL_MOIST  0xffffffff
 #endif // end of GMON_CFG_ENABLE_SENSOR_SOIL_MOIST
 
 #ifdef GMON_CFG_ENABLE_SENSOR_AIR_TEMP
     #define  GMON_SENSOR_INIT_FN_AIR_TEMP()                      staSensorInitAirTemp()
     #define  GMON_SENSOR_DEINIT_FN_AIR_TEMP()                    staSensorDeInitAirTemp()
     #define  GMON_SENSOR_READ_FN_AIR_TEMP(air_temp, air_humid)   staSensorReadAirTemp((air_temp), (air_humid))
+    #ifndef GMON_CFG_SENSOR_READ_INTERVAL_MS_AIR_TEMP
+        #define  GMON_CFG_SENSOR_READ_INTERVAL_MS_AIR_TEMP   7000
+    #endif
 #else
     #define  GMON_SENSOR_INIT_FN_AIR_TEMP()                      GMON_RESP_OK
     #define  GMON_SENSOR_DEINIT_FN_AIR_TEMP()                    GMON_RESP_OK
     #define  GMON_SENSOR_READ_FN_AIR_TEMP(air_temp, air_humid)   GMON_RESP_OK
+    #define  GMON_CFG_SENSOR_READ_INTERVAL_MS_AIR_TEMP    0xffffffff
 #endif // end of GMON_CFG_ENABLE_SENSOR_AIR_TEMP
 
 #ifdef  GMON_CFG_ENABLE_LIGHT_SENSOR
     #define  GMON_SENSOR_INIT_FN_LIGHT()            staSensorInitLight()
     #define  GMON_SENSOR_DEINIT_FN_LIGHT()          staSensorDeInitLight()
     #define  GMON_SENSOR_READ_FN_LIGHT(lightness)   staSensorReadLight((lightness))
+    #ifndef GMON_CFG_SENSOR_READ_INTERVAL_MS_LIGHT
+        #define  GMON_CFG_SENSOR_READ_INTERVAL_MS_LIGHT     10000
+    #endif
 #else
     #define  GMON_SENSOR_INIT_FN_LIGHT()           GMON_RESP_OK
     #define  GMON_SENSOR_DEINIT_FN_LIGHT()         GMON_RESP_OK
     #define  GMON_SENSOR_READ_FN_LIGHT(lightness)  GMON_RESP_OK
+    #define  GMON_CFG_SENSOR_READ_INTERVAL_MS_LIGHT     0xffffffff
 #endif // end of GMON_CFG_ENABLE_LIGHT_SENSOR
 
 #ifdef  GMON_CFG_ENABLE_OUTDEV_PUMP
     #define  GMON_OUTDEV_INIT_FN_PUMP(dev)         staOutdevInitPump((dev))
     #define  GMON_OUTDEV_DEINIT_FN_PUMP()          staOutdevDeinitPump()
-    #define  GMON_OUTDEV_TRIG_FN_PUMP(dev, soil_moist)   staOutdevTrigPump((dev), (soil_moist))
+    #define  GMON_OUTDEV_TRIG_FN_PUMP(dev, moistval, sensor)   staOutdevTrigPump((dev), (moistval), (sensor))
 #else
     #define  GMON_OUTDEV_INIT_FN_PUMP(dev)             GMON_RESP_OK
     #define  GMON_OUTDEV_DEINIT_FN_PUMP()              GMON_RESP_OK
-    #define  GMON_OUTDEV_TRIG_FN_PUMP(dev, soil_moist) GMON_RESP_OK
-#endif // end of  GMON_CFG_ENABLE_OUTDEV_PUMP
+    #define  GMON_OUTDEV_TRIG_FN_PUMP(dev, moistval, sensor) GMON_RESP_OK
+#endif
 
 #ifdef  GMON_CFG_ENABLE_OUTDEV_FAN
     #define  GMON_OUTDEV_INIT_FN_FAN(dev)         staOutdevInitFan((dev))
     #define  GMON_OUTDEV_DEINIT_FN_FAN()          staOutdevDeinitFan()
-    #define  GMON_OUTDEV_TRIG_FN_FAN(dev, air_temp)   staOutdevTrigFan((dev), (air_temp))
+    #define  GMON_OUTDEV_TRIG_FN_FAN(dev, airtemp, sensor)   staOutdevTrigFan((dev), (airtemp), (sensor))
 #else
     #define  GMON_OUTDEV_INIT_FN_FAN(dev)           GMON_RESP_OK
     #define  GMON_OUTDEV_DEINIT_FN_FAN()            GMON_RESP_OK
-    #define  GMON_OUTDEV_TRIG_FN_FAN(dev, air_temp) GMON_RESP_OK
-#endif // end of GMON_CFG_ENABLE_OUTDEV_FAN
+    #define  GMON_OUTDEV_TRIG_FN_FAN(dev, airtemp, sensor) GMON_RESP_OK
+#endif
  
 #ifdef  GMON_CFG_ENABLE_OUTDEV_BULB
     #define  GMON_OUTDEV_INIT_FN_BULB(dev)         staOutdevInitBulb((dev))
     #define  GMON_OUTDEV_DEINIT_FN_BULB()          staOutdevDeinitBulb()
-    #define  GMON_OUTDEV_TRIG_FN_BULB(dev, lightness)   staOutdevTrigBulb((dev), (lightness))
+    #define  GMON_OUTDEV_TRIG_FN_BULB(dev, lightval, sensor)   staOutdevTrigBulb((dev), (lightval), (sensor))
 #else
     #define  GMON_OUTDEV_INIT_FN_BULB(dev)            GMON_RESP_OK
     #define  GMON_OUTDEV_DEINIT_FN_BULB()             GMON_RESP_OK
-    #define  GMON_OUTDEV_TRIG_FN_BULB(dev, lightness) GMON_RESP_OK
-#endif // end of GMON_CFG_ENABLE_OUTDEV_BULB
+    #define  GMON_OUTDEV_TRIG_FN_BULB(dev, lightval, sensor) GMON_RESP_OK
+#endif
 
 
 #ifdef  GMON_CFG_ENABLE_DISPLAY
@@ -148,7 +160,7 @@ extern "C" {
 #endif // end if GMON_CFG_OUTDEV_TRIG_THRESHOLD_PUMP
 
 #ifndef   GMON_CFG_OUTDEV_MAX_WORKTIME_PUMP
-    #define  GMON_CFG_OUTDEV_MAX_WORKTIME_PUMP  (4 * 1000)
+    #define  GMON_CFG_OUTDEV_MAX_WORKTIME_PUMP  (4000)
 #elif     (GMON_CFG_OUTDEV_MAX_WORKTIME_PUMP > GMON_OUTDEV_MAX_WORKTIME_PER_DAY)
     #error "GMON_CFG_OUTDEV_MAX_WORKTIME_PUMP must NOT be greater than 1000 * 60 * 60 * 24 milliseconds."
 #endif // end if GMON_CFG_OUTDEV_MAX_WORKTIME_PUMP

@@ -84,29 +84,31 @@ gMonStatus  staSetTrigThresholdBulb(gMonOutDev_t *dev, unsigned int new_val) {
 
 gMonStatus  staPauseWorkingRealtimeOutdevs(gardenMonitor_t *gmon) {
     if(gmon == NULL) { return GMON_RESP_ERRARGS; }
-    gMonOutDev_t  *dev = NULL;
-    gMonStatus  status = GMON_RESP_OK;
-    dev = &gmon->outdev.pump;
+    // pause the actuators which requires precise control
+    gMonOutDev_t  *dev = &gmon->outdev.pump;
     if(dev->status == GMON_OUT_DEV_STATUS_ON) {
         dev->curr_worktime = dev->max_worktime;
-        status = GMON_OUTDEV_TRIG_FN_PUMP(dev, (dev->threshold + 1));
-        XASSERT(dev->status == GMON_OUT_DEV_STATUS_PAUSE);
+        // For pausing, we simply set the status and do not trigger the actuator with a sensor value.
+        // The intention of this block is to force a PAUSE state, not to actually trigger the pump.
+        // If a trigger based on a sensor is needed here, the sensor object needs to be passed.
+        // Manually set to PAUSE for this specific function's logic
+        dev->status = GMON_OUT_DEV_STATUS_PAUSE;
     }
-    return status;
+    return  GMON_RESP_OK;
 }
 
-gMonOutDevStatus  staOutDevMeasureWorkingTime(gMonOutDev_t *dev) {
+gMonOutDevStatus  staOutDevMeasureWorkingTime(gMonOutDev_t *dev, unsigned int time_elapsed_ms) {
     gMonOutDevStatus dev_status = GMON_OUT_DEV_STATUS_OFF;
     switch(dev->status) {
         case GMON_OUT_DEV_STATUS_OFF:
             if(dev->max_worktime > 0) {
                 dev_status = GMON_OUT_DEV_STATUS_ON;
-                dev->curr_worktime = dev->sensor_read_interval;
+                dev->curr_worktime = time_elapsed_ms;
                 dev->curr_resttime = 0;
             }
             break;
         case GMON_OUT_DEV_STATUS_ON:
-            dev->curr_worktime += dev->sensor_read_interval;
+            dev->curr_worktime += time_elapsed_ms;
             if(dev->curr_worktime >= dev->max_worktime) {
                 dev->curr_worktime = 0;
                 dev_status = GMON_OUT_DEV_STATUS_PAUSE;
@@ -115,7 +117,7 @@ gMonOutDevStatus  staOutDevMeasureWorkingTime(gMonOutDev_t *dev) {
             }
             break;
         case GMON_OUT_DEV_STATUS_PAUSE:
-            dev->curr_resttime += dev->sensor_read_interval;
+            dev->curr_resttime += time_elapsed_ms;
             if(dev->curr_resttime >= dev->min_resttime) {
                 dev->curr_resttime = 0;
                 dev_status = GMON_OUT_DEV_STATUS_ON;

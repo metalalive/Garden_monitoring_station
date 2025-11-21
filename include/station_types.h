@@ -67,6 +67,10 @@ typedef struct {
 
 
 typedef struct {
+    unsigned int  read_interval_ms;
+} gMonSensor_t;
+
+typedef struct {
     int             threshold;
     // maximum time in milliseconds for a device that has been
     // continuously working in one day, maximum value MUST NOT
@@ -81,7 +85,6 @@ typedef struct {
     // Again the maximum value MUST NOT be greater than 1000 * 60 * 60 * 24 = 0x5265c00
     unsigned int    min_resttime;
     unsigned int    curr_resttime;
-    unsigned int    sensor_read_interval; // delay time in milliseconds
     gMonOutDevStatus status;
 } gMonOutDev_t;
 

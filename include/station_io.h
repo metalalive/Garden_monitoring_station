@@ -42,15 +42,15 @@ gMonStatus  staSensorReadLight(unsigned int *out);
 // device-specific functions
 gMonStatus  staOutdevInitPump(gMonOutDev_t *dev);
 gMonStatus  staOutdevDeinitPump(void);
-gMonStatus  staOutdevTrigPump(gMonOutDev_t *dev, unsigned int soil_moist);
+gMonStatus  staOutdevTrigPump(gMonOutDev_t *, unsigned int soil_moist, gMonSensor_t *);
 
 gMonStatus  staOutdevInitFan(gMonOutDev_t *dev);
 gMonStatus  staOutdevDeinitFan(void);
-gMonStatus  staOutdevTrigFan(gMonOutDev_t *dev, float air_temp);
+gMonStatus  staOutdevTrigFan(gMonOutDev_t *, float air_temp, gMonSensor_t *);
 
 gMonStatus  staOutdevInitBulb(gMonOutDev_t *dev);
 gMonStatus  staOutdevDeinitBulb(void);
-gMonStatus  staOutdevTrigBulb(gMonOutDev_t *dev, unsigned int lightness);
+gMonStatus  staOutdevTrigBulb(gMonOutDev_t *, unsigned int lightness, gMonSensor_t *);
 
 gMonStatus  staDisplayDevInit(void);
 gMonStatus  staDisplayDevDeInit(void);
@@ -78,7 +78,7 @@ void        staUpdatePrintStrThreshold(gardenMonitor_t *);
 
 void  staUpdatePrintStrNetConn(gardenMonitor_t *);
 
-gMonOutDevStatus  staOutDevMeasureWorkingTime(gMonOutDev_t *dev);
+gMonOutDevStatus  staOutDevMeasureWorkingTime(gMonOutDev_t *dev, unsigned int time_elapsed_ms);
 
 gMonStatus  staSetDefaultSensorReadInterval(gardenMonitor_t *gmon, unsigned int new_interval);
 gMonStatus  staSetTrigThresholdPump(gMonOutDev_t *dev, unsigned int new_val);

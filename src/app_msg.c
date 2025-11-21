@@ -253,7 +253,9 @@ gMonStatus  staDecodeAppMsgInflight(gardenMonitor_t *gmon) {
                 if(XSTRNCMP(GMON_APPMSG_DATA_NAME_SENSORREAD, user_var_name, user_var_len) == 0) {
                     status = staDecodeMsgCvtStrToInt(&gmon_json_decode_token[idx + 1], &parsed_int);
                     if(status == GMON_RESP_OK) {
-                        gmon->user_ctrl.status.interval.sensorread  = staSetDefaultSensorReadInterval(gmon, (unsigned int)parsed_int);
+                        gmon->sensors.soil_moist.read_interval_ms = (unsigned int)parsed_int;
+                        gmon->sensors.air_temp.read_interval_ms   = (unsigned int)parsed_int;
+                        gmon->sensors.light.read_interval_ms      = (unsigned int)parsed_int;
                     }
                 } else if(XSTRNCMP(GMON_APPMSG_DATA_NAME_NETCONN  , user_var_name, user_var_len) == 0) {
                     status = staDecodeMsgCvtStrToInt(&gmon_json_decode_token[idx + 1], &parsed_int);

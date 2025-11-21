@@ -27,9 +27,10 @@ typedef struct {
     } tasks;
     struct gMonMsgPipe_t msgpipe;
     struct {
-        unsigned int  default_ms;
-        unsigned int  curr_ms;
-    } sensor_read_interval; //TODO, remove
+        gMonSensor_t soil_moist;
+        gMonSensor_t air_temp;
+        gMonSensor_t light;
+    } sensors;
     struct {
         void         *handle_obj;
         unsigned int  interval_ms;

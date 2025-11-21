@@ -42,14 +42,11 @@ void lightControllerTaskFn(void* params) {
                 // Pass the read data to message pipe
                 staNotifyOthersWithEvent(gmon, event, block_time);
             }
-            // FIXME, TODO,
-            // - remove below
-            // - redesign how to determine max work time of artifical light
-            gmon->outdev.bulb.sensor_read_interval = 123;
+            // TODO, redesign how to determine max work time of artifical light
             gmon->outdev.bulb.max_worktime = 1230;
-            status = GMON_OUTDEV_TRIG_FN_BULB(&gmon->outdev.bulb, lightness);
+            // The interval for bulb will be updated by network handling task during runtime
+            status = GMON_OUTDEV_TRIG_FN_BULB(&gmon->outdev.bulb, lightness, &gmon->sensors.light);
         }
-        // apply configurable delay time which will be updated by network handling task
-        stationSysDelayMs(gmon->outdev.bulb.sensor_read_interval);
+        stationSysDelayMs(gmon->sensors.light.read_interval_ms);
     }
 }
