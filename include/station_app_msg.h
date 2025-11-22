@@ -5,13 +5,13 @@
 extern "C" {
 #endif
 
-gMonStatus  staAppMsgInit(void);
+gMonStatus  staAppMsgInit(gardenMonitor_t *);
 
-gMonStatus  staAppMsgDeinit(void);
+gMonStatus  staAppMsgDeinit(gardenMonitor_t *);
 
-gmonStr_t*  staGetAppMsgOutflight(void);
+gmonStr_t*  staGetAppMsgOutflight(gardenMonitor_t *);
 
-gmonStr_t*  staGetAppMsgInflight(void);
+gmonStr_t*  staGetAppMsgInflight(gardenMonitor_t *);
 
 gMonStatus  staRefreshAppMsgOutflight(gardenMonitor_t *);
 

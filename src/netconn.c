@@ -41,11 +41,11 @@ void  stationNetConnHandlerTaskFn(void* params)
 
     gardenMonitor_t    *gmon = (gardenMonitor_t *)params;
     //// staSetNetConnTaskInterval(gmon, (unsigned int)GMON_CFG_NETCONN_START_INTERVAL_MS);
-    gmonStr_t  *app_msg_recv = staGetAppMsgInflight();
-    gmonStr_t  *app_msg_send = staGetAppMsgOutflight();
-
+    gmonStr_t  *app_msg_recv = NULL, *app_msg_send = NULL;
     while(1) {
         stationSysDelayMs(gmon->netconn.interval_ms);
+        app_msg_recv = staGetAppMsgInflight(gmon);
+        app_msg_send = staGetAppMsgOutflight(gmon);
         send_status = staRefreshAppMsgOutflight(gmon);
         if(send_status == GMON_RESP_SKIP) { continue; }
         // pause the working output device(s) that requires to rapidly frequently refresh sensor data due to the network latency.
@@ -79,4 +79,3 @@ void  stationNetConnHandlerTaskFn(void* params)
         staUpdatePrintStrNetConn(gmon);  // update network connection status to display device
     } // end of loop
 } // end of stationNetConnHandlerTaskFn
-

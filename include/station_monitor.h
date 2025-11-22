@@ -10,6 +10,14 @@ struct gMonMsgPipe_t {
     stationSysMsgbox_t  sensor2net;
 };
 
+typedef struct  {
+    gmonStr_t  outflight;
+    gmonStr_t  inflight;
+    void      *jsn_decoded_token;
+    void      *jsn_decoder;
+} gMonRawMsg_t;
+
+
 // collecting all information, network handling objects in this application
 typedef struct {
     struct {
@@ -59,6 +67,7 @@ typedef struct {
         unsigned int  required_light_daylength_ticks;
     } user_ctrl;
     gMonDisplay_t  display;
+    gMonRawMsg_t   rawmsg;
 } gardenMonitor_t;
 
 #ifdef __cplusplus

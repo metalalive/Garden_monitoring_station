@@ -13,7 +13,7 @@ static gMonStatus stationInit(gardenMonitor_t **gmon)
     if(status < 0) { goto done; }
     status = stationSysInit();
     if(status < 0) { goto done; }
-    status = staAppMsgInit();
+    status = staAppMsgInit(*gmon);
     if(status < 0) { goto done; }
     status = staDaylightTrackInit(*gmon);
     if(status < 0) { goto done; }
@@ -35,7 +35,7 @@ static gMonStatus stationDeinit(gardenMonitor_t *gmon)
     status = stationIOdeinit(gmon);
     status = stationNetConnDeinit(gmon->netconn.handle_obj);
     status = stationPlatformDeinit();
-    status = staAppMsgDeinit();
+    status = staAppMsgDeinit(gmon);
     gmon->netconn.handle_obj = NULL;
     XMEMFREE(gmon);
     return status;
