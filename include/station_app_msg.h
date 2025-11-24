@@ -13,9 +13,9 @@ gmonStr_t*  staGetAppMsgOutflight(gardenMonitor_t *);
 
 gmonStr_t*  staGetAppMsgInflight(gardenMonitor_t *);
 
-gMonStatus  staRefreshAppMsgOutflight(gardenMonitor_t *);
-
 gMonStatus  staDecodeAppMsgInflight(gardenMonitor_t *);
+
+gMonStatus staUpdateLastRecord(gmonSensorRecord_t *, gmonEvent_t *);
 
 void  stationSensorDataAggregatorTaskFn(void* params);
 

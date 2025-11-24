@@ -8,7 +8,7 @@ extern "C" {
 // return code that represents status after executing TLS function
 typedef enum {
     GMON_RESP_OK              =  0,
-    GMON_RESP_REQ_MOREDATA    =  1,
+    GMON_RESP_OLDEST_REMOVED  =  1,
     GMON_RESP_SKIP            =  2,
     GMON_RESP_ERR             = -1,
     GMON_RESP_ERRARGS         = -2,
@@ -35,11 +35,15 @@ typedef enum {
     GMON_OUT_DEV_STATUS_BROKEN,
 } gMonOutDevStatus;
 
-
 typedef struct {
     unsigned short  len;
     unsigned char  *data;
 } gmonStr_t;
+
+typedef struct {
+    float  temporature;
+    float  humidity;
+} gmonAirCond_t;
 
 typedef enum {
     GMON_EVENT_SOIL_MOISTURE_UPDATED,
@@ -48,8 +52,7 @@ typedef enum {
 } gmonEventType_t;
 
 #define GMON_SENSORDATA_COMMON_FIELDS \
-    float         air_temp; \
-    float         air_humid; \
+    gmonAirCond_t air_cond; \
     unsigned int  soil_moist; \
     unsigned int  lightness;
 
@@ -65,6 +68,16 @@ typedef struct {
     } flgs;
 } gmonEvent_t;
 
+typedef struct {
+    GMON_SENSORDATA_COMMON_FIELDS;
+    unsigned int  curr_ticks;
+    unsigned int  curr_days ;
+    struct {
+        unsigned char air_val_written:1;
+        unsigned char soil_val_written:1;
+        unsigned char light_val_written:1;
+    } flgs;
+} gmonSensorRecord_t;
 
 typedef struct {
     unsigned int  read_interval_ms;

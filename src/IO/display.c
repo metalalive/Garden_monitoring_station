@@ -168,11 +168,11 @@ void  staUpdatePrintStrSensorData(gardenMonitor_t  *gmon, gmonEvent_t *new_evt)
     if (new_evt->event_type == GMON_EVENT_AIR_TEMP_UPDATED) {
         dst_buf = gmon_print_sensor_record_var_content_ptr[2];
         XMEMSET(dst_buf, 0x20, gmon_print_sensor_record_fix_content_idx[5]);
-        num_chr = staCvtFloatToStr(dst_buf, new_evt->data.air_temp, 0x1);
+        num_chr = staCvtFloatToStr(dst_buf, new_evt->data.air_cond.temporature, 0x1);
         XASSERT(num_chr <= gmon_print_sensor_record_fix_content_idx[5]);
         dst_buf = gmon_print_sensor_record_var_content_ptr[3];
         XMEMSET(dst_buf, 0x20, gmon_print_sensor_record_fix_content_idx[7]);
-        num_chr = staCvtFloatToStr(dst_buf, new_evt->data.air_humid, 0x1);
+        num_chr = staCvtFloatToStr(dst_buf, new_evt->data.air_cond.humidity, 0x1);
         XASSERT(num_chr <= gmon_print_sensor_record_fix_content_idx[7]);
     }
     if (new_evt->event_type == GMON_EVENT_LIGHTNESS_UPDATED) {

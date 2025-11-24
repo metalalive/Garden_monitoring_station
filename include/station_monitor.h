@@ -38,6 +38,7 @@ typedef struct {
         gMonSensor_t soil_moist;
         gMonSensor_t air_temp;
         gMonSensor_t light;
+        gmonSensorRecord_t  latest_records[GMON_CFG_NUM_SENSOR_RECORDS_KEEP];
     } sensors;
     struct {
         void         *handle_obj;

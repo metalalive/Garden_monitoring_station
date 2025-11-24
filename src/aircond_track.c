@@ -16,8 +16,8 @@ void airQualityMonitorTaskFn(void* params) {
             if (event != NULL) {
                 // TODO, calibration, reference point from remote user request
                 event->event_type = GMON_EVENT_AIR_TEMP_UPDATED;
-                event->data.air_temp = air_temp;
-                event->data.air_humid = air_humid;
+                event->data.air_cond.temporature = air_temp;
+                event->data.air_cond.humidity = air_humid;
                 event->curr_ticks = stationGetTicksPerDay();
                 event->curr_days = stationGetDays();
                 staNotifyOthersWithEvent(gmon, event, block_time);

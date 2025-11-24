@@ -36,7 +36,13 @@ extern "C" {
 #define staSysMsgBoxGet(msgbuf, msg, block_time)  GMON_RESP_OK
 #define staSysMsgBoxPut(msgbuf, msg, block_time)  GMON_RESP_OK
 
-#define staCvtUNumToStr(out_chr_p, num)  (uint32_t)sprintf((char *)out_chr_p, "%d", (int)num)
+#define staCvtUNumToStr(out_chr_p, num) ({ \
+    char _inner_buf[20] = {0}; \
+    uint32_t wr_sz = (uint32_t)snprintf(_inner_buf, 20, "%d", (int)num); \
+    assert(wr_sz <= 20); \
+    XMEMCPY((char *)out_chr_p, _inner_buf, wr_sz); \
+    wr_sz; \
+})
 
 typedef void* stationSysTask_t;
 typedef void (*stationSysTaskFn_t)(void*);
