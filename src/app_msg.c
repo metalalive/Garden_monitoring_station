@@ -16,11 +16,18 @@
 // topic : garden/control
 // message :
 // {
-//     "interval":  {
-//         "sensor": {"soil_moist": 2100, "air_temp": 7100, "light": 11000},
-//         "netconn": 360000
+//     "sensor": {
+//         "soilmoist": {"interval": 2100, "threshold": 1234},
+//         "airtemp": {"interval": 7100, "threshold": 35},
+//         "light": {"interval": 11000, "threshold": 4321}
 //     },
-//     "threshold": {"soilmoist": 1234, "airtemp": 35.5, "light": 4321, "daylength":7200000 }
+//     "netconn":  {"interval": 360000},
+//     "daylength":7200012,
+//     "actuators": {
+//         "pump": {"max_worktime": 4000, "min_resttime": 1500},
+//         "fan":  {"max_worktime": 5300, "min_resttime": 2100},
+//         "bulb": {"max_worktime": 7100, "min_resttime": 5700}
+//     }
 // }
 
 
@@ -34,21 +41,23 @@
 #define  GMON_JSON_WHITESPACE            ' '
 
 #define  GMON_APPMSG_DATA_NAME_RECORDS    "records"
+#define  GMON_APPMSG_DATA_NAME_SENSOR     "sensor"
 #define  GMON_APPMSG_DATA_NAME_SOILMOIST  "soilmoist"
 #define  GMON_APPMSG_DATA_NAME_AIRTEMP    "airtemp"
 #define  GMON_APPMSG_DATA_NAME_AIRHUMID   "airhumid"
 #define  GMON_APPMSG_DATA_NAME_LIGHT      "light"
+#define  GMON_APPMSG_DATA_NAME_NETCONN    "netconn"
+#define  GMON_APPMSG_DATA_NAME_INTERVAL   "interval"
+#define  GMON_APPMSG_DATA_NAME_ACTUATORS  "actuators"
+#define  GMON_APPMSG_DATA_NAME_PUMP       "pump"
+#define  GMON_APPMSG_DATA_NAME_FAN        "fan"
+#define  GMON_APPMSG_DATA_NAME_BULB       "bulb"
+#define  GMON_APPMSG_DATA_NAME_MAX_WORKTIME "max_worktime"
+#define  GMON_APPMSG_DATA_NAME_MIN_RESTTIME "min_resttime"
+#define  GMON_APPMSG_DATA_NAME_DAYLENGTH  "daylength"
+#define  GMON_APPMSG_DATA_NAME_THRESHOLD  "threshold"
 #define  GMON_APPMSG_DATA_NAME_TICKS      "ticks"
 #define  GMON_APPMSG_DATA_NAME_DAYS       "days"
-#define  GMON_APPMSG_DATA_NAME_INTERVAL   "interval"
-#define  GMON_APPMSG_DATA_NAME_SENSORREAD "sensorread"
-#define  GMON_APPMSG_DATA_NAME_NETCONN    "netconn"
-#define  GMON_APPMSG_DATA_NAME_THRESHOLD  "threshold"
-#define  GMON_APPMSG_DATA_NAME_DAYLENGTH  "daylength"
-#define  GMON_APPMSG_DATA_NAME_SENSOR_KEY "sensor"
-#define  GMON_APPMSG_DATA_NAME_INTERVAL_SOIL_MOIST_KEY "soil_moist"
-#define  GMON_APPMSG_DATA_NAME_INTERVAL_AIR_TEMP_KEY   "air_temp"
-#define  GMON_APPMSG_DATA_NAME_INTERVAL_LIGHT_KEY      "light"
 
 #define  GMON_APPMSG_DATA_SZ_SOILMOIST     4
 #define  GMON_APPMSG_DATA_SZ_AIRTEMP       6 // 3 bytes for integral part, 1-byte decimal seperator, 2 bytes for fractional part
@@ -62,8 +71,6 @@
 
 #define  GMON_APPMSG_NUM_RECORDS            GMON_CFG_NUM_SENSOR_RECORDS_KEEP
 #define  GMON_APPMSG_NUM_ITEMS_PER_RECORD   6
-
-#define  GMON_APPMSG_NUM_ITEMS_PER_THRESHOLD_NODE  4
 
 typedef struct {
     const char      *name;
@@ -92,17 +99,10 @@ static gmonMsgItem_t gmon_appmsg_log_records[GMON_APPMSG_NUM_ITEMS_PER_RECORD] =
     {GMON_APPMSG_DATA_NAME_AIRHUMID ,(unsigned short)GMON_APPMSG_DATA_SZ_AIRHUMID , {0}},
     {GMON_APPMSG_DATA_NAME_LIGHT    ,(unsigned short)GMON_APPMSG_DATA_SZ_LIGHT    , {0}},
     {GMON_APPMSG_DATA_NAME_TICKS    ,(unsigned short)GMON_APPMSG_DATA_SZ_TICKS    , {0}},
-    {GMON_APPMSG_DATA_NAME_DAYS     ,(unsigned short)GMON_APPMSG_DATA_SZ_DAYS     , {0}},
+    {GMON_APPMSG_DATA_NAME_DAYS     ,(unsigned short)GMON_APPMSG_DATA_SZ_DAYS     , {0}}
 };
 
-static gmonMsgItem_t gmon_appmsg_ctrl_threshold[GMON_APPMSG_NUM_ITEMS_PER_THRESHOLD_NODE] = {
-    {GMON_APPMSG_DATA_NAME_SOILMOIST,(unsigned short)GMON_APPMSG_DATA_SZ_SOILMOIST, {0}},
-    {GMON_APPMSG_DATA_NAME_AIRTEMP  ,(unsigned short)GMON_APPMSG_DATA_SZ_AIRTEMP  , {0}},
-    {GMON_APPMSG_DATA_NAME_LIGHT    ,(unsigned short)GMON_APPMSG_DATA_SZ_LIGHT    , {0}},
-    {GMON_APPMSG_DATA_NAME_DAYLENGTH,(unsigned short)GMON_APPMSG_DATA_SZ_DAYLENGTH, {0}},
-};
-
-#define  GMON_NUM_JSON_TOKEN_DECODE  32
+#define  GMON_NUM_JSON_TOKEN_DECODE  47
 
 static unsigned short staAppMsgOutflightCalcRequiredBufSz(void) {
     unsigned short outlen = 0, len = 0, idx = 0;
@@ -118,8 +118,8 @@ static unsigned short staAppMsgOutflightCalcRequiredBufSz(void) {
 
 static unsigned short staAppMsgInflightCalcRequiredBufSz(void) {
     // Using a sufficiently large fixed buffer for incoming control JSON messages.
-    // 256 bytes should be ample to accommodate various configuration updates.
-    return 256;
+    // 384 bytes should be ample to accommodate various configuration updates.
+    return 384;
 }
 
 static  void staParseFixedPartsOutAppMsg(gmonStr_t *outmsg) {
@@ -249,65 +249,31 @@ static  gMonStatus  staDecodeMsgCvtStrToInt(const unsigned char *json_data, jsmn
     return status;
 }
 
-static gMonStatus staDecodeSensorIntervals(gardenMonitor_t *gmon, const unsigned char *json_data, jsmntok_t *tokens, int start_object_token_idx, int *tokens_consumed_out) {
-    gMonStatus status = GMON_RESP_OK;
-    int parsed_int = 0;
-    jsmntok_t *sensor_obj_token = &tokens[start_object_token_idx];
-    *tokens_consumed_out = 1; // For the sensor object itself
-
-    if (sensor_obj_token->type != JSMN_OBJECT) {
-        return GMON_RESP_ERR_MSG_DECODE;
+static int staCalcTokensToSkip(jsmntok_t *token) {
+    // Calculate how many tokens to skip for a given token value
+    // For objects/arrays, we need to skip the token itself plus all nested key-value pairs
+    // For primitives/strings, we only skip 1 token
+    int tokens_to_skip = 1; // The token itself
+    if (token->type == JSMN_OBJECT || token->type == JSMN_ARRAY) {
+        tokens_to_skip += token->size * 2; // Each pair is key + value
     }
-
-    int children_start_idx = start_object_token_idx + 1;
-    int children_limit_idx = children_start_idx + sensor_obj_token->size * 2;
-
-    for (int child_idx = children_start_idx; child_idx < children_limit_idx && (status == GMON_RESP_OK); child_idx += 2) { // Iterate key-value pairs
-        jsmntok_t *child_key_token = &tokens[child_idx];
-        jsmntok_t *child_value_token = &tokens[child_idx + 1];
-
-        if (child_key_token->type == JSMN_STRING) {
-            int child_key_len = child_key_token->end - child_key_token->start;
-            unsigned char *child_key_name = (unsigned char *)&json_data[child_key_token->start];
-
-            if (XSTRNCMP(GMON_APPMSG_DATA_NAME_INTERVAL_SOIL_MOIST_KEY, child_key_name, child_key_len) == 0) {
-                status = staDecodeMsgCvtStrToInt(json_data, child_value_token, &parsed_int);
-                if (status == GMON_RESP_OK) {
-                    gmon->sensors.soil_moist.read_interval_ms = (unsigned int)parsed_int;
-                }
-            } else if (XSTRNCMP(GMON_APPMSG_DATA_NAME_INTERVAL_AIR_TEMP_KEY, child_key_name, child_key_len) == 0) {
-                status = staDecodeMsgCvtStrToInt(json_data, child_value_token, &parsed_int);
-                if (status == GMON_RESP_OK) {
-                    gmon->sensors.air_temp.read_interval_ms = (unsigned int)parsed_int;
-                }
-            } else if (XSTRNCMP(GMON_APPMSG_DATA_NAME_INTERVAL_LIGHT_KEY, child_key_name, child_key_len) == 0) {
-                status = staDecodeMsgCvtStrToInt(json_data, child_value_token, &parsed_int);
-                if (status == GMON_RESP_OK) {
-                    gmon->sensors.light.read_interval_ms = (unsigned int)parsed_int;
-                }
-            }
-        } else {
-            status = GMON_RESP_ERR_MSG_DECODE; // Expected string key
-        }
-        *tokens_consumed_out += 2; // for key and value
-    }
-    return status;
+    return tokens_to_skip;
 }
 
-static gMonStatus staDecodeIntervalObject(gardenMonitor_t *gmon, const unsigned char *json_data, jsmntok_t *tokens, int start_object_token_idx, int *tokens_consumed_out) {
+static gMonStatus staDecodeActuatorConfig(
+    const unsigned char *json_data, jsmntok_t *tokens, int start_object_token_idx,
+    gMonOutDev_t *outdev, int *tokens_consumed_out)
+{
     gMonStatus status = GMON_RESP_OK;
     int parsed_int = 0;
-    jsmntok_t *interval_obj_token = &tokens[start_object_token_idx];
-    *tokens_consumed_out = 1; // For the interval object token itself
+    jsmntok_t *config_obj_token = &tokens[start_object_token_idx];
+    *tokens_consumed_out = 1; // For the config object itself
 
-    if (interval_obj_token->type != JSMN_OBJECT) {
+    if (config_obj_token->type != JSMN_OBJECT) {
         return GMON_RESP_ERR_MSG_DECODE;
     }
-
-    int current_child_token_idx = start_object_token_idx + 1; // Start of children tokens
-
-    // Iterate through each key-value pair within the interval object
-    for (int i = 0; i < interval_obj_token->size && (status == GMON_RESP_OK); i++) {
+    int current_child_token_idx = start_object_token_idx + 1;
+    for (int i = 0; i < config_obj_token->size && status == GMON_RESP_OK; i++) {
         jsmntok_t *child_key_token = &tokens[current_child_token_idx];
         jsmntok_t *child_value_token = &tokens[current_child_token_idx + 1];
 
@@ -315,83 +281,223 @@ static gMonStatus staDecodeIntervalObject(gardenMonitor_t *gmon, const unsigned 
             int child_key_len = child_key_token->end - child_key_token->start;
             unsigned char *child_key_name = (unsigned char *)&json_data[child_key_token->start];
 
-            if (XSTRNCMP(GMON_APPMSG_DATA_NAME_SENSOR_KEY, child_key_name, child_key_len) == 0) {
-                int sensor_tokens_consumed = 0;
-                status = staDecodeSensorIntervals(gmon, json_data, tokens, current_child_token_idx + 1, &sensor_tokens_consumed);
-                *tokens_consumed_out += (1 /*key token*/ + sensor_tokens_consumed);
-                current_child_token_idx += (1 /*key token*/ + sensor_tokens_consumed);
-            } else if (XSTRNCMP(GMON_APPMSG_DATA_NAME_NETCONN, child_key_name, child_key_len) == 0) {
+            if (XSTRNCMP(GMON_APPMSG_DATA_NAME_MAX_WORKTIME, child_key_name, child_key_len) == 0) {
                 status = staDecodeMsgCvtStrToInt(json_data, child_value_token, &parsed_int);
                 if (status == GMON_RESP_OK) {
-                    gmon->user_ctrl.status.interval.netconn = staSetNetConnTaskInterval(gmon, (unsigned int)parsed_int);
+                    outdev->max_worktime = (unsigned int)parsed_int;
                 }
-                *tokens_consumed_out += 2; // Key + Primitive Value
-                current_child_token_idx += 2; // Move past key and its value
+            } else if (XSTRNCMP(GMON_APPMSG_DATA_NAME_MIN_RESTTIME, child_key_name, child_key_len) == 0) {
+                status = staDecodeMsgCvtStrToInt(json_data, child_value_token, &parsed_int);
+                if (status == GMON_RESP_OK) {
+                    outdev->min_resttime = (unsigned int)parsed_int;
+                }
             } else {
-                // Unknown key in interval object, skip its value
-                int skip_tokens_for_value = 1; // Default for primitive value
-                if (child_value_token->type == JSMN_OBJECT || child_value_token->type == JSMN_ARRAY) {
-                    // If the value is an object or array, we need to skip the value token itself AND all its children
-                    skip_tokens_for_value += child_value_token->size * (child_value_token->type == JSMN_OBJECT ? 2 : 1);
-                }
+                int skip_tokens_for_value = staCalcTokensToSkip(child_value_token);
+                current_child_token_idx += (1 /*key token*/ + skip_tokens_for_value);
+                *tokens_consumed_out += (1 /*key token*/ + skip_tokens_for_value);
+                continue;
+            }
+        } else {
+            status = GMON_RESP_ERR_MSG_DECODE;
+        }
+        current_child_token_idx += 2;
+        *tokens_consumed_out += 2;
+    }
+    return status;
+}
+
+static gMonStatus staDecodeActuatorsBlock(gardenMonitor_t *gmon, const unsigned char *json_data, jsmntok_t *tokens, int start_object_token_idx, int *tokens_consumed_out) {
+    gMonStatus status = GMON_RESP_OK;
+    jsmntok_t *actuators_block_obj_token = &tokens[start_object_token_idx];
+    *tokens_consumed_out = 1;
+
+    if (actuators_block_obj_token->type != JSMN_OBJECT) {
+        return GMON_RESP_ERR_MSG_DECODE;
+    }
+
+    int current_child_token_idx = start_object_token_idx + 1;
+    for (int i = 0; i < actuators_block_obj_token->size && status == GMON_RESP_OK; i++) {
+        jsmntok_t *child_key_token = &tokens[current_child_token_idx];
+        jsmntok_t *child_value_token = &tokens[current_child_token_idx + 1];
+
+        if (child_key_token->type == JSMN_STRING) {
+            int child_key_len = child_key_token->end - child_key_token->start;
+            unsigned char *child_key_name = (unsigned char *)&json_data[child_key_token->start];
+
+            if (XSTRNCMP(GMON_APPMSG_DATA_NAME_PUMP, child_key_name, child_key_len) == 0) {
+                int config_tokens_consumed = 0;
+                status = staDecodeActuatorConfig(json_data, tokens, current_child_token_idx + 1,
+                                                 &gmon->outdev.pump, &config_tokens_consumed);
+                *tokens_consumed_out += (1 /*key token*/ + config_tokens_consumed);
+                current_child_token_idx += (1 /*key token*/ + config_tokens_consumed);
+            } else if (XSTRNCMP(GMON_APPMSG_DATA_NAME_FAN, child_key_name, child_key_len) == 0) {
+                int config_tokens_consumed = 0;
+                status = staDecodeActuatorConfig(json_data, tokens, current_child_token_idx + 1,
+                                                 &gmon->outdev.fan, &config_tokens_consumed);
+                *tokens_consumed_out += (1 /*key token*/ + config_tokens_consumed);
+                current_child_token_idx += (1 /*key token*/ + config_tokens_consumed);
+            } else if (XSTRNCMP(GMON_APPMSG_DATA_NAME_BULB, child_key_name, child_key_len) == 0) {
+                int config_tokens_consumed = 0;
+                status = staDecodeActuatorConfig(json_data, tokens, current_child_token_idx + 1,
+                                                 &gmon->outdev.bulb, &config_tokens_consumed);
+                *tokens_consumed_out += (1 /*key token*/ + config_tokens_consumed);
+                current_child_token_idx += (1 /*key token*/ + config_tokens_consumed);
+            } else {
+                int skip_tokens_for_value = staCalcTokensToSkip(child_value_token);
                 *tokens_consumed_out += (1 /*key token*/ + skip_tokens_for_value);
                 current_child_token_idx += (1 /*key token*/ + skip_tokens_for_value);
             }
         } else {
-            status = GMON_RESP_ERR_MSG_DECODE; // Expected string key
-            current_child_token_idx++; // Attempt to move past the invalid token.
-            *tokens_consumed_out += 1; // Count the malformed token.
+            status = GMON_RESP_ERR_MSG_DECODE;
+            current_child_token_idx++;
+            *tokens_consumed_out += 1;
         }
     }
     return status;
 }
 
-static gMonStatus staDecodeThresholdObject(gardenMonitor_t *gmon, const unsigned char *json_data, jsmntok_t *tokens, int start_object_token_idx, int *tokens_consumed_out) {
+static gMonStatus staDecodeSensorConfig(
+    const unsigned char *json_data, jsmntok_t *tokens, int start_object_token_idx,
+    gMonSensor_t *sensor_cfg, gMonOutDev_t *outdev,
+    gMonStatus (*set_threshold_fn)(gMonOutDev_t *, unsigned int),
+    gMonStatus *threshold_status_field, int *tokens_consumed_out)
+{
     gMonStatus status = GMON_RESP_OK;
     int parsed_int = 0;
-    jsmntok_t *threshold_obj_token = &tokens[start_object_token_idx];
-    *tokens_consumed_out = 1; // For the threshold object itself
+    jsmntok_t *config_obj_token = &tokens[start_object_token_idx];
+    *tokens_consumed_out = 1; // For the config object itself
 
-    if (threshold_obj_token->type != JSMN_OBJECT) {
+    if (config_obj_token->type != JSMN_OBJECT) {
+        return GMON_RESP_ERR_MSG_DECODE;
+    }
+    int current_child_token_idx = start_object_token_idx + 1;
+    for (int i = 0; i < config_obj_token->size && status == GMON_RESP_OK; i++) {
+        jsmntok_t *child_key_token = &tokens[current_child_token_idx];
+        jsmntok_t *child_value_token = &tokens[current_child_token_idx + 1];
+
+        if (child_key_token->type == JSMN_STRING) {
+            int child_key_len = child_key_token->end - child_key_token->start;
+            unsigned char *child_key_name = (unsigned char *)&json_data[child_key_token->start];
+
+            if (XSTRNCMP(GMON_APPMSG_DATA_NAME_INTERVAL, child_key_name, child_key_len) == 0) {
+                status = staDecodeMsgCvtStrToInt(json_data, child_value_token, &parsed_int);
+                if (status == GMON_RESP_OK && sensor_cfg != NULL) {
+                    sensor_cfg->read_interval_ms = (unsigned int)parsed_int;
+                }
+            } else if (XSTRNCMP(GMON_APPMSG_DATA_NAME_THRESHOLD, child_key_name, child_key_len) == 0) {
+                status = staDecodeMsgCvtStrToInt(json_data, child_value_token, &parsed_int);
+                if (status == GMON_RESP_OK && outdev != NULL && set_threshold_fn != NULL && threshold_status_field != NULL) {
+                    *threshold_status_field = set_threshold_fn(outdev, (unsigned int)parsed_int);
+                }
+            } else {
+                // Unknown key in sensor config, skip its value (which could be an object)
+                int skip_tokens_for_value = staCalcTokensToSkip(child_value_token);
+                current_child_token_idx += (1 /*key token*/ + skip_tokens_for_value);
+                *tokens_consumed_out += (1 /*key token*/ + skip_tokens_for_value);
+                continue; // Skip the normal advancement at the end of the loop
+            }
+        } else {
+            status = GMON_RESP_ERR_MSG_DECODE;
+        }
+        current_child_token_idx += 2;
+        *tokens_consumed_out += 2;
+    }
+    return status;
+}
+
+static gMonStatus staDecodeSensorBlock(gardenMonitor_t *gmon, const unsigned char *json_data, jsmntok_t *tokens, int start_object_token_idx, int *tokens_consumed_out) {
+    gMonStatus status = GMON_RESP_OK;
+    jsmntok_t *sensor_block_obj_token = &tokens[start_object_token_idx];
+    *tokens_consumed_out = 1; // For the sensor block object itself
+
+    if (sensor_block_obj_token->type != JSMN_OBJECT) {
         return GMON_RESP_ERR_MSG_DECODE;
     }
 
-    int children_start_idx = start_object_token_idx + 1;
-    int children_limit_idx = children_start_idx + threshold_obj_token->size * 2;
-
-    for (int child_idx = children_start_idx; child_idx < children_limit_idx && (status == GMON_RESP_OK); child_idx += 2) { // Iterate key-value pairs
-        jsmntok_t *child_key_token = &tokens[child_idx];
-        jsmntok_t *child_value_token = &tokens[child_idx + 1];
+    int current_child_token_idx = start_object_token_idx + 1;
+    for (int i = 0; i < sensor_block_obj_token->size && status == GMON_RESP_OK; i++) {
+        jsmntok_t *child_key_token = &tokens[current_child_token_idx];
+        jsmntok_t *child_value_token = &tokens[current_child_token_idx + 1];
 
         if (child_key_token->type == JSMN_STRING) {
             int child_key_len = child_key_token->end - child_key_token->start;
             unsigned char *child_key_name = (unsigned char *)&json_data[child_key_token->start];
 
             if (XSTRNCMP(GMON_APPMSG_DATA_NAME_SOILMOIST, child_key_name, child_key_len) == 0) {
-                status = staDecodeMsgCvtStrToInt(json_data, child_value_token, &parsed_int);
-                if (status == GMON_RESP_OK) {
-                    gmon->user_ctrl.status.threshold.soil_moist = staSetTrigThresholdPump(&gmon->outdev.pump , (unsigned int)parsed_int);
-                }
-            } else if (XSTRNCMP(GMON_APPMSG_DATA_NAME_AIRTEMP , child_key_name, child_key_len) == 0) {
-                status = staDecodeMsgCvtStrToInt(json_data, child_value_token, &parsed_int);
-                if (status == GMON_RESP_OK) {
-                    gmon->user_ctrl.status.threshold.air_temp = staSetTrigThresholdFan(&gmon->outdev.fan, (unsigned int)parsed_int);
-                }
-            } else if (XSTRNCMP(GMON_APPMSG_DATA_NAME_LIGHT    , child_key_name, child_key_len) == 0) {
-                status = staDecodeMsgCvtStrToInt(json_data, child_value_token, &parsed_int);
-                if (status == GMON_RESP_OK) {
-                    gmon->user_ctrl.status.threshold.lightness = staSetTrigThresholdBulb(&gmon->outdev.bulb, (unsigned int)parsed_int);
-                }
-            } else if (XSTRNCMP(GMON_APPMSG_DATA_NAME_DAYLENGTH, child_key_name, child_key_len) == 0) {
-                status = staDecodeMsgCvtStrToInt(json_data, child_value_token, &parsed_int);
-                if (status == GMON_RESP_OK) {
-                    gmon->user_ctrl.status.threshold.daylength = staSetRequiredDaylenTicks(gmon, (unsigned int)parsed_int);
-                }
+                int config_tokens_consumed = 0;
+                status = staDecodeSensorConfig(json_data, tokens, current_child_token_idx + 1,
+                                               &gmon->sensors.soil_moist, &gmon->outdev.pump, staSetTrigThresholdPump,
+                                               &gmon->user_ctrl.status.threshold.soil_moist,
+                                               &config_tokens_consumed);
+                *tokens_consumed_out += (1 /*key token*/ + config_tokens_consumed);
+                current_child_token_idx += (1 /*key token*/ + config_tokens_consumed);
+            } else if (XSTRNCMP(GMON_APPMSG_DATA_NAME_AIRTEMP, child_key_name, child_key_len) == 0) {
+                int config_tokens_consumed = 0;
+                status = staDecodeSensorConfig(json_data, tokens, current_child_token_idx + 1,
+                                               &gmon->sensors.air_temp, &gmon->outdev.fan, staSetTrigThresholdFan,
+                                               &gmon->user_ctrl.status.threshold.air_temp,
+                                               &config_tokens_consumed);
+                *tokens_consumed_out += (1 /*key token*/ + config_tokens_consumed);
+                current_child_token_idx += (1 /*key token*/ + config_tokens_consumed);
+            } else if (XSTRNCMP(GMON_APPMSG_DATA_NAME_LIGHT, child_key_name, child_key_len) == 0) {
+                int config_tokens_consumed = 0;
+                status = staDecodeSensorConfig(json_data, tokens, current_child_token_idx + 1,
+                                               &gmon->sensors.light, &gmon->outdev.bulb, staSetTrigThresholdBulb,
+                                               &gmon->user_ctrl.status.threshold.lightness,
+                                               &config_tokens_consumed);
+                *tokens_consumed_out += (1 /*key token*/ + config_tokens_consumed);
+                current_child_token_idx += (1 /*key token*/ + config_tokens_consumed);
+            } else {
+                // Unknown sensor type, skip its value (which is an object)
+                int skip_tokens_for_value = staCalcTokensToSkip(child_value_token);
+                *tokens_consumed_out += (1 /*key token*/ + skip_tokens_for_value);
+                current_child_token_idx += (1 /*key token*/ + skip_tokens_for_value);
             }
         } else {
-            status = GMON_RESP_ERR_MSG_DECODE; // Expected string key
+            status = GMON_RESP_ERR_MSG_DECODE;
+            current_child_token_idx++;
+            *tokens_consumed_out += 1;
         }
-        *tokens_consumed_out += 2; // For key and value
+    }
+    return status;
+}
+
+static gMonStatus staDecodeNetconnBlock(gardenMonitor_t *gmon, const unsigned char *json_data, jsmntok_t *tokens, int start_object_token_idx, int *tokens_consumed_out) {
+    gMonStatus status = GMON_RESP_OK;
+    int parsed_int = 0;
+    jsmntok_t *netconn_obj_token = &tokens[start_object_token_idx];
+    *tokens_consumed_out = 1; // For the netconn object itself
+
+    if (netconn_obj_token->type != JSMN_OBJECT) {
+        return GMON_RESP_ERR_MSG_DECODE;
+    }
+
+    int current_child_token_idx = start_object_token_idx + 1;
+    for (int i = 0; i < netconn_obj_token->size && status == GMON_RESP_OK; i++) {
+        jsmntok_t *child_key_token = &tokens[current_child_token_idx];
+        jsmntok_t *child_value_token = &tokens[current_child_token_idx + 1];
+
+        if (child_key_token->type == JSMN_STRING) {
+            int child_key_len = child_key_token->end - child_key_token->start;
+            unsigned char *child_key_name = (unsigned char *)&json_data[child_key_token->start];
+
+            if (XSTRNCMP(GMON_APPMSG_DATA_NAME_INTERVAL, child_key_name, child_key_len) == 0) {
+                status = staDecodeMsgCvtStrToInt(json_data, child_value_token, &parsed_int);
+                if (status == GMON_RESP_OK) {
+                    gmon->user_ctrl.status.interval.netconn = staSetNetConnTaskInterval(gmon, (unsigned int)parsed_int);
+                }
+            } else {
+                // Unknown key in netconn block, skip its value (which could be an object)
+                int skip_tokens_for_value = staCalcTokensToSkip(child_value_token);
+                current_child_token_idx += (1 /*key token*/ + skip_tokens_for_value);
+                *tokens_consumed_out += (1 /*key token*/ + skip_tokens_for_value);
+                continue; // Skip the normal advancement at the end of the loop
+            }
+        } else {
+            status = GMON_RESP_ERR_MSG_DECODE;
+        }
+        current_child_token_idx += 2;
+        *tokens_consumed_out += 2;
     }
     return status;
 }
@@ -417,6 +523,7 @@ static gMonStatus staDecodeAppMsgInflightCore(
         return GMON_RESP_ERR_MSG_DECODE;
     }
 
+    int parsed_int = 0;
     int current_token_idx = 1; // Start from the first key-token of the root object
     int num_top_level_pairs = tokens[0].size;
 
@@ -425,34 +532,36 @@ static gMonStatus staDecodeAppMsgInflightCore(
             status = GMON_RESP_ERR_MSG_DECODE; // Incomplete JSON, expected value for key
             break;
         }
-
         jsmntok_t *key_token = &tokens[current_token_idx];
         if (key_token->type != JSMN_STRING) {
             status = GMON_RESP_ERR_MSG_DECODE; // Expected a string key
             break;
         }
-
         user_var_len  =  key_token->end - key_token->start;
         user_var_name = (unsigned char *)&json_data[key_token->start];
         jsmntok_t *value_token = &tokens[current_token_idx + 1];
 
         int tokens_consumed_by_value = 0; // This will be updated by helper functions, or calculated for unknown keys
 
-        if (XSTRNCMP(GMON_APPMSG_DATA_NAME_INTERVAL, user_var_name, user_var_len) == 0) {
-            status = staDecodeIntervalObject(gmon, json_data, tokens, current_token_idx + 1, &tokens_consumed_by_value);
-        } else if (XSTRNCMP(GMON_APPMSG_DATA_NAME_THRESHOLD, user_var_name, user_var_len) == 0) {
-            status = staDecodeThresholdObject(gmon, json_data, tokens, current_token_idx + 1, &tokens_consumed_by_value);
+        if (XSTRNCMP(GMON_APPMSG_DATA_NAME_SENSOR, user_var_name, user_var_len) == 0) {
+            status = staDecodeSensorBlock(gmon, json_data, tokens, current_token_idx + 1, &tokens_consumed_by_value);
+        } else if (XSTRNCMP(GMON_APPMSG_DATA_NAME_NETCONN, user_var_name, user_var_len) == 0) {
+            status = staDecodeNetconnBlock(gmon, json_data, tokens, current_token_idx + 1, &tokens_consumed_by_value);
+        } else if (XSTRNCMP(GMON_APPMSG_DATA_NAME_DAYLENGTH, user_var_name, user_var_len) == 0) {
+            status = staDecodeMsgCvtStrToInt(json_data, value_token, &parsed_int);
+            if (status == GMON_RESP_OK) {
+                gmon->user_ctrl.status.threshold.daylength = staSetRequiredDaylenTicks(gmon, (unsigned int)parsed_int);
+            }
+            tokens_consumed_by_value = 1; // Primitive value consumes 1 token
+        } else if (XSTRNCMP(GMON_APPMSG_DATA_NAME_ACTUATORS, user_var_name, user_var_len) == 0) {
+            status = staDecodeActuatorsBlock(gmon, json_data, tokens, current_token_idx + 1, &tokens_consumed_by_value);
+
         } else {
             // Unknown top-level key. Calculate tokens to skip for its value.
-            if (value_token->type == JSMN_OBJECT || value_token->type == JSMN_ARRAY) {
-                tokens_consumed_by_value = 1 + value_token->size * 2;
-            } else { // primitive, string
-                tokens_consumed_by_value = 1;
-            }
+            tokens_consumed_by_value = staCalcTokensToSkip(value_token);
         }
         current_token_idx += (1 /* for key_token */ + tokens_consumed_by_value);
     }
-
     return status;
 }
 
@@ -473,7 +582,6 @@ gMonStatus  staDecodeAppMsgInflight(gardenMonitor_t *gmon) {
     } else {
         status = staDecodeAppMsgInflightCore(gmon, gmon->rawmsg.inflight.data, tokens_ptr, r);
     }
-    XMEMSET(gmon->rawmsg.inflight.data, GMON_JSON_WHITESPACE, sizeof(char) * gmon->rawmsg.inflight.len);
     return status;
 }
 

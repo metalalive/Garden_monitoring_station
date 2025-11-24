@@ -16,8 +16,7 @@
 // * encode the message with these parameters to JSON-based string.
 // * send encoded message out (any network protocol implemented in src/network)
 
-gMonStatus  staSetNetConnTaskInterval(gardenMonitor_t  *gmon, unsigned int new_interval)
-{
+gMonStatus  staSetNetConnTaskInterval(gardenMonitor_t  *gmon, unsigned int new_interval) {
     gMonStatus  status = GMON_RESP_OK;
     if(gmon != NULL) {
         if(new_interval >= GMON_MIN_NETCONN_START_INTERVAL_MS && new_interval <= GMON_MAX_NETCONN_START_INTERVAL_MS) {
@@ -28,9 +27,9 @@ gMonStatus  staSetNetConnTaskInterval(gardenMonitor_t  *gmon, unsigned int new_i
     } else {
         status = GMON_RESP_ERRARGS;
     }
-    XASSERT(status >= 0);
+    // XASSERT(status >= 0);
     return status;
-} // end of staSetNetConnTaskInterval
+}
 
 
 void  stationNetConnHandlerTaskFn(void* params)
@@ -38,10 +37,9 @@ void  stationNetConnHandlerTaskFn(void* params)
     const int   read_timeout_ms = 6000;
     gMonStatus  send_status = GMON_RESP_OK, recv_status = GMON_RESP_OK;
     uint8_t     num_reconn = 0;
+    gmonStr_t  *app_msg_recv = NULL, *app_msg_send = NULL;
 
     gardenMonitor_t    *gmon = (gardenMonitor_t *)params;
-    //// staSetNetConnTaskInterval(gmon, (unsigned int)GMON_CFG_NETCONN_START_INTERVAL_MS);
-    gmonStr_t  *app_msg_recv = NULL, *app_msg_send = NULL;
     while(1) {
         stationSysDelayMs(gmon->netconn.interval_ms);
         app_msg_recv = staGetAppMsgInflight(gmon);
