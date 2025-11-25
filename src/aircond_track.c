@@ -18,8 +18,8 @@ void airQualityMonitorTaskFn(void* params) {
                 event->event_type = GMON_EVENT_AIR_TEMP_UPDATED;
                 event->data.air_cond.temporature = air_temp;
                 event->data.air_cond.humidity = air_humid;
-                event->curr_ticks = stationGetTicksPerDay();
-                event->curr_days = stationGetDays();
+                event->curr_ticks = stationGetTicksPerDay(&gmon->tick);
+                event->curr_days = stationGetDays(&gmon->tick);
                 staNotifyOthersWithEvent(gmon, event, block_time);
             }
             // The interval for fan will be updated by network handling task during runtime

@@ -68,6 +68,7 @@ typedef struct {
         unsigned int  required_light_daylength_ticks;
     } user_ctrl;
     gMonDisplay_t  display;
+    gmonTick_t     tick;
     gMonRawMsg_t   rawmsg;
 } gardenMonitor_t;
 

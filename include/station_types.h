@@ -103,6 +103,12 @@ typedef struct {
 
 
 typedef struct {
+    unsigned int  ticks_per_day;
+    unsigned int  days;
+    unsigned int  last_read;
+} gmonTick_t;
+
+typedef struct {
     gmonStr_t     print_str[GMON_DISPLAY_NUM_PRINT_STRINGS];
     unsigned int  interval_ms;
 } gMonDisplay_t;

@@ -11,7 +11,7 @@ UNITY_SRC = \
 
 TEST_BUILD_DIR = $(BUILD_DIR_TOP)/utest
 
-TEST_SRC = tests/mocks.c tests/entry.c tests/app_msg.c
+TEST_SRC = tests/mocks.c tests/entry.c tests/app_msg.c tests/util.c
 
 APP_SRC = src/util.c src/app_msg.c src/IO/sensor_reader.c
 

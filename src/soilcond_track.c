@@ -8,8 +8,8 @@ void pumpControllerTaskFn(void* params) {
 
     gardenMonitor_t *gmon = (gardenMonitor_t *)params;
     while(1) {
-        curr_ticks = stationGetTicksPerDay();
-        curr_days  = stationGetDays();
+        curr_ticks = stationGetTicksPerDay(&gmon->tick);
+        curr_days  = stationGetDays(&gmon->tick);
 
         // 1. Read Soil Moisture and create an event
         status = GMON_SENSOR_READ_FN_SOIL_MOIST(&soil_moist);

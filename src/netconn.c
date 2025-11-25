@@ -69,8 +69,8 @@ void  stationNetConnHandlerTaskFn(void* params)
             staDecodeAppMsgInflight(gmon);
             staUpdatePrintStrThreshold(gmon); // update threshold data to display device
         }
-        gmon->user_ctrl.last_update.ticks = stationGetTicksPerDay();
-        gmon->user_ctrl.last_update.days  = stationGetDays();
+        gmon->user_ctrl.last_update.ticks = stationGetTicksPerDay(&gmon->tick);
+        gmon->user_ctrl.last_update.days  = stationGetDays(&gmon->tick);
         gmon->netconn.status.sent = send_status;
         gmon->netconn.status.recv = recv_status;
         staUpdatePrintStrNetConn(gmon);  // update network connection status to display device

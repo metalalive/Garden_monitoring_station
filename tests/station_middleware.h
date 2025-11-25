@@ -28,7 +28,7 @@ extern "C" {
 // Mock FreeRTOS-specific functions for host
 #define stationSysEnterCritical()
 #define stationSysExitCritical()
-#define stationSysGetTickCount()  0
+#define stationSysGetTickCount()  UTestSysGetTickCount()
 #define configASSERT(x) assert(x)
 // TODO, mock following system-level functions
 #define staSysMsgBoxCreate(length)  (stationSysMsgbox_t)NULL
@@ -47,6 +47,11 @@ extern "C" {
 typedef void* stationSysTask_t;
 typedef void (*stationSysTaskFn_t)(void*);
 typedef void* stationSysMsgbox_t;
+
+extern uint32_t g_mock_tick_count;
+
+uint32_t UTestSysGetTickCount(void);
+void setMockTickCount(uint32_t count);
 
 #ifdef __cplusplus
 }

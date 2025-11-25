@@ -12,9 +12,9 @@ extern "C" {
 #define  GMON_NUMTOCHAR(x)  ('0' + (x))
 
 // get current number of time ticks per day
-unsigned int stationGetTicksPerDay(void);
+unsigned int stationGetTicksPerDay(gmonTick_t *);
 // get number of days since the target hardware platform started working
-unsigned int stationGetDays(void);
+unsigned int stationGetDays(gmonTick_t *);
 
 void  staReverseString(unsigned char *str, unsigned int sz);
 

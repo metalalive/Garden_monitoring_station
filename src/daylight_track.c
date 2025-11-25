@@ -28,8 +28,8 @@ void lightControllerTaskFn(void* params) {
 
     gardenMonitor_t *gmon = (gardenMonitor_t *)params;
     while(1) {
-        curr_ticks = stationGetTicksPerDay();
-        curr_days  = stationGetDays();
+        curr_ticks = stationGetTicksPerDay(&gmon->tick);
+        curr_days  = stationGetDays(&gmon->tick);
         // Interactively read from light-relevant sensors
         status = GMON_SENSOR_READ_FN_LIGHT(&lightness);
         if(status == GMON_RESP_OK) {
