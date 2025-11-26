@@ -16,7 +16,7 @@ TEST_SRC = tests/mocks.c tests/entry.c tests/app_msg.c tests/util.c
 APP_SRC = src/util.c src/app_msg.c src/IO/sensor_reader.c
 
 # All source files for the test executable
-ALL_TEST_SOURCES = $(TEST_SRC) $(APP_SRC) $(UNITY_SRC) $(JSMN_SRC)
+ALL_TEST_SOURCES = $(APP_SRC) $(TEST_SRC) $(UNITY_SRC) $(JSMN_SRC)
 
 # Object files
 TEST_OBJS = $(patsubst %.c, $(TEST_BUILD_DIR)/%.o, $(ALL_TEST_SOURCES))

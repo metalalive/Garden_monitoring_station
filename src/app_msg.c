@@ -572,47 +572,51 @@ gmonStr_t*  staGetAppMsgInflight(gardenMonitor_t *gmon) {
     return &rmsg->inflight;
 }
 
-static uint8_t staCheckRecordFull(gmonSensorRecord_t *r) {
-    // Check if the given aggregating record has collected all sensor data types.
-    return r->flgs.air_val_written && r->flgs.soil_val_written
-        && r->flgs.light_val_written;
+static gmonSensorRecord_t staShiftRecords(gmonSensorRecord_t *records) {
+    gmonSensorRecord_t discarded = records[GMON_APPMSG_NUM_RECORDS - 1];
+    // - shift all existing records to make space for a new one at `record[0]`.
+    // - this effectively discards the oldest record (at `record[GMON_APPMSG_NUM_RECORDS - 1]`).
+    for (int i = GMON_APPMSG_NUM_RECORDS - 1; i > 0; i--) {
+        records[i] = records[i-1];
+    }
+    // Clear the new `records[0]` to prepare it for fresh aggregation of incoming events.
+    XMEMSET(&records[0], 0, sizeof(gmonSensorRecord_t));
+    return discarded;
 }
 
-gMonStatus staUpdateLastRecord(gmonSensorRecord_t *records, gmonEvent_t *evt) {
-    gMonStatus status = GMON_RESP_OK;
+gmonSensorRecord_t staUpdateLastRecord(gmonSensorRecord_t *records, gmonEvent_t *evt) {
+    gmonSensorRecord_t discarded = {0};
     // `records[0]` represents the newest/currently aggregating record.
     // `records[GMON_APPMSG_NUM_RECORDS - 1]` represents the oldest record.
     stationSysEnterCritical();
-
-    uint8_t first_item_full = staCheckRecordFull(&records[0]);
-    if (first_item_full) {
-        // If the current record is complete :
-        // - shift all existing records to make space for a new one at `record[0]`.
-        // - this effectively discards the oldest record (at `record[GMON_APPMSG_NUM_RECORDS - 1]`).
-        uint8_t last_item_full  = staCheckRecordFull(&records[GMON_APPMSG_NUM_RECORDS - 1]);
-        if (last_item_full) {
-            status = GMON_RESP_OLDEST_REMOVED;
-        }
-        for (int i = GMON_APPMSG_NUM_RECORDS - 1; i > 0; i--) {
-            records[i] = records[i-1];
-        }
-        // Clear the new `records[0]` to prepare it for fresh aggregation of incoming events.
-        XMEMSET(&records[0], 0, sizeof(gmonSensorRecord_t));
-    }
-    // Update the current aggregating record (`record[0]`) with data from the new event.
-    records[0].curr_ticks = evt->curr_ticks;
-    records[0].curr_days  = evt->curr_days ;
-
+    // Check if the first aggregating record has collected any sensor data type.
     switch(evt->event_type) {
         case GMON_EVENT_SOIL_MOISTURE_UPDATED:
+            if (records[0].flgs.soil_val_written) {
+                discarded = staShiftRecords(records);
+            }
+            // Update the current aggregating record (`record[0]`) with data
+            // from the new event.
+            records[0].curr_ticks = evt->curr_ticks;
+            records[0].curr_days  = evt->curr_days ;
             records[0].soil_moist = evt->data.soil_moist;
             records[0].flgs.soil_val_written = 1;
             break;
         case GMON_EVENT_LIGHTNESS_UPDATED:
+            if (records[0].flgs.light_val_written) {
+                discarded = staShiftRecords(records);
+            }
+            records[0].curr_ticks = evt->curr_ticks;
+            records[0].curr_days  = evt->curr_days ;
             records[0].lightness = evt->data.lightness;
             records[0].flgs.light_val_written = 1;
             break;
         case GMON_EVENT_AIR_TEMP_UPDATED:
+            if (records[0].flgs.air_val_written) {
+                discarded = staShiftRecords(records);
+            }
+            records[0].curr_ticks = evt->curr_ticks;
+            records[0].curr_days  = evt->curr_days ;
             records[0].air_cond = evt->data.air_cond;
             records[0].flgs.air_val_written = 1;
             break;
@@ -620,7 +624,7 @@ gMonStatus staUpdateLastRecord(gmonSensorRecord_t *records, gmonEvent_t *evt) {
             break;
     }
     stationSysExitCritical();
-    return status;
+    return discarded;
 } // end of staUpdateLastRecord
 
 void  stationSensorDataAggregatorTaskFn(void *params) {

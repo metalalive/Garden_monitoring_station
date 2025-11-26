@@ -8,7 +8,6 @@ extern "C" {
 // return code that represents status after executing TLS function
 typedef enum {
     GMON_RESP_OK              =  0,
-    GMON_RESP_OLDEST_REMOVED  =  1,
     GMON_RESP_SKIP            =  2,
     GMON_RESP_ERR             = -1,
     GMON_RESP_ERRARGS         = -2,

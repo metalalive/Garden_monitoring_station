@@ -1,14 +1,12 @@
 #include "station_include.h"
 
-#define  GMON_SENSOR_RECORD_LIST_SZ   (GMON_CFG_NUM_SENSOR_RECORDS_KEEP << 1)
-
-static gmonEvent_t   gmon_avail_record_list[GMON_SENSOR_RECORD_LIST_SZ];
+static gmonEvent_t   gmon_avail_record_list[GMON_NUM_SENSOR_EVENTS];
 
 gmonEvent_t* staAllocSensorEvent(void) {
     gmonEvent_t *out = NULL;
     uint16_t  idx = 0;
     stationSysEnterCritical();
-    for(idx = 0; idx < GMON_SENSOR_RECORD_LIST_SZ; idx++) {
+    for(idx = 0; idx < GMON_NUM_SENSOR_EVENTS; idx++) {
         if(gmon_avail_record_list[idx].flgs.alloc == 0) {
             out = &gmon_avail_record_list[idx];
             XMEMSET(out, 0x00, sizeof(gmonEvent_t));
@@ -27,12 +25,12 @@ gMonStatus  staFreeSensorEvent(gmonEvent_t* record) {
     uint16_t  idx = 0;
     stationSysEnterCritical();
     addr_start = &gmon_avail_record_list[0];
-    addr_end   = &gmon_avail_record_list[GMON_SENSOR_RECORD_LIST_SZ];
+    addr_end   = &gmon_avail_record_list[GMON_NUM_SENSOR_EVENTS];
     if((record < addr_start) || (addr_end <= record)) {
         status = GMON_RESP_ERRMEM;
         goto done;
     }
-    for(idx = 0; idx < GMON_SENSOR_RECORD_LIST_SZ; idx++) {
+    for(idx = 0; idx < GMON_NUM_SENSOR_EVENTS; idx++) {
         addr_start = &gmon_avail_record_list[idx];
         addr_end   = &gmon_avail_record_list[idx + 1];
         if((record > addr_start) && (record < addr_end)) {
@@ -119,7 +117,7 @@ gMonStatus  stationIOinit(gardenMonitor_t *gmon) {
     XASSERT(gmon->msgpipe.sensor2display != NULL);
     gmon->msgpipe.sensor2net = staSysMsgBoxCreate( GMON_CFG_NUM_SENSOR_RECORDS_KEEP );
     XASSERT(gmon->msgpipe.sensor2net != NULL);
-    XMEMSET(&gmon_avail_record_list[0], 0x00, sizeof(gmonEvent_t) * GMON_SENSOR_RECORD_LIST_SZ);
+    XMEMSET(&gmon_avail_record_list[0], 0x00, sizeof(gmonEvent_t) * GMON_NUM_SENSOR_EVENTS);
 done:
     return status;
 } // end of stationIOinit

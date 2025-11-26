@@ -5,6 +5,8 @@
 extern "C" {
 #endif
 
+#define  GMON_NUM_SENSOR_EVENTS   (GMON_CFG_NUM_SENSOR_RECORDS_KEEP * 3)
+
 typedef struct {
     uint16_t      width;
     uint16_t      height;
