@@ -11,9 +11,10 @@ UNITY_SRC = \
 
 TEST_BUILD_DIR = $(BUILD_DIR_TOP)/utest
 
-TEST_SRC = tests/mocks.c tests/entry.c tests/app_msg.c tests/util.c
+TEST_SRC = tests/mocks.c tests/entry.c tests/app_msg.c tests/util.c \
+		   tests/IO/sensor_event.c
 
-APP_SRC = src/util.c src/app_msg.c src/IO/sensor_reader.c
+APP_SRC = src/util.c src/app_msg.c src/IO/sensor_event.c
 
 # All source files for the test executable
 ALL_TEST_SOURCES = $(APP_SRC) $(TEST_SRC) $(UNITY_SRC) $(JSMN_SRC)

@@ -10,15 +10,79 @@ uint32_t g_mock_tick_count = 0;
 
 void setMockTickCount(uint32_t count) { g_mock_tick_count = count; }
 
+stationSysMsgbox_t UTestSysMsgBoxCreate(size_t length) {
+    mock_msg_queue_t* queue = (mock_msg_queue_t*)XMALLOC(sizeof(mock_msg_queue_t));
+    if (queue == NULL) {
+        return NULL;
+    }
+    queue->buffer = (void**)XMALLOC(sizeof(void*) * length);
+    if (queue->buffer == NULL) {
+        XMEMFREE(queue);
+        return NULL;
+    }
+    queue->capacity = length;
+    queue->head = 0;
+    queue->tail = 0;
+    queue->count = 0;
+    return (stationSysMsgbox_t)queue;
+}
+
+void UTestSysMsgBoxDelete(stationSysMsgbox_t *msgbuf_ptr) {
+    if (msgbuf_ptr == NULL || *msgbuf_ptr == NULL) {
+        return;
+    }
+    mock_msg_queue_t* queue = (mock_msg_queue_t*)*msgbuf_ptr;
+    XMEMFREE(queue->buffer);
+    XMEMFREE(queue);
+    *msgbuf_ptr = NULL;
+}
+
+gMonStatus UTestSysMsgBoxGet(stationSysMsgbox_t msgbuf, void **msg, uint32_t block_time) {
+    mock_msg_queue_t* queue = (mock_msg_queue_t*)msgbuf;
+    if (queue == NULL || msg == NULL) {
+        return GMON_RESP_ERRARGS;
+    }
+    if (queue->count == 0) {
+        return GMON_RESP_TIMEOUT;
+    }
+    *msg = queue->buffer[queue->head];
+    queue->head = (queue->head + 1) % queue->capacity;
+    queue->count--;
+    return GMON_RESP_OK;
+}
+
+gMonStatus UTestSysMsgBoxPut(stationSysMsgbox_t msgbuf, void *msg, uint32_t block_time) {
+    mock_msg_queue_t* queue = (mock_msg_queue_t*)msgbuf;
+    if (queue == NULL) {
+        return GMON_RESP_ERRARGS;
+    }
+    if (queue->count == queue->capacity) {
+        return GMON_RESP_TIMEOUT;
+    }
+    queue->buffer[queue->tail] = msg;
+    queue->tail = (queue->tail + 1) % queue->capacity;
+    queue->count++;
+    return GMON_RESP_OK;
+}
+
 gMonStatus  staSensorInitSoilMoist(void) {
+    return GMON_RESP_OK;
+}
+gMonStatus  staSensorDeInitSoilMoist(void) {
     return GMON_RESP_OK;
 }
 
 gMonStatus  staSensorInitLight(void) {
     return GMON_RESP_OK;
 }
+gMonStatus  staSensorDeInitLight(void) {
+    return GMON_RESP_OK;
+}
 
 gMonStatus  staSensorInitAirTemp(void) {
+    return GMON_RESP_OK;
+}
+gMonStatus  staSensorDeInitAirTemp(void) {
     return GMON_RESP_OK;
 }
 
@@ -26,14 +90,23 @@ gMonStatus  staOutdevInitPump(gMonOutDev_t *dev) {
     (void) dev;
     return GMON_RESP_OK;
 }
+gMonStatus  staOutdevDeinitPump(void) {
+    return GMON_RESP_OK;
+}
 
 gMonStatus  staOutdevInitFan(gMonOutDev_t *dev) {
     (void) dev;
     return GMON_RESP_OK;
 }
+gMonStatus  staOutdevDeinitFan(void) {
+    return GMON_RESP_OK;
+}
 
 gMonStatus  staOutdevInitBulb(gMonOutDev_t *dev) {
     (void) dev;
+    return GMON_RESP_OK;
+}
+gMonStatus  staOutdevDeinitBulb(void) {
     return GMON_RESP_OK;
 }
 

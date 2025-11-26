@@ -12,7 +12,7 @@ void airQualityMonitorTaskFn(void* params) {
     while(1) {
         gMonStatus status = GMON_SENSOR_READ_FN_AIR_TEMP(&air_temp, &air_humid);
         if(status == GMON_RESP_OK) {
-            gmonEvent_t *event = staAllocSensorEvent();
+            gmonEvent_t *event = staAllocSensorEvent(gmon);
             if (event != NULL) {
                 // TODO, calibration, reference point from remote user request
                 event->event_type = GMON_EVENT_AIR_TEMP_UPDATED;

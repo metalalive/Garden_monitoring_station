@@ -332,7 +332,7 @@ void  stationDisplayTaskFn(void* params)
             // end of may be passed to display device.
             staUpdatePrintStrSensorData(gmon, new_evt);
             staUpdatePrintStrOutDevStatus(gmon);
-            staFreeSensorEvent(new_evt);
+            staFreeSensorEvent(gmon, new_evt);
             new_evt = NULL;
         }
 

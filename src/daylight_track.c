@@ -33,7 +33,7 @@ void lightControllerTaskFn(void* params) {
         // Interactively read from light-relevant sensors
         status = GMON_SENSOR_READ_FN_LIGHT(&lightness);
         if(status == GMON_RESP_OK) {
-            event = staAllocSensorEvent();
+            event = staAllocSensorEvent(gmon);
             if (event != NULL) {
                 event->event_type      = GMON_EVENT_LIGHTNESS_UPDATED;
                 event->data.lightness  = lightness;

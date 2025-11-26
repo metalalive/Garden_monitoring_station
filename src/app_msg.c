@@ -636,7 +636,7 @@ void  stationSensorDataAggregatorTaskFn(void *params) {
         if(new_evt != NULL) { // This must be inside the loop
             configASSERT(status == GMON_RESP_OK);
             staUpdateLastRecord(gmon->sensors.latest_records, new_evt);
-            staFreeSensorEvent(new_evt);
+            staFreeSensorEvent(gmon, new_evt);
             new_evt = NULL;
         }
     }

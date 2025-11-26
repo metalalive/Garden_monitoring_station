@@ -23,7 +23,7 @@ _C_SOURCES_FUNC = \
     src/netconn.c \
     src/app_msg.c \
     src/network/mqtt_client.c \
-    src/IO/sensor_reader.c \
+    src/IO/sensor_event.c \
     src/IO/outdev.c  \
     src/IO/display.c \
     src/IO/display/textfonts.c \

@@ -30,11 +30,10 @@ extern "C" {
 #define stationSysExitCritical()
 #define stationSysGetTickCount()  UTestSysGetTickCount()
 #define configASSERT(x) assert(x)
-// TODO, mock following system-level functions
-#define staSysMsgBoxCreate(length)  (stationSysMsgbox_t)NULL
-#define staSysMsgBoxDelete(msgbuf)
-#define staSysMsgBoxGet(msgbuf, msg, block_time)  GMON_RESP_OK
-#define staSysMsgBoxPut(msgbuf, msg, block_time)  GMON_RESP_OK
+#define staSysMsgBoxCreate(length)  UTestSysMsgBoxCreate(length)
+#define staSysMsgBoxDelete(msgbuf)  UTestSysMsgBoxDelete(msgbuf)
+#define staSysMsgBoxGet(msgbuf, msg, block_time) UTestSysMsgBoxGet(msgbuf, msg, block_time)
+#define staSysMsgBoxPut(msgbuf, msg, block_time) UTestSysMsgBoxPut(msgbuf, msg, block_time)
 
 #define staCvtUNumToStr(out_chr_p, num) ({ \
     char _inner_buf[20] = {0}; \
@@ -47,8 +46,21 @@ extern "C" {
 typedef void* stationSysTask_t;
 typedef void (*stationSysTaskFn_t)(void*);
 typedef void* stationSysMsgbox_t;
+// Mock queue structure for testing purposes
+typedef struct {
+    void** buffer;
+    size_t capacity;
+    size_t head; // index of the oldest element
+    size_t tail; // index where the next element will be inserted
+    size_t count; // number of elements currently in the queue
+} mock_msg_queue_t;
 
 extern uint32_t g_mock_tick_count;
+
+stationSysMsgbox_t UTestSysMsgBoxCreate(size_t length);
+void       UTestSysMsgBoxDelete(stationSysMsgbox_t *msgbuf_ptr);
+gMonStatus UTestSysMsgBoxGet(stationSysMsgbox_t msgbuf, void **msg, uint32_t block_time);
+gMonStatus UTestSysMsgBoxPut(stationSysMsgbox_t msgbuf, void  *msg, uint32_t block_time);
 
 uint32_t UTestSysGetTickCount(void);
 void setMockTickCount(uint32_t count);
