@@ -23,7 +23,7 @@ void airQualityMonitorTaskFn(void* params) {
                 staNotifyOthersWithEvent(gmon, event, block_time);
             }
             // The interval for fan will be updated by network handling task during runtime
-            status = GMON_OUTDEV_TRIG_FN_FAN(&gmon->outdev.fan , air_temp, &gmon->sensors.air_temp);
+            status = GMON_ACTUATOR_TRIG_FN_FAN(&gmon->actuator.fan , air_temp, &gmon->sensors.air_temp);
         }
         stationSysDelayMs(gmon->sensors.air_temp.read_interval_ms);
     }

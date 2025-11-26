@@ -32,7 +32,7 @@ typedef enum {
     GMON_OUT_DEV_STATUS_ON,
     GMON_OUT_DEV_STATUS_PAUSE,
     GMON_OUT_DEV_STATUS_BROKEN,
-} gMonOutDevStatus;
+} gMonActuatorStatus;
 
 typedef struct {
     unsigned short  len;
@@ -97,8 +97,8 @@ typedef struct {
     // Again the maximum value MUST NOT be greater than 1000 * 60 * 60 * 24 = 0x5265c00
     unsigned int    min_resttime;
     unsigned int    curr_resttime;
-    gMonOutDevStatus status;
-} gMonOutDev_t;
+    gMonActuatorStatus status;
+} gMonActuator_t;
 
 
 typedef struct {

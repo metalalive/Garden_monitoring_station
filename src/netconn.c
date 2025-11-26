@@ -46,7 +46,7 @@ void  stationNetConnHandlerTaskFn(void* params)
         app_msg_send = staGetAppMsgOutflight(gmon);
         // pause the working output device(s) that requires to rapidly frequently refresh
         // sensor data due to the network latency.
-        staPauseWorkingRealtimeOutdevs(gmon);
+        staPauseWorkingActuators(gmon);
         // start network connection to MQTT broker
         recv_status = GMON_RESP_SKIP; // this station might not always receive update from remote user
         num_reconn = 3;

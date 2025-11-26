@@ -43,9 +43,9 @@ void lightControllerTaskFn(void* params) {
                 staNotifyOthersWithEvent(gmon, event, block_time);
             }
             // TODO, redesign how to determine max work time of artifical light
-            gmon->outdev.bulb.max_worktime = 1230;
+            gmon->actuator.bulb.max_worktime = 1230;
             // The interval for bulb will be updated by network handling task during runtime
-            status = GMON_OUTDEV_TRIG_FN_BULB(&gmon->outdev.bulb, lightness, &gmon->sensors.light);
+            status = GMON_ACTUATOR_TRIG_FN_BULB(&gmon->actuator.bulb, lightness, &gmon->sensors.light);
         }
         stationSysDelayMs(gmon->sensors.light.read_interval_ms);
     }

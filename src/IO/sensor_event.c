@@ -112,11 +112,11 @@ gMonStatus  stationIOinit(gardenMonitor_t *gmon) {
     if(status < 0) { goto done; }
     status = GMON_SENSOR_INIT_FN_AIR_TEMP();
     if(status < 0) { goto done; }
-    status = GMON_OUTDEV_INIT_FN_PUMP(&gmon->outdev.pump);
+    status = GMON_ACTUATOR_INIT_FN_PUMP(&gmon->actuator.pump);
     if(status < 0) { goto done; }
-    status = GMON_OUTDEV_INIT_FN_FAN(&gmon->outdev.fan);
+    status = GMON_ACTUATOR_INIT_FN_FAN(&gmon->actuator.fan);
     if(status < 0) { goto done; }
-    status = GMON_OUTDEV_INIT_FN_BULB(&gmon->outdev.bulb);
+    status = GMON_ACTUATOR_INIT_FN_BULB(&gmon->actuator.bulb);
     if(status < 0) { goto done; }
     gmon->msgpipe.sensor2display = staSysMsgBoxCreate( GMON_CFG_NUM_SENSOR_RECORDS_KEEP );
     XASSERT(gmon->msgpipe.sensor2display != NULL);
@@ -152,11 +152,11 @@ gMonStatus  stationIOdeinit(gardenMonitor_t *gmon) {
     XASSERT(gmon->msgpipe.sensor2net == NULL);
 
     // Deinitialize output devices and sensors
-    status = GMON_OUTDEV_DEINIT_FN_BULB();
+    status = GMON_ACTUATOR_DEINIT_FN_BULB();
     if(status < 0) { goto done; }
-    status = GMON_OUTDEV_DEINIT_FN_FAN();
+    status = GMON_ACTUATOR_DEINIT_FN_FAN();
     if(status < 0) { goto done; }
-    status = GMON_OUTDEV_DEINIT_FN_PUMP();
+    status = GMON_ACTUATOR_DEINIT_FN_PUMP();
     if(status < 0) { goto done; }
     status = GMON_SENSOR_DEINIT_FN_SOIL_MOIST();
     if(status < 0) { goto done; }

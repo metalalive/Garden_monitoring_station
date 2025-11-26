@@ -24,7 +24,7 @@ _C_SOURCES_FUNC = \
     src/app_msg.c \
     src/network/mqtt_client.c \
     src/IO/sensor_event.c \
-    src/IO/outdev.c  \
+    src/IO/actuator.c  \
     src/IO/display.c \
     src/IO/display/textfonts.c \
     src/IO/relay/SRD-0xVDC-SL-C.c \

@@ -12,7 +12,7 @@
 //                  Last Update at 23:59:58, 99999 day(s) after system boot.
 #define  GMON_PRINT_STRING_SENSOR_RECORD    (const char *)&("[Last Record]: Soil moisture: 1024(moist), Air Temp: 134.5'C, Air Humidity: 101, Lightness: 1001.")
 #define  GMON_PRINT_STRING_SENSOR_THRSHOLD  (const char *)&("[Thresold]: Soil moisture: 1001, Air Temp: 130.5'C, Lightness: 0085.")
-#define  GMON_PRINT_STRING_OUTDEV_STATUS    (const char *)&("[Output Device] Pump: PAUSE, Cooling Fan: PAUSE, Bulb: PAUSE.")
+#define  GMON_PRINT_STRING_ACTUATOR_STATUS    (const char *)&("[Output Device] Pump: PAUSE, Cooling Fan: PAUSE, Bulb: PAUSE.")
 #define  GMON_PRINT_STRING_NETCONN_STATUS   (const char *)&("[Network]: records log sent: succeed, user control received: succeed, Last Update at 23:59:58, 99999 day(s) after system boot.")
 
 
@@ -31,12 +31,12 @@
 
 static const short gmon_print_sensor_record_fix_content_idx[]   = {30, 4, 1, 5, 13, 5, 18, 3, 13, 4, 1, 0,};
 static const short gmon_print_sensor_thrshold_fix_content_idx[] = {27, 4, 12, 5, 15, 4, 1, 0,};
-static const short gmon_print_outdev_status_fix_content_idx[]   = {22, 5, 15, 5, 8, 5, 1, 0,};
+static const short gmon_print_actuator_status_fix_content_idx[]   = {22, 5, 15, 5, 8, 5, 1, 0,};
 static const short gmon_print_netconn_status_fix_content_idx[]  = {29, 7, 25, 7, 17, 8, 2, 5, 26, 0,};
 
 static unsigned char *gmon_print_sensor_record_var_content_ptr[5];
 static unsigned char *gmon_print_sensor_thrshold_var_content_ptr[3];
-static unsigned char *gmon_print_outdev_status_var_content_ptr[3];
+static unsigned char *gmon_print_actuator_status_var_content_ptr[3];
 static unsigned char *gmon_print_netconn_status_var_content_ptr[4];
 
 extern const unsigned short gmon_txt_font_bitmap_11x18[];
@@ -80,7 +80,7 @@ gMonStatus  staDisplayInit(gardenMonitor_t *gmon) {
 
     print_txt_list[0] = GMON_PRINT_STRING_SENSOR_RECORD  ;
     print_txt_list[1] = GMON_PRINT_STRING_SENSOR_THRSHOLD;
-    print_txt_list[2] = GMON_PRINT_STRING_OUTDEV_STATUS  ;
+    print_txt_list[2] = GMON_PRINT_STRING_ACTUATOR_STATUS  ;
     print_txt_list[3] = GMON_PRINT_STRING_NETCONN_STATUS ;
     XASSERT(4 <= GMON_DISPLAY_NUM_PRINT_STRINGS);
 
@@ -112,14 +112,14 @@ gMonStatus  staDisplayInit(gardenMonitor_t *gmon) {
                           &gmon_print_sensor_thrshold_fix_content_idx[0],
                           &gmon_print_sensor_thrshold_var_content_ptr[0] );
     staInitPrintTxtVarPtr(&display->print_str[2],
-                          &gmon_print_outdev_status_fix_content_idx[0],
-                          &gmon_print_outdev_status_var_content_ptr[0] );
+                          &gmon_print_actuator_status_fix_content_idx[0],
+                          &gmon_print_actuator_status_var_content_ptr[0] );
     staInitPrintTxtVarPtr(&display->print_str[3],
                           &gmon_print_netconn_status_fix_content_idx[0],
                           &gmon_print_netconn_status_var_content_ptr[0] );
 
     staUpdatePrintStrThreshold(gmon);
-    staUpdatePrintStrOutDevStatus(gmon);
+    staUpdatePrintStrActuatorStatus(gmon);
     return  GMON_DISPLAY_DEV_INIT_FN();
 #else
     return  GMON_RESP_SKIP;
@@ -154,9 +154,9 @@ void  staUpdatePrintStrSensorData(gardenMonitor_t  *gmon, gmonEvent_t *new_evt)
         num_chr = staCvtUNumToStr(dst_buf, new_evt->data.soil_moist);
         XASSERT(num_chr <= gmon_print_sensor_record_fix_content_idx[1]);
         // describe moisture in textual way
-        if(new_evt->data.soil_moist > gmon->outdev.pump.threshold) {
+        if(new_evt->data.soil_moist > gmon->actuator.pump.threshold) {
             label_buf = GMON_PRINT_WORDS_DRY;
-        } else if(new_evt->data.soil_moist > (gmon->outdev.pump.threshold >> 1)) {
+        } else if(new_evt->data.soil_moist > (gmon->actuator.pump.threshold >> 1)) {
             label_buf = GMON_PRINT_WORDS_MOIST;
         } else {
             label_buf = GMON_PRINT_WORDS_WET;
@@ -195,24 +195,24 @@ void  staUpdatePrintStrThreshold(gardenMonitor_t *gmon)
     {
         dst_buf = gmon_print_sensor_thrshold_var_content_ptr[0];
         XMEMSET(dst_buf, 0x20, gmon_print_sensor_thrshold_fix_content_idx[1]);
-        num_chr = staCvtUNumToStr(dst_buf, gmon->outdev.pump.threshold);
+        num_chr = staCvtUNumToStr(dst_buf, gmon->actuator.pump.threshold);
         XASSERT(num_chr <= gmon_print_sensor_thrshold_fix_content_idx[1]);
 
         dst_buf = gmon_print_sensor_thrshold_var_content_ptr[1];
         XMEMSET(dst_buf, 0x20, gmon_print_sensor_thrshold_fix_content_idx[3]);
-        num_chr = staCvtUNumToStr(dst_buf, gmon->outdev.fan.threshold);
+        num_chr = staCvtUNumToStr(dst_buf, gmon->actuator.fan.threshold);
         XASSERT(num_chr <= gmon_print_sensor_thrshold_fix_content_idx[3]);
 
         dst_buf = gmon_print_sensor_thrshold_var_content_ptr[2];
         XMEMSET(dst_buf, 0x20, gmon_print_sensor_thrshold_fix_content_idx[5]);
-        num_chr = staCvtUNumToStr(dst_buf, gmon->outdev.bulb.threshold);
+        num_chr = staCvtUNumToStr(dst_buf, gmon->actuator.bulb.threshold);
         XASSERT(num_chr <= gmon_print_sensor_thrshold_fix_content_idx[5]);
     }
     stationSysExitCritical();
 } // end of staUpdatePrintStrThreshold
 
 
-static const  char* staCvtOutDevStatusToStr(gMonOutDevStatus in) {
+static const  char* staCvtActuatorStatusToStr(gMonActuatorStatus in) {
     const  char* out = NULL;
     switch(in) {
         case GMON_OUT_DEV_STATUS_OFF  :
@@ -245,30 +245,30 @@ static const  char* staCvtGMonStatusToStr(gMonStatus in)
 
 
 
-void        staUpdatePrintStrOutDevStatus(gardenMonitor_t  *gmon)
+void        staUpdatePrintStrActuatorStatus(gardenMonitor_t  *gmon)
 {
     unsigned char  *dst_buf = NULL;
     const    char  *label_buf = NULL;
 
     stationSysEnterCritical();
     {
-        dst_buf   = gmon_print_outdev_status_var_content_ptr[0];
-        label_buf = staCvtOutDevStatusToStr(gmon->outdev.pump.status);
-        XMEMSET(dst_buf, 0x20, gmon_print_outdev_status_fix_content_idx[1]);
+        dst_buf   = gmon_print_actuator_status_var_content_ptr[0];
+        label_buf = staCvtActuatorStatusToStr(gmon->actuator.pump.status);
+        XMEMSET(dst_buf, 0x20, gmon_print_actuator_status_fix_content_idx[1]);
         XMEMCPY(dst_buf, label_buf, XSTRLEN(label_buf));
 
-        dst_buf   = gmon_print_outdev_status_var_content_ptr[1];
-        label_buf = staCvtOutDevStatusToStr(gmon->outdev.fan.status);
-        XMEMSET(dst_buf, 0x20, gmon_print_outdev_status_fix_content_idx[3]);
+        dst_buf   = gmon_print_actuator_status_var_content_ptr[1];
+        label_buf = staCvtActuatorStatusToStr(gmon->actuator.fan.status);
+        XMEMSET(dst_buf, 0x20, gmon_print_actuator_status_fix_content_idx[3]);
         XMEMCPY(dst_buf, label_buf, XSTRLEN(label_buf));
 
-        dst_buf   = gmon_print_outdev_status_var_content_ptr[2];
-        label_buf = staCvtOutDevStatusToStr(gmon->outdev.bulb.status);
-        XMEMSET(dst_buf, 0x20, gmon_print_outdev_status_fix_content_idx[5]);
+        dst_buf   = gmon_print_actuator_status_var_content_ptr[2];
+        label_buf = staCvtActuatorStatusToStr(gmon->actuator.bulb.status);
+        XMEMSET(dst_buf, 0x20, gmon_print_actuator_status_fix_content_idx[5]);
         XMEMCPY(dst_buf, label_buf, XSTRLEN(label_buf));
     }
     stationSysExitCritical();
-} // end of staUpdatePrintStrOutDevStatus
+} // end of staUpdatePrintStrActuatorStatus
 
 
 
@@ -331,7 +331,7 @@ void  stationDisplayTaskFn(void* params)
             // status of each output device, and data read from sensors, network connectivity status,
             // end of may be passed to display device.
             staUpdatePrintStrSensorData(gmon, new_evt);
-            staUpdatePrintStrOutDevStatus(gmon);
+            staUpdatePrintStrActuatorStatus(gmon);
             staFreeSensorEvent(gmon, new_evt);
             new_evt = NULL;
         }

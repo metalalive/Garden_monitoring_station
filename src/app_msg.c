@@ -232,7 +232,7 @@ static int staCalcTokensToSkip(jsmntok_t *token) {
 
 static gMonStatus staDecodeActuatorConfig(
     const unsigned char *json_data, jsmntok_t *tokens, int start_object_token_idx,
-    gMonOutDev_t *outdev, int *tokens_consumed_out)
+    gMonActuator_t *actuator, int *tokens_consumed_out)
 {
     gMonStatus status = GMON_RESP_OK;
     int parsed_int = 0;
@@ -254,12 +254,12 @@ static gMonStatus staDecodeActuatorConfig(
             if (XSTRNCMP(GMON_APPMSG_DATA_NAME_MAX_WORKTIME, child_key_name, child_key_len) == 0) {
                 status = staDecodeMsgCvtStrToInt(json_data, child_value_token, &parsed_int);
                 if (status == GMON_RESP_OK) {
-                    outdev->max_worktime = (unsigned int)parsed_int;
+                    actuator->max_worktime = (unsigned int)parsed_int;
                 }
             } else if (XSTRNCMP(GMON_APPMSG_DATA_NAME_MIN_RESTTIME, child_key_name, child_key_len) == 0) {
                 status = staDecodeMsgCvtStrToInt(json_data, child_value_token, &parsed_int);
                 if (status == GMON_RESP_OK) {
-                    outdev->min_resttime = (unsigned int)parsed_int;
+                    actuator->min_resttime = (unsigned int)parsed_int;
                 }
             } else {
                 int skip_tokens_for_value = staCalcTokensToSkip(child_value_token);
@@ -297,19 +297,19 @@ static gMonStatus staDecodeActuatorsBlock(gardenMonitor_t *gmon, const unsigned 
             if (XSTRNCMP(GMON_APPMSG_DATA_NAME_PUMP, child_key_name, child_key_len) == 0) {
                 int config_tokens_consumed = 0;
                 status = staDecodeActuatorConfig(json_data, tokens, current_child_token_idx + 1,
-                                                 &gmon->outdev.pump, &config_tokens_consumed);
+                                                 &gmon->actuator.pump, &config_tokens_consumed);
                 *tokens_consumed_out += (1 /*key token*/ + config_tokens_consumed);
                 current_child_token_idx += (1 /*key token*/ + config_tokens_consumed);
             } else if (XSTRNCMP(GMON_APPMSG_DATA_NAME_FAN, child_key_name, child_key_len) == 0) {
                 int config_tokens_consumed = 0;
                 status = staDecodeActuatorConfig(json_data, tokens, current_child_token_idx + 1,
-                                                 &gmon->outdev.fan, &config_tokens_consumed);
+                                                 &gmon->actuator.fan, &config_tokens_consumed);
                 *tokens_consumed_out += (1 /*key token*/ + config_tokens_consumed);
                 current_child_token_idx += (1 /*key token*/ + config_tokens_consumed);
             } else if (XSTRNCMP(GMON_APPMSG_DATA_NAME_BULB, child_key_name, child_key_len) == 0) {
                 int config_tokens_consumed = 0;
                 status = staDecodeActuatorConfig(json_data, tokens, current_child_token_idx + 1,
-                                                 &gmon->outdev.bulb, &config_tokens_consumed);
+                                                 &gmon->actuator.bulb, &config_tokens_consumed);
                 *tokens_consumed_out += (1 /*key token*/ + config_tokens_consumed);
                 current_child_token_idx += (1 /*key token*/ + config_tokens_consumed);
             } else {
@@ -328,8 +328,8 @@ static gMonStatus staDecodeActuatorsBlock(gardenMonitor_t *gmon, const unsigned 
 
 static gMonStatus staDecodeSensorConfig(
     const unsigned char *json_data, jsmntok_t *tokens, int start_object_token_idx,
-    gMonSensor_t *sensor_cfg, gMonOutDev_t *outdev,
-    gMonStatus (*set_threshold_fn)(gMonOutDev_t *, unsigned int),
+    gMonSensor_t *sensor_cfg, gMonActuator_t *actuator,
+    gMonStatus (*set_threshold_fn)(gMonActuator_t *, unsigned int),
     gMonStatus *threshold_status_field, int *tokens_consumed_out)
 {
     gMonStatus status = GMON_RESP_OK;
@@ -356,8 +356,8 @@ static gMonStatus staDecodeSensorConfig(
                 }
             } else if (XSTRNCMP(GMON_APPMSG_DATA_NAME_THRESHOLD, child_key_name, child_key_len) == 0) {
                 status = staDecodeMsgCvtStrToInt(json_data, child_value_token, &parsed_int);
-                if (status == GMON_RESP_OK && outdev != NULL && set_threshold_fn != NULL && threshold_status_field != NULL) {
-                    *threshold_status_field = set_threshold_fn(outdev, (unsigned int)parsed_int);
+                if (status == GMON_RESP_OK && actuator != NULL && set_threshold_fn != NULL && threshold_status_field != NULL) {
+                    *threshold_status_field = set_threshold_fn(actuator, (unsigned int)parsed_int);
                 }
             } else {
                 // Unknown key in sensor config, skip its value (which could be an object)
@@ -396,7 +396,7 @@ static gMonStatus staDecodeSensorBlock(gardenMonitor_t *gmon, const unsigned cha
             if (XSTRNCMP(GMON_APPMSG_DATA_NAME_SOILMOIST, child_key_name, child_key_len) == 0) {
                 int config_tokens_consumed = 0;
                 status = staDecodeSensorConfig(json_data, tokens, current_child_token_idx + 1,
-                                               &gmon->sensors.soil_moist, &gmon->outdev.pump, staSetTrigThresholdPump,
+                                               &gmon->sensors.soil_moist, &gmon->actuator.pump, staSetTrigThresholdPump,
                                                &gmon->user_ctrl.status.threshold.soil_moist,
                                                &config_tokens_consumed);
                 *tokens_consumed_out += (1 /*key token*/ + config_tokens_consumed);
@@ -404,7 +404,7 @@ static gMonStatus staDecodeSensorBlock(gardenMonitor_t *gmon, const unsigned cha
             } else if (XSTRNCMP(GMON_APPMSG_DATA_NAME_AIRTEMP, child_key_name, child_key_len) == 0) {
                 int config_tokens_consumed = 0;
                 status = staDecodeSensorConfig(json_data, tokens, current_child_token_idx + 1,
-                                               &gmon->sensors.air_temp, &gmon->outdev.fan, staSetTrigThresholdFan,
+                                               &gmon->sensors.air_temp, &gmon->actuator.fan, staSetTrigThresholdFan,
                                                &gmon->user_ctrl.status.threshold.air_temp,
                                                &config_tokens_consumed);
                 *tokens_consumed_out += (1 /*key token*/ + config_tokens_consumed);
@@ -412,7 +412,7 @@ static gMonStatus staDecodeSensorBlock(gardenMonitor_t *gmon, const unsigned cha
             } else if (XSTRNCMP(GMON_APPMSG_DATA_NAME_LIGHT, child_key_name, child_key_len) == 0) {
                 int config_tokens_consumed = 0;
                 status = staDecodeSensorConfig(json_data, tokens, current_child_token_idx + 1,
-                                               &gmon->sensors.light, &gmon->outdev.bulb, staSetTrigThresholdBulb,
+                                               &gmon->sensors.light, &gmon->actuator.bulb, staSetTrigThresholdBulb,
                                                &gmon->user_ctrl.status.threshold.lightness,
                                                &config_tokens_consumed);
                 *tokens_consumed_out += (1 /*key token*/ + config_tokens_consumed);

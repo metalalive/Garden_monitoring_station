@@ -21,10 +21,10 @@ typedef struct  {
 // collecting all information, network handling objects in this application
 typedef struct {
     struct {
-        gMonOutDev_t bulb;
-        gMonOutDev_t pump;
-        gMonOutDev_t fan;
-    } outdev;
+        gMonActuator_t bulb;
+        gMonActuator_t pump;
+        gMonActuator_t fan;
+    } actuator;
     struct {
         void *pump_controller; // New task for pump control and soil moisture
         void *air_quality_monitor;

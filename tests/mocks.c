@@ -38,6 +38,7 @@ void UTestSysMsgBoxDelete(stationSysMsgbox_t *msgbuf_ptr) {
 }
 
 gMonStatus UTestSysMsgBoxGet(stationSysMsgbox_t msgbuf, void **msg, uint32_t block_time) {
+    (void) block_time;
     mock_msg_queue_t* queue = (mock_msg_queue_t*)msgbuf;
     if (queue == NULL || msg == NULL) {
         return GMON_RESP_ERRARGS;
@@ -52,6 +53,7 @@ gMonStatus UTestSysMsgBoxGet(stationSysMsgbox_t msgbuf, void **msg, uint32_t blo
 }
 
 gMonStatus UTestSysMsgBoxPut(stationSysMsgbox_t msgbuf, void *msg, uint32_t block_time) {
+    (void) block_time;
     mock_msg_queue_t* queue = (mock_msg_queue_t*)msgbuf;
     if (queue == NULL) {
         return GMON_RESP_ERRARGS;
@@ -86,47 +88,32 @@ gMonStatus  staSensorDeInitAirTemp(void) {
     return GMON_RESP_OK;
 }
 
-gMonStatus  staOutdevInitPump(gMonOutDev_t *dev) {
+gMonStatus  staActuatorInitPump(gMonActuator_t *dev) {
     (void) dev;
     return GMON_RESP_OK;
 }
-gMonStatus  staOutdevDeinitPump(void) {
+gMonStatus  staActuatorDeinitPump(void) {
     return GMON_RESP_OK;
 }
 
-gMonStatus  staOutdevInitFan(gMonOutDev_t *dev) {
+gMonStatus  staActuatorInitFan(gMonActuator_t *dev) {
     (void) dev;
     return GMON_RESP_OK;
 }
-gMonStatus  staOutdevDeinitFan(void) {
+gMonStatus  staActuatorDeinitFan(void) {
     return GMON_RESP_OK;
 }
 
-gMonStatus  staOutdevInitBulb(gMonOutDev_t *dev) {
+gMonStatus  staActuatorInitBulb(gMonActuator_t *dev) {
     (void) dev;
     return GMON_RESP_OK;
 }
-gMonStatus  staOutdevDeinitBulb(void) {
+gMonStatus  staActuatorDeinitBulb(void) {
     return GMON_RESP_OK;
 }
 
 gMonStatus staSetNetConnTaskInterval(gardenMonitor_t *gmon, unsigned int interval_ms) {
     gmon->netconn.interval_ms = interval_ms; // Update gmon for verification
-    return GMON_RESP_OK;
-}
-
-gMonStatus staSetTrigThresholdPump(gMonOutDev_t *pump, unsigned int threshold) {
-    pump->threshold = threshold; // Update pump for verification
-    return GMON_RESP_OK;
-}
-
-gMonStatus staSetTrigThresholdFan(gMonOutDev_t *fan, unsigned int threshold) {
-    fan->threshold = threshold; // Update fan for verification
-    return GMON_RESP_OK;
-}
-
-gMonStatus staSetTrigThresholdBulb(gMonOutDev_t *bulb, unsigned int threshold) {
-    bulb->threshold = threshold; // Update bulb for verification
     return GMON_RESP_OK;
 }
 

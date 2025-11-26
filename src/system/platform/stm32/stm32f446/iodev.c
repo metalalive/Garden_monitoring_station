@@ -326,26 +326,26 @@ gMonStatus  staSensorPlatformDeInitAirTemp(void) {
     return  GMON_RESP_OK;
 }
 
-gMonStatus  staOutDevPlatformInitPump(void **pinstruct) {
+gMonStatus  staActuatorPlatformInitPump(void **pinstruct) {
     if(pinstruct == NULL) { return GMON_RESP_ERRARGS; }
     *(hal_pinout_t **)pinstruct = &hal_pump_write_pin;
     return  GMON_RESP_OK;
 }
 
-gMonStatus  staOutDevPlatformInitFan(void **pinstruct) {
+gMonStatus  staActuatorPlatformInitFan(void **pinstruct) {
     if(pinstruct == NULL) { return GMON_RESP_ERRARGS; }
     *(hal_pinout_t **)pinstruct = &hal_fan_write_pin;
     return  GMON_RESP_OK;
 }
 
-gMonStatus  staOutDevPlatformInitBulb(void **pinstruct) {
+gMonStatus  staActuatorPlatformInitBulb(void **pinstruct) {
     if(pinstruct == NULL) { return GMON_RESP_ERRARGS; }
     *(hal_pinout_t **)pinstruct = &hal_bulb_write_pin;
     return  GMON_RESP_OK;
 }
 
 
-gMonStatus  staOutDevPlatformInitDisplay(uint8_t  comm_protocal_id, void **pinstruct) {
+gMonStatus  staDisplayPlatformInit(uint8_t  comm_protocal_id, void **pinstruct) {
     if(pinstruct == NULL) { return GMON_RESP_ERRARGS; }
     gMonStatus  status = GMON_RESP_OK;
     switch(comm_protocal_id) {
@@ -370,7 +370,7 @@ gMonStatus  staOutDevPlatformInitDisplay(uint8_t  comm_protocal_id, void **pinst
             break;
     } // end of switch case
     return  status;
-} // end of staOutDevPlatformInitDisplay
+} // end of staDisplayPlatformInit
 
 
 void*  staPlatformiGetDisplayRstPin(void) {
@@ -381,7 +381,7 @@ void*  staPlatformiGetDisplayDataCmdPin(void) {
     return (void *)&hal_display_dc_pin;
 }
 
-gMonStatus  staOutDevPlatformDeinitDisplay(void *pinstruct) {
+gMonStatus  staDisplayPlatformDeinit(void *pinstruct) {
     if(pinstruct == NULL) { return GMON_RESP_ERRARGS; }
     HAL_StatusTypeDef  status = HAL_OK;
     if(pinstruct == &hal_display_spi_pins) {

@@ -52,20 +52,20 @@ TEST(DecodeMsgInflight, ValidIntervalSensor) {
 }
 
 TEST(DecodeMsgInflight, ValidThresholds) {
-    const unsigned char *json_data = (const unsigned char*)"{\"sensor\":{\"soilmoist\":{\"threshold\":1234},\"airtemp\":{\"threshold\":35},\"light\":{\"threshold\":4321}},\"daylength\":7200000}";
+    const unsigned char *json_data = (const unsigned char*)"{\"sensor\":{\"soilmoist\":{\"threshold\":1019},\"airtemp\":{\"threshold\":35},\"light\":{\"threshold\":521}},\"daylength\":7200000}";
     uint16_t testdata_sz = strlen((const char*)json_data);
     TEST_ASSERT_LESS_THAN_UINT16(test_gmon.rawmsg.inflight.len, testdata_sz);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
-    TEST_ASSERT_EQUAL(1234, test_gmon.outdev.pump.threshold);
-    TEST_ASSERT_EQUAL(35, test_gmon.outdev.fan.threshold);
-    TEST_ASSERT_EQUAL(4321, test_gmon.outdev.bulb.threshold);
+    TEST_ASSERT_EQUAL(1019, test_gmon.actuator.pump.threshold);
+    TEST_ASSERT_EQUAL(35, test_gmon.actuator.fan.threshold);
+    TEST_ASSERT_EQUAL(521, test_gmon.actuator.bulb.threshold);
     TEST_ASSERT_EQUAL(7200000, test_gmon.user_ctrl.required_light_daylength_ticks);
 }
 
 TEST(DecodeMsgInflight, MixedValid) {
-    const unsigned char *json_data = (const unsigned char*)"{\"sensor\":{\"soilmoist\":{\"interval\":2100,\"threshold\":934},\"airtemp\":{\"interval\":7100,\"threshold\":31},\"light\":{\"interval\":11000,\"threshold\":1099}},\"netconn\":{\"interval\":360095},\"daylength\":7200012}";
+    const unsigned char *json_data = (const unsigned char*)"{\"sensor\":{\"soilmoist\":{\"interval\":2100,\"threshold\":934},\"airtemp\":{\"interval\":7100,\"threshold\":31},\"light\":{\"interval\":11000,\"threshold\":609}},\"netconn\":{\"interval\":360095},\"daylength\":7200012}";
     uint16_t testdata_sz = strlen((const char*)json_data);
     TEST_ASSERT_LESS_THAN_UINT16(test_gmon.rawmsg.inflight.len, testdata_sz);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
@@ -75,14 +75,14 @@ TEST(DecodeMsgInflight, MixedValid) {
     TEST_ASSERT_EQUAL(7100, test_gmon.sensors.air_temp.read_interval_ms);
     TEST_ASSERT_EQUAL(11000, test_gmon.sensors.light.read_interval_ms);
     TEST_ASSERT_EQUAL(360095, test_gmon.netconn.interval_ms);
-    TEST_ASSERT_EQUAL(934, test_gmon.outdev.pump.threshold);
-    TEST_ASSERT_EQUAL(31, test_gmon.outdev.fan.threshold);
-    TEST_ASSERT_EQUAL(1099, test_gmon.outdev.bulb.threshold);
+    TEST_ASSERT_EQUAL(934, test_gmon.actuator.pump.threshold);
+    TEST_ASSERT_EQUAL(31, test_gmon.actuator.fan.threshold);
+    TEST_ASSERT_EQUAL(609, test_gmon.actuator.bulb.threshold);
     TEST_ASSERT_EQUAL(7200012, test_gmon.user_ctrl.required_light_daylength_ticks);
 }
 
 TEST(DecodeMsgInflight, MixedValidReordered) {
-    const unsigned char *json_data = (const unsigned char*)"{\"daylength\":7200012,\"netconn\":{\"interval\":360095},\"sensor\":{\"light\":{\"interval\":11000,\"threshold\":1099},\"airtemp\":{\"interval\":7100,\"threshold\":31},\"soilmoist\":{\"interval\":2100,\"threshold\":934}}}";
+    const unsigned char *json_data = (const unsigned char*)"{\"daylength\":7200012,\"netconn\":{\"interval\":360095},\"sensor\":{\"light\":{\"interval\":11000,\"threshold\":819},\"airtemp\":{\"interval\":7100,\"threshold\":31},\"soilmoist\":{\"interval\":2100,\"threshold\":934}}}";
     uint16_t testdata_sz = strlen((const char*)json_data);
     TEST_ASSERT_LESS_THAN_UINT16(test_gmon.rawmsg.inflight.len, testdata_sz);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
@@ -95,9 +95,9 @@ TEST(DecodeMsgInflight, MixedValidReordered) {
     // Assert netconn interval
     TEST_ASSERT_EQUAL(360095, test_gmon.netconn.interval_ms);
     // Assert output device thresholds
-    TEST_ASSERT_EQUAL(934, test_gmon.outdev.pump.threshold);
-    TEST_ASSERT_EQUAL(31, test_gmon.outdev.fan.threshold);
-    TEST_ASSERT_EQUAL(1099, test_gmon.outdev.bulb.threshold);
+    TEST_ASSERT_EQUAL(934, test_gmon.actuator.pump.threshold);
+    TEST_ASSERT_EQUAL(31, test_gmon.actuator.fan.threshold);
+    TEST_ASSERT_EQUAL(819, test_gmon.actuator.bulb.threshold);
     // Assert required daylight length
     TEST_ASSERT_EQUAL(7200012, test_gmon.user_ctrl.required_light_daylength_ticks);
 }
@@ -153,7 +153,7 @@ TEST(DecodeMsgInflight, NestedUnknownKeys) {
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     TEST_ASSERT_EQUAL(146, test_gmon.netconn.interval_ms);
-    TEST_ASSERT_EQUAL(291, test_gmon.outdev.pump.threshold);
+    TEST_ASSERT_EQUAL(291, test_gmon.actuator.pump.threshold);
 }
 
 TEST(DecodeMsgInflight, ValidActuatorConfig) {
@@ -163,12 +163,12 @@ TEST(DecodeMsgInflight, ValidActuatorConfig) {
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
-    TEST_ASSERT_EQUAL(10000, test_gmon.outdev.pump.max_worktime);
-    TEST_ASSERT_EQUAL(1000, test_gmon.outdev.pump.min_resttime);
-    TEST_ASSERT_EQUAL(20000, test_gmon.outdev.fan.max_worktime);
-    TEST_ASSERT_EQUAL(2000, test_gmon.outdev.fan.min_resttime);
-    TEST_ASSERT_EQUAL(30000, test_gmon.outdev.bulb.max_worktime);
-    TEST_ASSERT_EQUAL(3000, test_gmon.outdev.bulb.min_resttime);
+    TEST_ASSERT_EQUAL(10000, test_gmon.actuator.pump.max_worktime);
+    TEST_ASSERT_EQUAL(1000, test_gmon.actuator.pump.min_resttime);
+    TEST_ASSERT_EQUAL(20000, test_gmon.actuator.fan.max_worktime);
+    TEST_ASSERT_EQUAL(2000, test_gmon.actuator.fan.min_resttime);
+    TEST_ASSERT_EQUAL(30000, test_gmon.actuator.bulb.max_worktime);
+    TEST_ASSERT_EQUAL(3000, test_gmon.actuator.bulb.min_resttime);
 }
 
 TEST(DecodeMsgInflight, ValidActuatorConfigPartial) {
@@ -178,9 +178,9 @@ TEST(DecodeMsgInflight, ValidActuatorConfigPartial) {
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
-    TEST_ASSERT_EQUAL(15000, test_gmon.outdev.pump.max_worktime);
-    TEST_ASSERT_EQUAL(0, test_gmon.outdev.pump.min_resttime); // Should be 0 as not specified
-    TEST_ASSERT_EQUAL(0, test_gmon.outdev.fan.max_worktime);  // Should be 0 as not specified
+    TEST_ASSERT_EQUAL(15000, test_gmon.actuator.pump.max_worktime);
+    TEST_ASSERT_EQUAL(0, test_gmon.actuator.pump.min_resttime); // Should be 0 as not specified
+    TEST_ASSERT_EQUAL(0, test_gmon.actuator.fan.max_worktime);  // Should be 0 as not specified
 }
 
 TEST(DecodeMsgInflight, ValidActuatorConfigUnknownKey) {
@@ -190,12 +190,12 @@ TEST(DecodeMsgInflight, ValidActuatorConfigUnknownKey) {
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status); // Should skip unknown key and continue parsing
-    TEST_ASSERT_EQUAL(11000, test_gmon.outdev.pump.max_worktime);
-    TEST_ASSERT_EQUAL(1100, test_gmon.outdev.pump.min_resttime);
+    TEST_ASSERT_EQUAL(11000, test_gmon.actuator.pump.max_worktime);
+    TEST_ASSERT_EQUAL(1100, test_gmon.actuator.pump.min_resttime);
 }
 
 TEST(DecodeMsgInflight, ComprehensiveConfigWithActuators) {
-    const unsigned char *json_data = (const unsigned char*)"{\"sensor\":{\"soilmoist\":{\"interval\":2100,\"threshold\":934},\"airtemp\":{\"interval\":7100,\"threshold\":31},\"light\":{\"interval\":11000,\"threshold\":1099}},\"netconn\":{\"interval\":360095},\"daylength\":7200012,\"actuators\":{\"pump\":{\"max_worktime\":50000,\"min_resttime\":5000},\"fan\":{\"max_worktime\":60000,\"min_resttime\":6000},\"bulb\":{\"max_worktime\":70000,\"min_resttime\":7000}}}";
+    const unsigned char *json_data = (const unsigned char*)"{\"sensor\":{\"soilmoist\":{\"interval\":2100,\"threshold\":934},\"airtemp\":{\"interval\":7100,\"threshold\":31},\"light\":{\"interval\":11000,\"threshold\":189}},\"netconn\":{\"interval\":360095},\"daylength\":7200012,\"actuators\":{\"pump\":{\"max_worktime\":50000,\"min_resttime\":5000},\"fan\":{\"max_worktime\":60000,\"min_resttime\":6000},\"bulb\":{\"max_worktime\":70000,\"min_resttime\":7000}}}";
     uint16_t testdata_sz = strlen((const char*)json_data);
     TEST_ASSERT_LESS_THAN_UINT16(test_gmon.rawmsg.inflight.len, testdata_sz);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
@@ -208,18 +208,18 @@ TEST(DecodeMsgInflight, ComprehensiveConfigWithActuators) {
     // Netconn interval
     TEST_ASSERT_EQUAL(360095, test_gmon.netconn.interval_ms);
     // Output device thresholds
-    TEST_ASSERT_EQUAL(934, test_gmon.outdev.pump.threshold);
-    TEST_ASSERT_EQUAL(31, test_gmon.outdev.fan.threshold);
-    TEST_ASSERT_EQUAL(1099, test_gmon.outdev.bulb.threshold);
+    TEST_ASSERT_EQUAL(934, test_gmon.actuator.pump.threshold);
+    TEST_ASSERT_EQUAL(31, test_gmon.actuator.fan.threshold);
+    TEST_ASSERT_EQUAL(189, test_gmon.actuator.bulb.threshold);
     // Required daylight length
     TEST_ASSERT_EQUAL(7200012, test_gmon.user_ctrl.required_light_daylength_ticks);
     // Actuator work/rest times
-    TEST_ASSERT_EQUAL(50000, test_gmon.outdev.pump.max_worktime);
-    TEST_ASSERT_EQUAL(5000, test_gmon.outdev.pump.min_resttime);
-    TEST_ASSERT_EQUAL(60000, test_gmon.outdev.fan.max_worktime);
-    TEST_ASSERT_EQUAL(6000, test_gmon.outdev.fan.min_resttime);
-    TEST_ASSERT_EQUAL(70000, test_gmon.outdev.bulb.max_worktime);
-    TEST_ASSERT_EQUAL(7000, test_gmon.outdev.bulb.min_resttime);
+    TEST_ASSERT_EQUAL(50000, test_gmon.actuator.pump.max_worktime);
+    TEST_ASSERT_EQUAL(5000, test_gmon.actuator.pump.min_resttime);
+    TEST_ASSERT_EQUAL(60000, test_gmon.actuator.fan.max_worktime);
+    TEST_ASSERT_EQUAL(6000, test_gmon.actuator.fan.min_resttime);
+    TEST_ASSERT_EQUAL(70000, test_gmon.actuator.bulb.max_worktime);
+    TEST_ASSERT_EQUAL(7000, test_gmon.actuator.bulb.min_resttime);
 }
 
 

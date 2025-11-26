@@ -34,11 +34,12 @@ gMonStatus staSensorPlatformInitLight(void);
 gMonStatus staSensorPlatformDeInitLight(void);
 gMonStatus staPlatformReadLightSensor(unsigned int *out);
 
-gMonStatus staOutDevPlatformInitPump(void **pinstruct);
-gMonStatus staOutDevPlatformInitFan(void **pinstruct);
-gMonStatus staOutDevPlatformInitBulb(void **pinstruct);
-gMonStatus staOutDevPlatformInitDisplay(uint8_t comm_protocal_id, void **pinstruct);
-gMonStatus staOutDevPlatformDeinitDisplay(void *pinstruct);
+gMonStatus staActuatorPlatformInitPump(void **pinstruct);
+gMonStatus staActuatorPlatformInitFan(void **pinstruct);
+gMonStatus staActuatorPlatformInitBulb(void **pinstruct);
+
+gMonStatus staDisplayPlatformInit(uint8_t comm_protocal_id, void **pinstruct);
+gMonStatus staDisplayPlatformDeinit(void *pinstruct);
 
 gMonStatus staPlatformPinSetDirection(void *pinstruct, uint8_t direction);
 gMonStatus staPlatformSPItransmit(void *pinstruct, unsigned char *pData, unsigned short sz);

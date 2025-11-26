@@ -22,7 +22,7 @@ void pumpControllerTaskFn(void* params) {
                 event->curr_days       = curr_days;
                 staNotifyOthersWithEvent(gmon, event, block_time);
             }
-            status = GMON_OUTDEV_TRIG_FN_PUMP(&gmon->outdev.pump, soil_moist, &gmon->sensors.soil_moist);
+            status = GMON_ACTUATOR_TRIG_FN_PUMP(&gmon->actuator.pump, soil_moist, &gmon->sensors.soil_moist);
         }
         // apply configurable delay time for this sensor.
         // The interval will be updated by network handling task during runtime

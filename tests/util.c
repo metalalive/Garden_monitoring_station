@@ -5,9 +5,6 @@
 
 TEST_GROUP(ReverseString);
 
-// Test fixtures
-static gardenMonitor_t test_gmon; // Global gardenMonitor_t for tests
-
 TEST_SETUP(ReverseString) {
     // No specific setup needed for staReverseString tests
 }
