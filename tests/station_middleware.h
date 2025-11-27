@@ -26,6 +26,7 @@ extern "C" {
 #define XMEMFREE(ptr)       free(ptr)
 
 // Mock FreeRTOS-specific functions for host
+#define stationSysDelayMs(time_ms) (void)(time_ms)
 #define stationSysEnterCritical()
 #define stationSysExitCritical()
 #define stationSysGetTickCount()  UTestSysGetTickCount()

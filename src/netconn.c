@@ -39,6 +39,7 @@ void  stationNetConnHandlerTaskFn(void* params)
     uint8_t     num_reconn = 0;
     gmonStr_t  *app_msg_recv = NULL, *app_msg_send = NULL;
 
+    gMonDisplayBlock_t *dblk = NULL;
     gardenMonitor_t    *gmon = (gardenMonitor_t *)params;
     while(1) {
         stationSysDelayMs(gmon->netconn.interval_ms);
@@ -66,13 +67,19 @@ void  stationNetConnHandlerTaskFn(void* params)
         } // end of while loop num_reconn
         // decode received JSON data (as user update)
         if(recv_status == GMON_RESP_OK) {
-            staDecodeAppMsgInflight(gmon);
-            staUpdatePrintStrThreshold(gmon); // update threshold data to display device
+            gMonStatus  decode_status = staDecodeAppMsgInflight(gmon);
+            if (decode_status == GMON_RESP_OK) {
+                // update threshold to display device
+                dblk = &gmon->display.blocks[GMON_BLOCK_SENSOR_THRESHOLD];
+                dblk->render(&dblk->content, gmon);
+            }
         }
         gmon->user_ctrl.last_update.ticks = stationGetTicksPerDay(&gmon->tick);
         gmon->user_ctrl.last_update.days  = stationGetDays(&gmon->tick);
         gmon->netconn.status.sent = send_status;
         gmon->netconn.status.recv = recv_status;
-        staUpdatePrintStrNetConn(gmon);  // update network connection status to display device
+        // update network connection status to display device
+        dblk = &gmon->display.blocks[GMON_BLOCK_NETCONN_STATUS];
+        dblk->render(&dblk->content, gmon);
     } // end of loop
 } // end of stationNetConnHandlerTaskFn

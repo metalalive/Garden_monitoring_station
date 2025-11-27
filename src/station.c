@@ -49,7 +49,7 @@ static gMonStatus stationDeinit(gardenMonitor_t *gmon)
 // * network connection, encode / decode application message
 static void  stationInitTaskFn(void *param)
 {
-    gardenMonitor_t  *gmon = NULL;
+    gardenMonitor_t  *gmon = param;
     stationSysTask_t  task_ptr = NULL;
     unsigned  short   task_stack_size = 0;
     const unsigned char isPrivileged = 0x1;

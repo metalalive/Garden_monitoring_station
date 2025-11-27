@@ -17,9 +17,8 @@ typedef struct  {
     void      *jsn_decoder;
 } gMonRawMsg_t;
 
-
 // collecting all information, network handling objects in this application
-typedef struct {
+typedef struct gardenMonitor_s {
     struct {
         gMonActuator_t bulb;
         gMonActuator_t pump;
@@ -71,7 +70,7 @@ typedef struct {
         } last_update;
         unsigned int  required_light_daylength_ticks;
     } user_ctrl;
-    gMonDisplay_t  display;
+    gMonDisplayContext_t  display;
     gmonTick_t     tick;
     gMonRawMsg_t   rawmsg;
 } gardenMonitor_t;

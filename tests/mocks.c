@@ -1,6 +1,8 @@
 #include "station_include.h"
 #include "mocks.h"
 
+const unsigned short gmon_txt_font_bitmap_11x18[] = {2,3,4,5};
+
 uint32_t UTestSysGetTickCount(void) {
     return g_mock_tick_count;
 }
@@ -123,4 +125,22 @@ gMonStatus staSetRequiredDaylenTicks(gardenMonitor_t *gmon, unsigned int light_l
         return GMON_RESP_OK;
     }
     return GMON_RESP_INVALID_REQ;
+}
+
+gMonStatus  staDisplayDevInit(void) {
+    return GMON_RESP_OK;
+}
+gMonStatus  staDisplayDevDeInit(void) {
+    return GMON_RESP_OK;
+}
+gMonStatus  staDiplayDevPrintString(gmonPrintInfo_t *printinfo) {
+    (void) printinfo;
+    return GMON_RESP_OK;
+}
+unsigned short  staDisplayDevGetScreenWidth(void) {
+    return 120;
+}
+
+gMonStatus staDisplayRefreshScreen(void) {
+    return GMON_RESP_OK;
 }
