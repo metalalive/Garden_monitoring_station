@@ -224,6 +224,8 @@ extern "C" {
     #define  GMON_CFG_DISPLAY_SCREEN_REFRESH_TIME_MS  100
 #endif // end if GMON_CFG_DISPLAY_SCREEN_REFRESH_TIME_MS
 
+#define  GMON_CFG_MQTT_TOPIC_LOG      "garden/log"
+#define  GMON_CFG_MQTT_TOPIC_USR_CTRL "garden/ctrl"
 
 #ifdef __cplusplus
 }

@@ -454,7 +454,7 @@ static gMonStatus staDecodeNetconnBlock(gardenMonitor_t *gmon, const unsigned ch
             if (XSTRNCMP(GMON_APPMSG_DATA_NAME_INTERVAL, child_key_name, child_key_len) == 0) {
                 status = staDecodeMsgCvtStrToInt(json_data, child_value_token, &parsed_int);
                 if (status == GMON_RESP_OK) {
-                    gmon->user_ctrl.status.interval.netconn = staSetNetConnTaskInterval(gmon, (unsigned int)parsed_int);
+                    gmon->user_ctrl.status.interval.netconn = staSetNetConnTaskInterval(&gmon->netconn, (unsigned int)parsed_int);
                 }
             } else {
                 // Unknown key in netconn block, skip its value (which could be an object)

@@ -114,8 +114,8 @@ gMonStatus  staActuatorDeinitBulb(void) {
     return GMON_RESP_OK;
 }
 
-gMonStatus staSetNetConnTaskInterval(gardenMonitor_t *gmon, unsigned int interval_ms) {
-    gmon->netconn.interval_ms = interval_ms; // Update gmon for verification
+gMonStatus staSetNetConnTaskInterval(gMonNet_t *net, unsigned int interval_ms) {
+    net->interval_ms = interval_ms; // Update gmon for verification
     return GMON_RESP_OK;
 }
 

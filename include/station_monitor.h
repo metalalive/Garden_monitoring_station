@@ -44,14 +44,6 @@ typedef struct gardenMonitor_s {
         gmonSensorRecord_t  latest_records[GMON_CFG_NUM_SENSOR_RECORDS_KEEP];
     } sensors;
     struct {
-        void         *handle_obj;
-        unsigned int  interval_ms;
-        struct {
-            gMonStatus  sent;
-            gMonStatus  recv;
-        } status;
-    } netconn;
-    struct {
         struct {
             struct {
                 gMonStatus  sensorread; // TODO, expand for each individual sensor
@@ -71,6 +63,7 @@ typedef struct gardenMonitor_s {
         unsigned int  required_light_daylength_ticks;
     } user_ctrl;
     gMonDisplayContext_t  display;
+    gMonNet_t      netconn;
     gmonTick_t     tick;
     gMonRawMsg_t   rawmsg;
 } gardenMonitor_t;
