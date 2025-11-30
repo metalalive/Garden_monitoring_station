@@ -29,3 +29,17 @@ AVAILABLE COMMANDS:
       Specifies the relative path to the GDB client script to be used. By default, it refers to 'app-debug.gdb' within the current project directory.
       Example: make dbg_client DBG_CLIENT_SCRIPT_PATH=my_debugger_script.gdb
 
+  make test
+    Builds and runs all unit tests for the application. This command compiles the application source code along with test-specific sources and the Unity test framework, then executes the resulting test suite.
+
+    Parameters:
+      UNITY_ROOT
+        Specifies the root directory of the Unity test framework. Defaults to `/usr/local/include/unity` if not set.
+        Example: make test UNITY_ROOT=/path/to/my/unity/
+      JSMN_ROOT
+        Specifies the root directory of the jsmn library. Defaults to `/usr/local/include/jsmn` if not set.
+        Example: make test JSMN_ROOT=/path/to/my/jsmn/
+
+  make test_clean
+    Removes all generated build artifacts specifically for the unit tests.
+
