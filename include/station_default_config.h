@@ -35,61 +35,73 @@ extern "C" {
     #define  GMON_SENSOR_INIT_FN_SOIL_MOIST()         staSensorInitSoilMoist()
     #define  GMON_SENSOR_DEINIT_FN_SOIL_MOIST()       staSensorDeInitSoilMoist()
     #define  GMON_SENSOR_READ_FN_SOIL_MOIST(readout)  staSensorReadSoilMoist((readout))
+    #ifndef  GMON_CFG_SENSOR_READ_INTERVAL_MS_SOIL_MOIST
+        #define  GMON_CFG_SENSOR_READ_INTERVAL_MS_SOIL_MOIST  2000
+    #endif
 #else
     #define  GMON_SENSOR_INIT_FN_SOIL_MOIST()         GMON_RESP_OK
     #define  GMON_SENSOR_DEINIT_FN_SOIL_MOIST()       GMON_RESP_OK
     #define  GMON_SENSOR_READ_FN_SOIL_MOIST(readout)  GMON_RESP_OK
+    #define  GMON_CFG_SENSOR_READ_INTERVAL_MS_SOIL_MOIST  0xffffffff
 #endif // end of GMON_CFG_ENABLE_SENSOR_SOIL_MOIST
 
 #ifdef GMON_CFG_ENABLE_SENSOR_AIR_TEMP
     #define  GMON_SENSOR_INIT_FN_AIR_TEMP()                      staSensorInitAirTemp()
     #define  GMON_SENSOR_DEINIT_FN_AIR_TEMP()                    staSensorDeInitAirTemp()
     #define  GMON_SENSOR_READ_FN_AIR_TEMP(air_temp, air_humid)   staSensorReadAirTemp((air_temp), (air_humid))
+    #ifndef GMON_CFG_SENSOR_READ_INTERVAL_MS_AIR_TEMP
+        #define  GMON_CFG_SENSOR_READ_INTERVAL_MS_AIR_TEMP   7000
+    #endif
 #else
     #define  GMON_SENSOR_INIT_FN_AIR_TEMP()                      GMON_RESP_OK
     #define  GMON_SENSOR_DEINIT_FN_AIR_TEMP()                    GMON_RESP_OK
     #define  GMON_SENSOR_READ_FN_AIR_TEMP(air_temp, air_humid)   GMON_RESP_OK
+    #define  GMON_CFG_SENSOR_READ_INTERVAL_MS_AIR_TEMP    0xffffffff
 #endif // end of GMON_CFG_ENABLE_SENSOR_AIR_TEMP
 
 #ifdef  GMON_CFG_ENABLE_LIGHT_SENSOR
     #define  GMON_SENSOR_INIT_FN_LIGHT()            staSensorInitLight()
     #define  GMON_SENSOR_DEINIT_FN_LIGHT()          staSensorDeInitLight()
     #define  GMON_SENSOR_READ_FN_LIGHT(lightness)   staSensorReadLight((lightness))
+    #ifndef GMON_CFG_SENSOR_READ_INTERVAL_MS_LIGHT
+        #define  GMON_CFG_SENSOR_READ_INTERVAL_MS_LIGHT     10000
+    #endif
 #else
     #define  GMON_SENSOR_INIT_FN_LIGHT()           GMON_RESP_OK
     #define  GMON_SENSOR_DEINIT_FN_LIGHT()         GMON_RESP_OK
     #define  GMON_SENSOR_READ_FN_LIGHT(lightness)  GMON_RESP_OK
+    #define  GMON_CFG_SENSOR_READ_INTERVAL_MS_LIGHT     0xffffffff
 #endif // end of GMON_CFG_ENABLE_LIGHT_SENSOR
 
-#ifdef  GMON_CFG_ENABLE_OUTDEV_PUMP
-    #define  GMON_OUTDEV_INIT_FN_PUMP(dev)         staOutdevInitPump((dev))
-    #define  GMON_OUTDEV_DEINIT_FN_PUMP()          staOutdevDeinitPump()
-    #define  GMON_OUTDEV_TRIG_FN_PUMP(dev, soil_moist)   staOutdevTrigPump((dev), (soil_moist))
+#ifdef  GMON_CFG_ENABLE_ACTUATOR_PUMP
+    #define  GMON_ACTUATOR_INIT_FN_PUMP(dev)         staActuatorInitPump((dev))
+    #define  GMON_ACTUATOR_DEINIT_FN_PUMP()          staActuatorDeinitPump()
+    #define  GMON_ACTUATOR_TRIG_FN_PUMP(dev, moistval, sensor)   staActuatorTrigPump((dev), (moistval), (sensor))
 #else
-    #define  GMON_OUTDEV_INIT_FN_PUMP(dev)             GMON_RESP_OK
-    #define  GMON_OUTDEV_DEINIT_FN_PUMP()              GMON_RESP_OK
-    #define  GMON_OUTDEV_TRIG_FN_PUMP(dev, soil_moist) GMON_RESP_OK
-#endif // end of  GMON_CFG_ENABLE_OUTDEV_PUMP
+    #define  GMON_ACTUATOR_INIT_FN_PUMP(dev)             GMON_RESP_OK
+    #define  GMON_ACTUATOR_DEINIT_FN_PUMP()              GMON_RESP_OK
+    #define  GMON_ACTUATOR_TRIG_FN_PUMP(dev, moistval, sensor) GMON_RESP_OK
+#endif
 
-#ifdef  GMON_CFG_ENABLE_OUTDEV_FAN
-    #define  GMON_OUTDEV_INIT_FN_FAN(dev)         staOutdevInitFan((dev))
-    #define  GMON_OUTDEV_DEINIT_FN_FAN()          staOutdevDeinitFan()
-    #define  GMON_OUTDEV_TRIG_FN_FAN(dev, air_temp)   staOutdevTrigFan((dev), (air_temp))
+#ifdef  GMON_CFG_ENABLE_ACTUATOR_FAN
+    #define  GMON_ACTUATOR_INIT_FN_FAN(dev)         staActuatorInitFan((dev))
+    #define  GMON_ACTUATOR_DEINIT_FN_FAN()          staActuatorDeinitFan()
+    #define  GMON_ACTUATOR_TRIG_FN_FAN(dev, airtemp, sensor)   staActuatorTrigFan((dev), (airtemp), (sensor))
 #else
-    #define  GMON_OUTDEV_INIT_FN_FAN(dev)           GMON_RESP_OK
-    #define  GMON_OUTDEV_DEINIT_FN_FAN()            GMON_RESP_OK
-    #define  GMON_OUTDEV_TRIG_FN_FAN(dev, air_temp) GMON_RESP_OK
-#endif // end of GMON_CFG_ENABLE_OUTDEV_FAN
+    #define  GMON_ACTUATOR_INIT_FN_FAN(dev)           GMON_RESP_OK
+    #define  GMON_ACTUATOR_DEINIT_FN_FAN()            GMON_RESP_OK
+    #define  GMON_ACTUATOR_TRIG_FN_FAN(dev, airtemp, sensor) GMON_RESP_OK
+#endif
  
-#ifdef  GMON_CFG_ENABLE_OUTDEV_BULB
-    #define  GMON_OUTDEV_INIT_FN_BULB(dev)         staOutdevInitBulb((dev))
-    #define  GMON_OUTDEV_DEINIT_FN_BULB()          staOutdevDeinitBulb()
-    #define  GMON_OUTDEV_TRIG_FN_BULB(dev, lightness)   staOutdevTrigBulb((dev), (lightness))
+#ifdef  GMON_CFG_ENABLE_ACTUATOR_BULB
+    #define  GMON_ACTUATOR_INIT_FN_BULB(dev)         staActuatorInitBulb((dev))
+    #define  GMON_ACTUATOR_DEINIT_FN_BULB()          staActuatorDeinitBulb()
+    #define  GMON_ACTUATOR_TRIG_FN_BULB(dev, lightval, sensor)   staActuatorTrigBulb((dev), (lightval), (sensor))
 #else
-    #define  GMON_OUTDEV_INIT_FN_BULB(dev)            GMON_RESP_OK
-    #define  GMON_OUTDEV_DEINIT_FN_BULB()             GMON_RESP_OK
-    #define  GMON_OUTDEV_TRIG_FN_BULB(dev, lightness) GMON_RESP_OK
-#endif // end of GMON_CFG_ENABLE_OUTDEV_BULB
+    #define  GMON_ACTUATOR_INIT_FN_BULB(dev)            GMON_RESP_OK
+    #define  GMON_ACTUATOR_DEINIT_FN_BULB()             GMON_RESP_OK
+    #define  GMON_ACTUATOR_TRIG_FN_BULB(dev, lightval, sensor) GMON_RESP_OK
+#endif
 
 
 #ifdef  GMON_CFG_ENABLE_DISPLAY
@@ -108,76 +120,76 @@ extern "C" {
     #define  GMON_DISPLAY_DEV_PRINT_STRING_FN(printinfo)    GMON_RESP_OK
 #endif // end of GMON_CFG_ENABLE_DISPLAY
 
-#define  GMON_MIN_OUTDEV_TRIG_THRESHOLD_BULB  10
-#define  GMON_MAX_OUTDEV_TRIG_THRESHOLD_BULB  200
-#define  GMON_MIN_OUTDEV_TRIG_THRESHOLD_PUMP  250
-#define  GMON_MAX_OUTDEV_TRIG_THRESHOLD_PUMP  1020
-#define  GMON_MIN_OUTDEV_TRIG_THRESHOLD_FAN   0
-#define  GMON_MAX_OUTDEV_TRIG_THRESHOLD_FAN   60
+#define  GMON_MIN_ACTUATOR_TRIG_THRESHOLD_BULB  20
+#define  GMON_MAX_ACTUATOR_TRIG_THRESHOLD_BULB  830
+#define  GMON_MIN_ACTUATOR_TRIG_THRESHOLD_PUMP  250
+#define  GMON_MAX_ACTUATOR_TRIG_THRESHOLD_PUMP  1020
+#define  GMON_MIN_ACTUATOR_TRIG_THRESHOLD_FAN   0
+#define  GMON_MAX_ACTUATOR_TRIG_THRESHOLD_FAN   60
 
-#define  GMON_OUTDEV_MAX_WORKTIME_PER_DAY  GMON_NUM_MILLISECONDS_PER_DAY
-#define  GMON_OUTDEV_MAX_RESTTIME_PER_DAY  GMON_NUM_MILLISECONDS_PER_DAY
+#define  GMON_ACTUATOR_MAX_WORKTIME_PER_DAY  GMON_NUM_MILLISECONDS_PER_DAY
+#define  GMON_ACTUATOR_MAX_RESTTIME_PER_DAY  GMON_NUM_MILLISECONDS_PER_DAY
 
 
-#ifndef   GMON_CFG_OUTDEV_TRIG_THRESHOLD_BULB
-    #define  GMON_CFG_OUTDEV_TRIG_THRESHOLD_BULB  60
-#elif     (GMON_CFG_OUTDEV_TRIG_THRESHOLD_BULB < GMON_MIN_OUTDEV_TRIG_THRESHOLD_BULB)
-    #error  "GMON_CFG_OUTDEV_TRIG_THRESHOLD_BULB cannot be lesser than GMON_MIN_OUTDEV_TRIG_THRESHOLD_BULB, recheck your configuration."
-#elif     (GMON_CFG_OUTDEV_TRIG_THRESHOLD_BULB > GMON_MAX_OUTDEV_TRIG_THRESHOLD_BULB)
-    #error  "GMON_CFG_OUTDEV_TRIG_THRESHOLD_BULB cannot be greater than GMON_MAX_OUTDEV_TRIG_THRESHOLD_BULB, recheck your configuration."
-#endif // end of GMON_CFG_OUTDEV_TRIG_THRESHOLD_BULB
+#ifndef   GMON_CFG_ACTUATOR_TRIG_THRESHOLD_BULB
+    #define  GMON_CFG_ACTUATOR_TRIG_THRESHOLD_BULB  60
+#elif     (GMON_CFG_ACTUATOR_TRIG_THRESHOLD_BULB < GMON_MIN_ACTUATOR_TRIG_THRESHOLD_BULB)
+    #error  "GMON_CFG_ACTUATOR_TRIG_THRESHOLD_BULB cannot be lesser than GMON_MIN_ACTUATOR_TRIG_THRESHOLD_BULB, recheck your configuration."
+#elif     (GMON_CFG_ACTUATOR_TRIG_THRESHOLD_BULB > GMON_MAX_ACTUATOR_TRIG_THRESHOLD_BULB)
+    #error  "GMON_CFG_ACTUATOR_TRIG_THRESHOLD_BULB cannot be greater than GMON_MAX_ACTUATOR_TRIG_THRESHOLD_BULB, recheck your configuration."
+#endif // end of GMON_CFG_ACTUATOR_TRIG_THRESHOLD_BULB
 
-#ifndef   GMON_CFG_OUTDEV_MAX_WORKTIME_BULB
-    #define  GMON_CFG_OUTDEV_MAX_WORKTIME_BULB  36000000 // 10 * 60 * 60 * 1000 ms
-#elif     (GMON_CFG_OUTDEV_MAX_WORKTIME_BULB > GMON_OUTDEV_MAX_WORKTIME_PER_DAY)
-    #error "GMON_CFG_OUTDEV_MAX_WORKTIME_BULB must NOT be greater than 1000 * 60 * 60 * 24 milliseconds."
-#endif // end of GMON_CFG_OUTDEV_MAX_WORKTIME_BULB
+#ifndef   GMON_CFG_ACTUATOR_MAX_WORKTIME_BULB
+    #define  GMON_CFG_ACTUATOR_MAX_WORKTIME_BULB  36000000 // 10 * 60 * 60 * 1000 ms
+#elif     (GMON_CFG_ACTUATOR_MAX_WORKTIME_BULB > GMON_ACTUATOR_MAX_WORKTIME_PER_DAY)
+    #error "GMON_CFG_ACTUATOR_MAX_WORKTIME_BULB must NOT be greater than 1000 * 60 * 60 * 24 milliseconds."
+#endif // end of GMON_CFG_ACTUATOR_MAX_WORKTIME_BULB
 
-#ifndef   GMON_CFG_OUTDEV_MIN_RESTTIME_BULB
-    #define  GMON_CFG_OUTDEV_MIN_RESTTIME_BULB  GMON_OUTDEV_MAX_RESTTIME_PER_DAY
-#elif     (GMON_CFG_OUTDEV_MIN_RESTTIME_BULB > GMON_OUTDEV_MAX_RESTTIME_PER_DAY)
-    #error "GMON_CFG_OUTDEV_MIN_RESTTIME_BULB must NOT be greater than 1000 * 60 * 60 * 24 milliseconds."
-#endif // end of GMON_CFG_OUTDEV_MIN_RESTTIME_BULB
+#ifndef   GMON_CFG_ACTUATOR_MIN_RESTTIME_BULB
+    #define  GMON_CFG_ACTUATOR_MIN_RESTTIME_BULB  GMON_ACTUATOR_MAX_RESTTIME_PER_DAY
+#elif     (GMON_CFG_ACTUATOR_MIN_RESTTIME_BULB > GMON_ACTUATOR_MAX_RESTTIME_PER_DAY)
+    #error "GMON_CFG_ACTUATOR_MIN_RESTTIME_BULB must NOT be greater than 1000 * 60 * 60 * 24 milliseconds."
+#endif // end of GMON_CFG_ACTUATOR_MIN_RESTTIME_BULB
 
-#ifndef   GMON_CFG_OUTDEV_TRIG_THRESHOLD_PUMP
-    #define  GMON_CFG_OUTDEV_TRIG_THRESHOLD_PUMP  950
-#elif     (GMON_CFG_OUTDEV_TRIG_THRESHOLD_PUMP < GMON_MIN_OUTDEV_TRIG_THRESHOLD_PUMP)
-    #error  "GMON_CFG_OUTDEV_TRIG_THRESHOLD_PUMP cannot be lesser than GMON_MIN_OUTDEV_TRIG_THRESHOLD_PUMP, recheck your configuration."
-#elif     (GMON_CFG_OUTDEV_TRIG_THRESHOLD_PUMP > GMON_MAX_OUTDEV_TRIG_THRESHOLD_PUMP)
-    #error  "GMON_CFG_OUTDEV_TRIG_THRESHOLD_PUMP cannot be greater than GMON_MAX_OUTDEV_TRIG_THRESHOLD_PUMP, recheck your configuration."
-#endif // end if GMON_CFG_OUTDEV_TRIG_THRESHOLD_PUMP
+#ifndef   GMON_CFG_ACTUATOR_TRIG_THRESHOLD_PUMP
+    #define  GMON_CFG_ACTUATOR_TRIG_THRESHOLD_PUMP  950
+#elif     (GMON_CFG_ACTUATOR_TRIG_THRESHOLD_PUMP < GMON_MIN_ACTUATOR_TRIG_THRESHOLD_PUMP)
+    #error  "GMON_CFG_ACTUATOR_TRIG_THRESHOLD_PUMP cannot be lesser than GMON_MIN_ACTUATOR_TRIG_THRESHOLD_PUMP, recheck your configuration."
+#elif     (GMON_CFG_ACTUATOR_TRIG_THRESHOLD_PUMP > GMON_MAX_ACTUATOR_TRIG_THRESHOLD_PUMP)
+    #error  "GMON_CFG_ACTUATOR_TRIG_THRESHOLD_PUMP cannot be greater than GMON_MAX_ACTUATOR_TRIG_THRESHOLD_PUMP, recheck your configuration."
+#endif // end if GMON_CFG_ACTUATOR_TRIG_THRESHOLD_PUMP
 
-#ifndef   GMON_CFG_OUTDEV_MAX_WORKTIME_PUMP
-    #define  GMON_CFG_OUTDEV_MAX_WORKTIME_PUMP  (4 * 1000)
-#elif     (GMON_CFG_OUTDEV_MAX_WORKTIME_PUMP > GMON_OUTDEV_MAX_WORKTIME_PER_DAY)
-    #error "GMON_CFG_OUTDEV_MAX_WORKTIME_PUMP must NOT be greater than 1000 * 60 * 60 * 24 milliseconds."
-#endif // end if GMON_CFG_OUTDEV_MAX_WORKTIME_PUMP
+#ifndef   GMON_CFG_ACTUATOR_MAX_WORKTIME_PUMP
+    #define  GMON_CFG_ACTUATOR_MAX_WORKTIME_PUMP  (4000)
+#elif     (GMON_CFG_ACTUATOR_MAX_WORKTIME_PUMP > GMON_ACTUATOR_MAX_WORKTIME_PER_DAY)
+    #error "GMON_CFG_ACTUATOR_MAX_WORKTIME_PUMP must NOT be greater than 1000 * 60 * 60 * 24 milliseconds."
+#endif // end if GMON_CFG_ACTUATOR_MAX_WORKTIME_PUMP
 
-#ifndef   GMON_CFG_OUTDEV_MIN_RESTTIME_PUMP
-    #define  GMON_CFG_OUTDEV_MIN_RESTTIME_PUMP  (1500)
-#elif     (GMON_CFG_OUTDEV_MIN_RESTTIME_PUMP > GMON_OUTDEV_MAX_RESTTIME_PER_DAY)
-    #error "GMON_CFG_OUTDEV_MIN_RESTTIME_PUMP must NOT be greater than 1000 * 60 * 60 * 24 milliseconds."
-#endif // end of GMON_CFG_OUTDEV_MIN_RESTTIME_PUMP
+#ifndef   GMON_CFG_ACTUATOR_MIN_RESTTIME_PUMP
+    #define  GMON_CFG_ACTUATOR_MIN_RESTTIME_PUMP  (1500)
+#elif     (GMON_CFG_ACTUATOR_MIN_RESTTIME_PUMP > GMON_ACTUATOR_MAX_RESTTIME_PER_DAY)
+    #error "GMON_CFG_ACTUATOR_MIN_RESTTIME_PUMP must NOT be greater than 1000 * 60 * 60 * 24 milliseconds."
+#endif // end of GMON_CFG_ACTUATOR_MIN_RESTTIME_PUMP
 
-#ifndef   GMON_CFG_OUTDEV_TRIG_THRESHOLD_FAN
-    #define  GMON_CFG_OUTDEV_TRIG_THRESHOLD_FAN  28
-#elif     (GMON_CFG_OUTDEV_TRIG_THRESHOLD_FAN < GMON_MIN_OUTDEV_TRIG_THRESHOLD_FAN)
-    #error  "GMON_CFG_OUTDEV_TRIG_THRESHOLD_FAN cannot be lesser than GMON_MIN_OUTDEV_TRIG_THRESHOLD_FAN, recheck your configuration."
-#elif     (GMON_CFG_OUTDEV_TRIG_THRESHOLD_FAN > GMON_MAX_OUTDEV_TRIG_THRESHOLD_FAN)
-    #error  "GMON_CFG_OUTDEV_TRIG_THRESHOLD_FAN cannot be greater than GMON_MAX_OUTDEV_TRIG_THRESHOLD_FAN, recheck your configuration."
-#endif // end if GMON_CFG_OUTDEV_TRIG_THRESHOLD_FAN
+#ifndef   GMON_CFG_ACTUATOR_TRIG_THRESHOLD_FAN
+    #define  GMON_CFG_ACTUATOR_TRIG_THRESHOLD_FAN  28
+#elif     (GMON_CFG_ACTUATOR_TRIG_THRESHOLD_FAN < GMON_MIN_ACTUATOR_TRIG_THRESHOLD_FAN)
+    #error  "GMON_CFG_ACTUATOR_TRIG_THRESHOLD_FAN cannot be lesser than GMON_MIN_ACTUATOR_TRIG_THRESHOLD_FAN, recheck your configuration."
+#elif     (GMON_CFG_ACTUATOR_TRIG_THRESHOLD_FAN > GMON_MAX_ACTUATOR_TRIG_THRESHOLD_FAN)
+    #error  "GMON_CFG_ACTUATOR_TRIG_THRESHOLD_FAN cannot be greater than GMON_MAX_ACTUATOR_TRIG_THRESHOLD_FAN, recheck your configuration."
+#endif // end if GMON_CFG_ACTUATOR_TRIG_THRESHOLD_FAN
 
-#ifndef   GMON_CFG_OUTDEV_MAX_WORKTIME_FAN
-    #define  GMON_CFG_OUTDEV_MAX_WORKTIME_FAN   (11 * 1000)
-#elif     (GMON_CFG_OUTDEV_MAX_WORKTIME_FAN > GMON_OUTDEV_MAX_WORKTIME_PER_DAY)
-    #error "GMON_CFG_OUTDEV_MAX_WORKTIME_FAN must NOT be greater than 1000 * 60 * 60 * 24 milliseconds."
-#endif // end if GMON_CFG_OUTDEV_MAX_WORKTIME_FAN
+#ifndef   GMON_CFG_ACTUATOR_MAX_WORKTIME_FAN
+    #define  GMON_CFG_ACTUATOR_MAX_WORKTIME_FAN   (11 * 1000)
+#elif     (GMON_CFG_ACTUATOR_MAX_WORKTIME_FAN > GMON_ACTUATOR_MAX_WORKTIME_PER_DAY)
+    #error "GMON_CFG_ACTUATOR_MAX_WORKTIME_FAN must NOT be greater than 1000 * 60 * 60 * 24 milliseconds."
+#endif // end if GMON_CFG_ACTUATOR_MAX_WORKTIME_FAN
 
-#ifndef   GMON_CFG_OUTDEV_MIN_RESTTIME_FAN
-    #define  GMON_CFG_OUTDEV_MIN_RESTTIME_FAN   (6 * 1000)
-#elif     (GMON_CFG_OUTDEV_MIN_RESTTIME_FAN > GMON_OUTDEV_MAX_RESTTIME_PER_DAY)
-    #error "GMON_CFG_OUTDEV_MIN_RESTTIME_FAN must NOT be greater than 1000 * 60 * 60 * 24 milliseconds."
-#endif // end of GMON_CFG_OUTDEV_MIN_RESTTIME_FAN
+#ifndef   GMON_CFG_ACTUATOR_MIN_RESTTIME_FAN
+    #define  GMON_CFG_ACTUATOR_MIN_RESTTIME_FAN   (6 * 1000)
+#elif     (GMON_CFG_ACTUATOR_MIN_RESTTIME_FAN > GMON_ACTUATOR_MAX_RESTTIME_PER_DAY)
+    #error "GMON_CFG_ACTUATOR_MIN_RESTTIME_FAN must NOT be greater than 1000 * 60 * 60 * 24 milliseconds."
+#endif // end of GMON_CFG_ACTUATOR_MIN_RESTTIME_FAN
 
 #define GMON_MAX_REQUIRED_LIGHT_LENGTH_TICKS  GMON_NUM_MILLISECONDS_PER_DAY
 
@@ -212,6 +224,8 @@ extern "C" {
     #define  GMON_CFG_DISPLAY_SCREEN_REFRESH_TIME_MS  100
 #endif // end if GMON_CFG_DISPLAY_SCREEN_REFRESH_TIME_MS
 
+#define  GMON_CFG_MQTT_TOPIC_LOG      "garden/log"
+#define  GMON_CFG_MQTT_TOPIC_USR_CTRL "garden/ctrl"
 
 #ifdef __cplusplus
 }

@@ -9,52 +9,54 @@ extern "C" {
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_tim.h"
 
-#define GMON_PLATFORM_PIN_DIRECTION_OUT  1 // from host microcontroller to wired sensor
-#define GMON_PLATFORM_PIN_DIRECTION_IN   2 // from wired sensor to host microcontroller
+#define GMON_PLATFORM_PIN_DIRECTION_OUT 1 // from host microcontroller to wired sensor
+#define GMON_PLATFORM_PIN_DIRECTION_IN  2 // from wired sensor to host microcontroller
 
-#define GMON_PLATFORM_DISPLAY_SPI  1
-#define GMON_PLATFORM_DISPLAY_I2C  2
+#define GMON_PLATFORM_DISPLAY_SPI 1
+#define GMON_PLATFORM_DISPLAY_I2C 2
 
-#define GMON_PLATFORM_PIN_RESET  GPIO_PIN_RESET
-#define GMON_PLATFORM_PIN_SET    GPIO_PIN_SET
+#define GMON_PLATFORM_PIN_RESET GPIO_PIN_RESET
+#define GMON_PLATFORM_PIN_SET   GPIO_PIN_SET
 
-gMonStatus  stationPlatformInit(void);
-gMonStatus  stationPlatformDeinit(void);
+// ---- functions that interface hardware implementation from application domain ----
 
-gMonStatus  staSensorPlatformInitSoilMoist(void);
-gMonStatus  staSensorPlatformDeInitSoilMoist(void);
-gMonStatus  staPlatformReadSoilMoistSensor(unsigned int *out);
+gMonStatus stationPlatformInit(void);
+gMonStatus stationPlatformDeinit(void);
 
-gMonStatus  staSensorPlatformInitAirTemp(void **pinstruct);
-gMonStatus  staSensorPlatformDeInitAirTemp(void);
+gMonStatus staSensorPlatformInitSoilMoist(void);
+gMonStatus staSensorPlatformDeInitSoilMoist(void);
+gMonStatus staPlatformReadSoilMoistSensor(unsigned int *out);
 
-gMonStatus  staSensorPlatformInitLight(void);
-gMonStatus  staSensorPlatformDeInitLight(void);
-gMonStatus  staPlatformReadLightSensor(unsigned int *out);
+gMonStatus staSensorPlatformInitAirTemp(void **pinstruct);
+gMonStatus staSensorPlatformDeInitAirTemp(void);
 
-gMonStatus  staOutDevPlatformInitPump(void **pinstruct);
-gMonStatus  staOutDevPlatformInitFan(void **pinstruct);
-gMonStatus  staOutDevPlatformInitBulb(void **pinstruct);
-gMonStatus  staOutDevPlatformInitDisplay(uint8_t  comm_protocal_id, void **pinstruct);
-gMonStatus  staOutDevPlatformDeinitDisplay(void *pinstruct);
+gMonStatus staSensorPlatformInitLight(void);
+gMonStatus staSensorPlatformDeInitLight(void);
+gMonStatus staPlatformReadLightSensor(unsigned int *out);
 
-gMonStatus  staPlatformPinSetDirection(void *pinstruct, uint8_t direction);
-gMonStatus  staPlatformSPItransmit(void *pinstruct, unsigned char *pData, unsigned short sz);
+gMonStatus staActuatorPlatformInitPump(void **pinstruct);
+gMonStatus staActuatorPlatformInitFan(void **pinstruct);
+gMonStatus staActuatorPlatformInitBulb(void **pinstruct);
 
-gMonStatus  staPlatformWritePin(void *pinstruct, uint8_t new_state);
-uint8_t     staPlatformReadPin(void *pinstruct);
+gMonStatus staDisplayPlatformInit(uint8_t comm_protocal_id, void **pinstruct);
+gMonStatus staDisplayPlatformDeinit(void *pinstruct);
 
-gMonStatus  staPlatformDelayUs(uint16_t us);
+gMonStatus staPlatformPinSetDirection(void *pinstruct, uint8_t direction);
+gMonStatus staPlatformSPItransmit(void *pinstruct, unsigned char *pData, unsigned short sz);
+
+gMonStatus staPlatformWritePin(void *pinstruct, uint8_t new_state);
+uint8_t    staPlatformReadPin(void *pinstruct);
+
+gMonStatus staPlatformDelayUs(uint16_t us);
 
 // direction :
 // - 1: transition from LOW to HIGH
 // - 0: transition from HIGH to LOW
 // us : pulse length in microseconds
-gMonStatus  staPlatformMeasurePulse(void *pinstruct, uint8_t *direction, uint16_t *us);
+gMonStatus staPlatformMeasurePulse(void *pinstruct, uint8_t *direction, uint16_t *us);
 
-void*  staPlatformiGetDisplayRstPin(void);
-void*  staPlatformiGetDisplayDataCmdPin(void);
-
+void *staPlatformiGetDisplayRstPin(void);
+void *staPlatformiGetDisplayDataCmdPin(void);
 
 #ifdef __cplusplus
 }

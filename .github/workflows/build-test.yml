@@ -1,0 +1,39 @@
+name: Monitor Station Unit Test
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - '.github/workflows/**'
+      - 'include/**'
+      - 'src/**'
+      - 'tests/**'
+      - 'makefile'
+      - 'build.mk'
+      - 'config.mk'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies (build-essential, openssl)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential openssl
+
+      - name: Download Third-Party Lirabies
+        run: |
+          mkdir -p ${{ github.workspace }}/third_party
+          cd ${{ github.workspace }}/third_party
+          git clone --depth 1 https://github.com/ThrowTheSwitch/Unity Unity
+          git clone --depth 1 https://github.com/zserge/jsmn jsmn
+          ls -lt
+
+      - name: Run Unit Test
+        run: |
+          make test UNITY_ROOT=${{ github.workspace }}/third_party/Unity  JSMN_ROOT=${{ github.workspace }}/third_party/jsmn
+

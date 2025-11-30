@@ -10,12 +10,15 @@ extern "C" {
 #include "station_types.h"
 #include "station_platform.h"
 #include "station_middleware.h"
-#include "station_app_msg.h"
+#include "station_display.h"
 #include "station_network.h"
+#include "station_monitor.h"
+#include "station_app_msg.h"
 #include "station_io.h"
 #include "station_util.h"
 #include "station_daylight_track.h"
 #include "station_aircond_track.h"
+#include "station_soilcond_track.h"
 
 #ifdef __cplusplus
 }

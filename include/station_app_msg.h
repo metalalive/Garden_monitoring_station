@@ -5,21 +5,19 @@
 extern "C" {
 #endif
 
-gMonStatus  staAppMsgInit(void);
+gMonStatus  staAppMsgInit(gardenMonitor_t *);
 
-gMonStatus  staAppMsgDeinit(void);
+gMonStatus  staAppMsgDeinit(gardenMonitor_t *);
 
-gMonStatus  staAddRecordToAppMsg(gmonSensorRecord_t  *new_record);
+gmonStr_t*  staGetAppMsgOutflight(gardenMonitor_t *);
 
-gmonStr_t*  staGetAppMsgOutflight(void);
+gmonStr_t*  staGetAppMsgInflight(gardenMonitor_t *);
 
-gmonStr_t*  staGetAppMsgInflight(void);
+gMonStatus  staDecodeAppMsgInflight(gardenMonitor_t *);
 
-gMonStatus  staRefreshAppMsgOutflight(void);
+gmonSensorRecord_t staUpdateLastRecord(gmonSensorRecord_t *, gmonEvent_t *);
 
-gMonStatus  staDecodeAppMsgInflight(gardenMonitor_t *gmon);
-
-//// gMonStatus  staRefreshParamFromAppMsg(void);
+void  stationSensorDataAggregatorTaskFn(void* params);
 
 #ifdef __cplusplus
 }

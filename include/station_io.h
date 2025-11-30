@@ -5,25 +5,15 @@
 extern "C" {
 #endif
 
-typedef struct {
-    uint16_t      width;
-    uint16_t      height;
-    const unsigned short *bitmap;
-} gmonPrintFont_t;
+#define  GMON_NUM_SENSOR_EVENTS   (GMON_CFG_NUM_SENSOR_RECORDS_KEEP * 3)
 
+gMonStatus  stationIOinit(gardenMonitor_t *);
+gMonStatus  stationIOdeinit(gardenMonitor_t *);
 
-typedef struct {
-    gmonStr_t  str;
-    gmonPrintFont_t  *font;
-    short  posx;
-    short  posy;
-} gmonPrintInfo_t;
-
-
-gMonStatus  stationIOinit(gardenMonitor_t *gmon);
-gMonStatus  stationIOdeinit(void);
-
-gMonStatus  staFreeSensorRecord(gmonSensorRecord_t* record);
+gmonEvent_t* staAllocSensorEvent(gardenMonitor_t *);
+gMonStatus  staFreeSensorEvent(gardenMonitor_t *, gmonEvent_t *);
+gMonStatus  staCpySensorEvent(gmonEvent_t  *dst, gmonEvent_t *src, size_t  sz);
+gMonStatus  staNotifyOthersWithEvent(gardenMonitor_t *, gmonEvent_t *, uint32_t block_time);
 
 gMonStatus  staSensorInitSoilMoist(void);
 gMonStatus  staSensorDeInitSoilMoist(void);
@@ -38,59 +28,36 @@ gMonStatus  staSensorDeInitLight(void);
 gMonStatus  staSensorReadLight(unsigned int *out);
 
 // device-specific functions
-gMonStatus  staOutdevInitPump(gMonOutDev_t *dev);
-gMonStatus  staOutdevDeinitPump(void);
-gMonStatus  staOutdevTrigPump(gMonOutDev_t *dev, unsigned int soil_moist);
+gMonStatus  staActuatorInitPump(gMonActuator_t *);
+gMonStatus  staActuatorDeinitPump(void);
+gMonStatus  staActuatorTrigPump(gMonActuator_t *, unsigned int soil_moist, gMonSensor_t *);
 
-gMonStatus  staOutdevInitFan(gMonOutDev_t *dev);
-gMonStatus  staOutdevDeinitFan(void);
-gMonStatus  staOutdevTrigFan(gMonOutDev_t *dev, float air_temp);
+gMonStatus  staActuatorInitFan(gMonActuator_t *);
+gMonStatus  staActuatorDeinitFan(void);
+gMonStatus  staActuatorTrigFan(gMonActuator_t *, float air_temp, gMonSensor_t *);
 
-gMonStatus  staOutdevInitBulb(gMonOutDev_t *dev);
-gMonStatus  staOutdevDeinitBulb(void);
-gMonStatus  staOutdevTrigBulb(gMonOutDev_t *dev, unsigned int lightness);
-
-gMonStatus  staDisplayDevInit(void);
-gMonStatus  staDisplayDevDeInit(void);
-gMonStatus  staDisplayRefreshScreen(void);
-unsigned short  staDisplayDevGetScreenWidth(void);
-unsigned short  staDisplayDevGetScreenHeight(void);
-gMonStatus  staDiplayDevPrintString(gmonPrintInfo_t *printinfo);
-gMonStatus  staDiplayDevPrintCustomPattern(gmonPrintInfo_t *printinfo); // TODO
+gMonStatus  staActuatorInitBulb(gMonActuator_t *);
+gMonStatus  staActuatorDeinitBulb(void);
+gMonStatus  staActuatorTrigBulb(gMonActuator_t *, unsigned int lightness, gMonSensor_t *);
 
 // generic functions to init device
-gMonStatus  staOutdevInitGenericPump(gMonOutDev_t *dev);
-gMonStatus  staOutdevDeinitGenericPump(void);
+gMonStatus  staActuatorInitGenericPump(gMonActuator_t *);
+gMonStatus  staActuatorDeinitGenericPump(void);
 
-gMonStatus  staOutdevInitGenericFan(gMonOutDev_t *dev);
-gMonStatus  staOutdevDeinitGenericFan(void);
+gMonStatus  staActuatorInitGenericFan(gMonActuator_t *);
+gMonStatus  staActuatorDeinitGenericFan(void);
 
-gMonStatus  staOutdevInitGenericBulb(gMonOutDev_t *dev);
-gMonStatus  staOutdevDeinitGenericBulb(void);
+gMonStatus  staActuatorInitGenericBulb(gMonActuator_t *);
+gMonStatus  staActuatorDeinitGenericBulb(void);
 
-gMonStatus  staDisplayInit(gardenMonitor_t *gmon);
-gMonStatus  staDisplayDeInit(gardenMonitor_t *gmon);
-void        staUpdatePrintStrSensorData(gardenMonitor_t  *gmon, gmonSensorRecord_t  *new_record);
-void        staUpdatePrintStrOutDevStatus(gardenMonitor_t  *gmon);
-void        staUpdatePrintStrThreshold(gardenMonitor_t *gmon);
+gMonActuatorStatus  staActuatorMeasureWorkingTime(gMonActuator_t *, unsigned int time_elapsed_ms);
 
-void  staUpdatePrintStrNetConn(gardenMonitor_t *);
+gMonStatus  staSetDefaultSensorReadInterval(gardenMonitor_t *, unsigned int new_interval);
+gMonStatus  staSetTrigThresholdPump(gMonActuator_t *, unsigned int new_val);
+gMonStatus  staSetTrigThresholdFan(gMonActuator_t *, unsigned int new_val);
+gMonStatus  staSetTrigThresholdBulb(gMonActuator_t *, unsigned int new_val);
 
-gMonOutDevStatus  staOutDevMeasureWorkingTime(gMonOutDev_t *dev);
-
-gMonStatus  staSetDefaultSensorReadInterval(gardenMonitor_t *gmon, unsigned int new_interval);
-gMonStatus  staSetTrigThresholdPump(gMonOutDev_t *dev, unsigned int new_val);
-gMonStatus  staSetTrigThresholdFan(gMonOutDev_t *dev, unsigned int new_val);
-gMonStatus  staSetTrigThresholdBulb(gMonOutDev_t *dev, unsigned int new_val);
-
-gMonStatus  staPauseWorkingRealtimeOutdevs(gardenMonitor_t *gmon);
-
-
-void  stationSensorReaderTaskFn(void* params);
-
-void  stationOutDevCtrlTaskFn(void* params);
-
-void  stationDisplayTaskFn(void* params);
+gMonStatus  staPauseWorkingActuators(gardenMonitor_t *);
 
 #ifdef __cplusplus
 }

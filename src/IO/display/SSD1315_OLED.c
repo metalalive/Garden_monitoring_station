@@ -22,19 +22,15 @@ static void   *ssd1315_display_pin_rst;
 static void   *ssd1315_display_pin_dc;
 static oled_t  oled_dev;
 
-
-static gMonStatus staDisplaySetGPIOpin(void *pinstruct, uint8_t pin_state)
-{
+static gMonStatus staDisplaySetGPIOpin(void *pinstruct, uint8_t pin_state) {
     gMonStatus status = GMON_RESP_SKIP;
     if(pinstruct) {
         status = staPlatformWritePin(pinstruct, pin_state);
     }
     return status;
-} // end of staDisplaySetGPIOpin
+}
 
-
-static gMonStatus  staOLEDsendCmd(unsigned char cmdbyte)
-{
+static gMonStatus  staOLEDsendCmd(unsigned char cmdbyte) {
     unsigned short datasize = 0x1;
     gMonStatus status = GMON_RESP_SKIP;
     status = staDisplaySetGPIOpin(ssd1315_display_pin_dc, GMON_PLATFORM_PIN_RESET);
@@ -42,37 +38,29 @@ static gMonStatus  staOLEDsendCmd(unsigned char cmdbyte)
     status = staPlatformSPItransmit(ssd1315_display_pin_spi, &cmdbyte, datasize);
 done:
     return status;
-} // end of staOLEDsendCmd
+}
 
-
-static gMonStatus staOLEDsendData (unsigned char *pdata, unsigned short datasize)
-{
+static gMonStatus staOLEDsendData (unsigned char *pdata, unsigned short datasize) {
     gMonStatus status = GMON_RESP_SKIP;
     status = staDisplaySetGPIOpin(ssd1315_display_pin_dc, GMON_PLATFORM_PIN_SET);
     if(status < 0) { goto done; }
     status = staPlatformSPItransmit(ssd1315_display_pin_spi, pdata, datasize);
 done:
     return status;
-} // end of staOLEDsendData
+}
 
-
-static  void  staOLEDsetCursor(short  x, short y)
-{
+static  void  staOLEDsetCursor(short  x, short y) {
     oled_dev.curr_x = x;
     oled_dev.curr_y = y;
-} // end of staOLEDsetCursor
+}
 
-
-static  void  staDisplayDevFill(uint8_t pixel_on)
-{
+static  void  staDisplayDevFill(uint8_t pixel_on) {
     uint8_t  setvalue = 0;
     setvalue = (pixel_on == 0) ? 0x00: 0xFF;
     XMEMSET(&gmon_ssd1315_framebuf[0], setvalue, sizeof(char) * OLED_SSD1315_SCREEN_FRAMEBUF_NBYTES);
-} // end of staDisplayDevFill
+}
 
-
-gMonStatus staDisplayRefreshScreen(void)
-{
+gMonStatus staDisplayRefreshScreen(void) {
     gMonStatus status = GMON_RESP_SKIP;
     uint8_t idx = 0;
     stationSysEnterCritical();
@@ -89,11 +77,8 @@ gMonStatus staDisplayRefreshScreen(void)
 } // end of staDisplayRefreshScreen
 
 
-
-
-static gMonStatus staOLEDcmdInit(void)
-{
-    uint8_t idx = 0; gMonStatus status = GMON_RESP_OK;
+static gMonStatus staOLEDcmdInit(void) {
+    gMonStatus status = GMON_RESP_OK;
     status  = staDisplaySetGPIOpin(ssd1315_display_pin_rst, GMON_PLATFORM_PIN_RESET);
     if(status < 0) { goto done; }
     stationSysDelayUs(6);  // wait for at least 3 us after reset assertion
@@ -176,7 +161,7 @@ gMonStatus  staDisplayDevInit(void)
     ssd1315_display_pin_spi = NULL;
     ssd1315_display_pin_rst = NULL;
     ssd1315_display_pin_dc  = NULL;
-    status = staOutDevPlatformInitDisplay(GMON_PLATFORM_DISPLAY_SPI, &ssd1315_display_pin_spi);
+    status = staDisplayPlatformInit(GMON_PLATFORM_DISPLAY_SPI, &ssd1315_display_pin_spi);
     XASSERT(ssd1315_display_pin_spi != NULL);
     // Note: some OLED devices may not have RST pin / DC pin
     ssd1315_display_pin_rst = staPlatformiGetDisplayRstPin();
@@ -200,30 +185,22 @@ done:
 } // end of staDisplayDevInit
 
 
-gMonStatus  staDisplayDevDeInit(void)
-{
+gMonStatus  staDisplayDevDeInit(void) {
     gMonStatus status = GMON_RESP_OK;
-    status = staOutDevPlatformDeinitDisplay(ssd1315_display_pin_spi);
+    status = staDisplayPlatformDeinit(ssd1315_display_pin_spi);
     ssd1315_display_pin_spi = NULL;
     return status;
-} // end of staDisplayDevDeInit
+}
 
-
-unsigned short  staDisplayDevGetScreenWidth(void)
-{
+unsigned short  staDisplayDevGetScreenWidth(void) {
     return oled_dev.screen_width;
-} // end of staDisplayDevGetScreenWidth
+}
 
-
-unsigned short  staDisplayDevGetScreenHeight(void)
-{
+unsigned short  staDisplayDevGetScreenHeight(void) {
     return oled_dev.screen_height;
-} // end of staDisplayDevGetScreenHeight
+}
 
-
-
-static gMonStatus  staDiplayDrawPixel(uint16_t x, uint16_t y, uint8_t color)
-{
+static gMonStatus  staDiplayDrawPixel(uint16_t x, uint16_t y, uint8_t color) {
     gMonStatus status = GMON_RESP_OK;
     if((GMON_CFG_OLED_SSD1315_SCREEN_WIDTH <= x) || (GMON_CFG_OLED_SSD1315_SCREEN_HEIGHT <= y)) {
         status = GMON_RESP_ERRMEM;
@@ -235,8 +212,7 @@ static gMonStatus  staDiplayDrawPixel(uint16_t x, uint16_t y, uint8_t color)
         }
     }
     return status;
-} // end of staDiplayDrawPixel
-
+}
 
 static  gMonStatus   staDiplayDevPrintChar(char chr, uint16_t start_x, uint16_t start_y, gmonPrintFont_t *font)
 {

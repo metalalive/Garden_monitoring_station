@@ -1,39 +1,28 @@
 #include "station_include.h"
 
-static unsigned int  gmon_daylight_tracker_ticks_per_day = 0;
-static unsigned int  gmon_daylight_tracker_days = 0;
-static unsigned int  gmon_last_tick_read = 0;
-
-static void staRefreshTimeTicks(void)
-{
-    unsigned int curr_tick = 0;
-    unsigned int diff = 0;
-    curr_tick = stationSysGetTickCount();
-    diff = curr_tick - gmon_last_tick_read;
-    gmon_daylight_tracker_ticks_per_day += diff;
-    if(gmon_daylight_tracker_ticks_per_day >= GMON_NUM_TICKS_PER_DAY) {
-        gmon_daylight_tracker_ticks_per_day = gmon_daylight_tracker_ticks_per_day % GMON_NUM_TICKS_PER_DAY;
-        gmon_daylight_tracker_days++;
+static void staRefreshTimeTicks(gmonTick_t *tick_info) {
+    unsigned int curr_tick = stationSysGetTickCount();
+    // automatically handle number wrapping around from UINT_MAX to 0
+    unsigned int diff = curr_tick - tick_info->last_read;
+    tick_info->ticks_per_day += diff;
+    if(tick_info->ticks_per_day >= GMON_NUM_TICKS_PER_DAY) {
+        tick_info->ticks_per_day = tick_info->ticks_per_day % GMON_NUM_TICKS_PER_DAY;
+        tick_info->days++;
     }
-    gmon_last_tick_read = curr_tick;
-} // end of staRefreshTimeTicks
+    tick_info->last_read = curr_tick;
+}
 
+unsigned int stationGetTicksPerDay(gmonTick_t *tick_info) {
+    staRefreshTimeTicks(tick_info);
+    return tick_info->ticks_per_day;
+}
 
-unsigned int stationGetTicksPerDay(void)
-{
-    staRefreshTimeTicks();
-    return gmon_daylight_tracker_ticks_per_day;
-} // end of stationGetTicksPerDay
+unsigned int stationGetDays(gmonTick_t *tick_info) {
+    staRefreshTimeTicks(tick_info);
+    return tick_info->days;
+}
 
-unsigned int stationGetDays(void)
-{
-    staRefreshTimeTicks();
-    return gmon_daylight_tracker_days;
-} // end of stationGetDays
-
-
-void  staReverseString(unsigned char *str, unsigned int sz)
-{
+void  staReverseString(unsigned char *str, unsigned int sz) {
     unsigned int idx = 0, jdx = 0;
     if(str != NULL && sz > 0) {
         for(idx = 0, jdx = sz - 1; idx < jdx; idx++, jdx--) {
@@ -42,14 +31,11 @@ void  staReverseString(unsigned char *str, unsigned int sz)
             str[idx] = str[idx] ^ str[jdx];
         }
     }
-} // end of staReverseString
+}
 
-
-unsigned int staCvtFloatToStr(unsigned char *outstr, float num, unsigned short precision)
-{
+unsigned int staCvtFloatToStr(unsigned char *outstr, float num, unsigned short precision) {
     unsigned char *curr_out_p;
-    unsigned int   tmp = 0;
-    unsigned int   num_chr = 0;
+    unsigned int   tmp = 0, num_chr = 0;
     if(num < 0.f) {
         *outstr++ = '-';
         num_chr = 1;
@@ -88,8 +74,7 @@ unsigned int staCvtFloatToStr(unsigned char *outstr, float num, unsigned short p
 } // end of staCvtFloatToStr
 
 
-gMonStatus   staChkIntFromStr(unsigned char *str, size_t sz)
-{
+gMonStatus   staChkIntFromStr(unsigned char *str, size_t sz) {
     const uint8_t  base = 10;
     uint8_t  diff = 0;
     size_t   idx = 0;
@@ -106,18 +91,16 @@ gMonStatus   staChkIntFromStr(unsigned char *str, size_t sz)
             status = GMON_RESP_MALFORMED_DATA;
             break;
         }
-    } // end of for loop
+    }
     return status;
-} // end of staChkIntFromStr
+}
 
-
-int   staCvtIntFromStr(unsigned char *str, size_t sz)
-{
+// TODO, consider to reuse `iESPparseFirstNumFromStr` from ESP-AT-parser
+int   staCvtIntFromStr(unsigned char *str, size_t sz) {
     const uint8_t  base = 10;
-    int      out = 0;
+    int      out = 0, negate = 1;
     size_t   idx = 0;
     uint8_t  diff = 0;
-    uint8_t  negate = 1;
     if(str == NULL || sz == 0) {
         return out;
     }
@@ -134,7 +117,9 @@ int   staCvtIntFromStr(unsigned char *str, size_t sz)
             out = out * base + diff;
         }
     } // end of for loop
-    out = out * negate;
+    // Only apply negation if conversion was successful (out is not -1 indicating an error)
+    if (out != -1) {
+        out = out * negate;
+    }
     return out;
-} // end of staCvtIntFromStr
-
+}

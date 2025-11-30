@@ -1,54 +1,30 @@
 #include "station_include.h"
 
-static unsigned int  gmon_aircond_last_recording_tick = 0;
-static unsigned int  gmon_aircond_ticks_since_last_recording;
-static unsigned int  gmon_aircond_chk_interval_tick;
-
-gMonStatus  staAirCondTrackInit(void)
-{
+gMonStatus  staAirCondTrackInit(void) {
     return GMON_RESP_OK;
-} // end of staAirCondTrackInit
-
-
-gMonStatus  staAirCondTrackRefreshSensorData(float *air_temp, float *air_humid)
-{
-    if(air_temp == NULL || air_humid == NULL) {
-        return GMON_RESP_ERRARGS;
-    }
-    unsigned int allowable_diff_ticks = 0;
-    unsigned int curr_tick = 0;
-    gMonStatus status = GMON_RESP_SKIP;
-    
-    allowable_diff_ticks  = staGetAirCondChkInterval();
-    allowable_diff_ticks -= allowable_diff_ticks >> 3;
-    curr_tick = stationGetTicksPerDay();
-    gmon_aircond_ticks_since_last_recording = curr_tick - gmon_aircond_last_recording_tick;
-    if(gmon_aircond_ticks_since_last_recording > allowable_diff_ticks) {
-        status = GMON_SENSOR_READ_FN_AIR_TEMP(air_temp, air_humid);
-        if(status == GMON_RESP_OK) {
-            gmon_aircond_last_recording_tick = curr_tick;
-        }
-    }
-    return status;
-} // end of staAirCondTrackRefreshSensorData
-
-
-void staUpdateAirCondChkInterval(unsigned int netconn_interval, unsigned short num_records_kept)
-{
-    if(num_records_kept == 0) { num_records_kept = 1; }
-    stationSysEnterCritical();
-    gmon_aircond_chk_interval_tick = netconn_interval / (2 * num_records_kept * GMON_NUM_MILLISECONDS_PER_TICK);
-    stationSysExitCritical();
-} // end of staUpdateAirCondChkInterval
-
-
-unsigned int staGetAirCondChkInterval(void)
-{
-    return gmon_aircond_chk_interval_tick;
-} // end of staGetAirCondChkInterval
-
-unsigned int  staGetTicksSinceLastAirCondRecording(void)
-{
-    return gmon_aircond_ticks_since_last_recording;
 }
 
+void airQualityMonitorTaskFn(void* params) {
+    float air_temp = 0.f, air_humid = 0.f;
+
+    const uint32_t block_time = 0;
+    gardenMonitor_t *gmon = (gardenMonitor_t *)params;
+    while(1) {
+        gMonStatus status = GMON_SENSOR_READ_FN_AIR_TEMP(&air_temp, &air_humid);
+        if(status == GMON_RESP_OK) {
+            gmonEvent_t *event = staAllocSensorEvent(gmon);
+            if (event != NULL) {
+                // TODO, calibration, reference point from remote user request
+                event->event_type = GMON_EVENT_AIR_TEMP_UPDATED;
+                event->data.air_cond.temporature = air_temp;
+                event->data.air_cond.humidity = air_humid;
+                event->curr_ticks = stationGetTicksPerDay(&gmon->tick);
+                event->curr_days = stationGetDays(&gmon->tick);
+                staNotifyOthersWithEvent(gmon, event, block_time);
+            }
+            // The interval for fan will be updated by network handling task during runtime
+            status = GMON_ACTUATOR_TRIG_FN_FAN(&gmon->actuator.fan , air_temp, &gmon->sensors.air_temp);
+        }
+        stationSysDelayMs(gmon->sensors.air_temp.read_interval_ms);
+    }
+}

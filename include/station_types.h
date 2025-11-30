@@ -8,7 +8,6 @@ extern "C" {
 // return code that represents status after executing TLS function
 typedef enum {
     GMON_RESP_OK              =  0,
-    GMON_RESP_REQ_MOREDATA    =  1,
     GMON_RESP_SKIP            =  2,
     GMON_RESP_ERR             = -1,
     GMON_RESP_ERRARGS         = -2,
@@ -33,100 +32,82 @@ typedef enum {
     GMON_OUT_DEV_STATUS_ON,
     GMON_OUT_DEV_STATUS_PAUSE,
     GMON_OUT_DEV_STATUS_BROKEN,
-} gMonOutDevStatus;
-
+} gMonActuatorStatus;
 
 typedef struct {
     unsigned short  len;
     unsigned char  *data;
 } gmonStr_t;
 
+typedef struct {
+    float  temporature;
+    float  humidity;
+} gmonAirCond_t;
+
+typedef enum {
+    GMON_EVENT_SOIL_MOISTURE_UPDATED,
+    GMON_EVENT_AIR_TEMP_UPDATED,
+    GMON_EVENT_LIGHTNESS_UPDATED,
+} gmonEventType_t;
+
+#define GMON_SENSORDATA_COMMON_FIELDS \
+    gmonAirCond_t air_cond; \
+    unsigned int  soil_moist; \
+    unsigned int  lightness;
 
 typedef struct {
-    float         air_temp;
-    float         air_humid;
-    unsigned int  soil_moist;
-    unsigned int  lightness;
+    gmonEventType_t event_type;
+    union {
+        GMON_SENSORDATA_COMMON_FIELDS;
+    } data;
     unsigned int  curr_ticks;
     unsigned int  curr_days ;
     struct {
         unsigned char alloc:1;
-        unsigned char avail_air_temp:1;
-        unsigned char avail_air_humid:1;
-        unsigned char avail_soil_moist:1;
-        unsigned char avail_lightness:1;
+    } flgs;
+} gmonEvent_t;
+
+typedef struct {
+    GMON_SENSORDATA_COMMON_FIELDS;
+    unsigned int  curr_ticks;
+    unsigned int  curr_days ;
+    struct {
+        unsigned char air_val_written:1;
+        unsigned char soil_val_written:1;
+        unsigned char light_val_written:1;
     } flgs;
 } gmonSensorRecord_t;
 
+typedef struct {
+    unsigned int  read_interval_ms;
+} gMonSensor_t;
 
 typedef struct {
     int             threshold;
-    unsigned int    max_worktime; // maximum time in milliseconds for a device that has been
-                                  // continuously working in one day, maximum value MUST NOT
-                                  // be greater than 1000 * 60 * 60 * 24 = 0x5265c00
-    unsigned int    curr_worktime; // current working time since this device is turned on last time
-    unsigned int    min_resttime; // minimum time in milliseconds to pause a device after it continuously
-                                  // worked overtime but still needs to work longer to change
-                                  // environment condition e.g. temperature drop, provide more growing
-                                  // light...etc.
-                                  // Again the maximum value MUST NOT be greater than 1000 * 60 * 60 * 24 = 0x5265c00
+    // maximum time in milliseconds for a device that has been
+    // continuously working in one day, maximum value MUST NOT
+    // be greater than 1000 * 60 * 60 * 24 = 0x5265c00
+    unsigned int    max_worktime;
+    // current working time since this device is turned on last time
+    unsigned int    curr_worktime;
+    // minimum time in milliseconds to pause a device after it continuously
+    // worked overtime but still needs to work longer to change
+    // environment condition e.g. temperature drop, provide more growing
+    // light...etc.
+    // Again the maximum value MUST NOT be greater than 1000 * 60 * 60 * 24 = 0x5265c00
+    unsigned int    min_resttime;
     unsigned int    curr_resttime;
-    unsigned int    sensor_read_interval;
-    gMonOutDevStatus status;
-} gMonOutDev_t;
-
+    gMonActuatorStatus status;
+} gMonActuator_t;
 
 typedef struct {
-    gmonStr_t     print_str[GMON_DISPLAY_NUM_PRINT_STRINGS];
-    unsigned int  interval_ms;
-} gMonDisplay_t;
+    unsigned int  ticks_per_day;
+    unsigned int  days;
+    unsigned int  last_read;
+} gmonTick_t;
 
-
-// collecting all information, network handling objects in this application
-typedef struct {
-    struct {
-        gMonOutDev_t bulb;
-        gMonOutDev_t pump;
-        gMonOutDev_t fan;
-    } outdev;
-    struct {
-        void *sensor_reader;
-        void *dev_controller;
-        void *netconn_handler;
-        void *display_handler;
-    } tasks;
-    struct {
-        unsigned int  default_ms;
-        unsigned int  curr_ms;
-    } sensor_read_interval;
-    struct {
-        void         *handle_obj;
-        unsigned int  interval_ms;
-        struct {
-            gMonStatus  sent;
-            gMonStatus  recv;
-        } status;
-    } netconn;
-    struct {
-        struct {
-            struct {
-                gMonStatus  sensorread;
-                gMonStatus  netconn;
-            } interval;
-            struct {
-                gMonStatus  air_temp;
-                gMonStatus  soil_moist;
-                gMonStatus  lightness;
-                gMonStatus  daylength;
-            } threshold;
-        } status ;
-        struct {
-            unsigned int  ticks;
-            unsigned int  days ;
-        } last_update;
-    } user_ctrl;
-    gMonDisplay_t  display;
-} gardenMonitor_t;
+// forware declaration
+struct gardenMonitor_s;
 
 #ifdef __cplusplus
 }

@@ -5,17 +5,9 @@
 extern "C" {
 #endif
 
-
 gMonStatus  staAirCondTrackInit(void);
 
-gMonStatus  staAirCondTrackRefreshSensorData(float *air_temp, float *air_humid);
-
-void staUpdateAirCondChkInterval(unsigned int netconn_interval, unsigned short num_records_kept);
-
-unsigned int staGetAirCondChkInterval(void);
-
-unsigned int  staGetTicksSinceLastAirCondRecording(void);
-
+void airQualityMonitorTaskFn(void* params);
 
 #ifdef __cplusplus
 }

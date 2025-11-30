@@ -48,3 +48,6 @@ dbg_server:
 dbg_client:
 	@make dbg_client -C $(MQC_PROJ_HOME)  GDB_SCRIPT_PATH=${PWD}/$(DBG_CLIENT_SCRIPT_PATH)
 
+# build and run unit tests
+include tests/unittest.mk
+

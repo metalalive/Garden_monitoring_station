@@ -5,19 +5,29 @@
 extern "C" {
 #endif
 
-gMonStatus  stationNetConnInit(gardenMonitor_t *gmon);
+typedef struct {
+    // abstract low-level connection handle object
+    void         *lowlvl;
+    // interval in milliseconds for network handling task
+    unsigned int  interval_ms;
+    // timeout in milliseconds for reading control commands from remote user
+    unsigned int  read_timeout_ms;
+    struct {
+        gMonStatus  sent;
+        gMonStatus  recv;
+    } status;
+} gMonNet_t;
 
-gMonStatus  stationNetConnDeinit(void *connobj);
+gMonStatus  stationNetConnInit(gMonNet_t *);
+gMonStatus  stationNetConnDeinit(gMonNet_t *);
 
-gMonStatus  stationNetConnEstablish(void *connobj);
+gMonStatus  stationNetConnEstablish(gMonNet_t *);
+gMonStatus  stationNetConnClose(gMonNet_t *);
 
-gMonStatus  stationNetConnClose(void *connobj);
+gMonStatus  stationNetConnSend(gMonNet_t *, gmonStr_t *app_msg);
+gMonStatus  stationNetConnRecv(gMonNet_t *, gmonStr_t *app_msg);
 
-gMonStatus  stationNetConnSend(void *connobj, gmonStr_t *app_msg);
-
-gMonStatus  stationNetConnRecv(void *connobj, gmonStr_t *app_msg, int timeout_ms);
-
-gMonStatus  staSetNetConnTaskInterval(gardenMonitor_t  *gmon, unsigned int new_interval);
+gMonStatus  staSetNetConnTaskInterval(gMonNet_t *, unsigned int new_interval);
 
 void  stationNetConnHandlerTaskFn(void* params);
 

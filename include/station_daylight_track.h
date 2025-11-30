@@ -5,19 +5,11 @@
 extern "C" {
 #endif
 
-gMonStatus  staDaylightTrackInit(void);
+gMonStatus  staDaylightTrackInit(gardenMonitor_t *gmon);
 
-gMonStatus  staDaylightTrackRefreshSensorData(unsigned int *out);
+gMonStatus  staSetRequiredDaylenTicks(gardenMonitor_t *gmon, unsigned int light_length);
 
-gMonStatus  staSetRequiredDaylenTicks(unsigned int light_length);
-
-unsigned int  staRefreshRequiredLightLength(gMonOutDevStatus bulb_status, unsigned int actual_light_ticks);
-
-unsigned int  staGetTicksSinceLastLightRecording(void);
-
-void staUpdateLightChkInterval(unsigned int netconn_interval, unsigned short num_records_kept);
-
-unsigned int staGetLightChkInterval(void);
+void lightControllerTaskFn(void* params);
 
 #ifdef __cplusplus
 }

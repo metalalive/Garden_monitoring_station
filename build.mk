@@ -19,11 +19,12 @@ _C_SOURCES_FUNC = \
     src/util.c \
     src/daylight_track.c \
     src/aircond_track.c \
+    src/soilcond_track.c \
     src/netconn.c \
     src/app_msg.c \
     src/network/mqtt_client.c \
-    src/IO/sensor_reader.c \
-    src/IO/outdev.c  \
+    src/IO/sensor_event.c \
+    src/IO/actuator.c  \
     src/IO/display.c \
     src/IO/display/textfonts.c \
     src/IO/relay/SRD-0xVDC-SL-C.c \
@@ -34,8 +35,8 @@ _C_SOURCES_FUNC = \
 
 _C_SOURCES_3PTY = \
     src/system/middleware/ESP_AT_parser/middleware.c \
-    src/system/platform/stm32/stm32f446/platform.c \
-    src/system/platform/stm32/stm32f446/stm32f446_config.c
+    src/system/platform/stm32/stm32f446/iodev.c \
+    src/system/platform/stm32/stm32f446/net_mqtt.c
 
 _APP_C_SRCS = $(_C_ENTRY_FILE) $(_C_SOURCES_FUNC) $(_C_SOURCES_3PTY)
 
