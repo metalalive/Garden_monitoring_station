@@ -13,30 +13,9 @@ APPCFG_C_INCLUDES = \
     $(APPCFG_HW_C_INCLUDES)
 
 
-_C_ENTRY_FILE = src/station.c
-
-_C_SOURCES_FUNC = \
-    src/util.c \
-    src/daylight_track.c \
-    src/aircond_track.c \
-    src/soilcond_track.c \
-    src/netconn.c \
-    src/app_msg.c \
-    src/network/mqtt_client.c \
-    src/IO/sensor_event.c \
-    src/IO/actuator.c  \
-    src/IO/display.c \
-    src/IO/display/textfonts.c \
-    src/IO/relay/SRD-0xVDC-SL-C.c \
-    src/IO/display/SSD1315_OLED.c \
-    src/IO/soilsensor.c \
-    src/IO/LDR.c  \
-    src/IO/DHT11.c
-
-_C_SOURCES_3PTY = \
-    src/system/middleware/ESP_AT_parser/middleware.c \
-    src/system/platform/stm32/stm32f446/iodev.c \
-    src/system/platform/stm32/stm32f446/net_mqtt.c
+_C_ENTRY_FILE = $(_COMMON_C_ENTRY_FILE)
+_C_SOURCES_FUNC = $(_COMMON_C_SOURCES_FUNC)
+_C_SOURCES_3PTY = $(_COMMON_C_SOURCES_3PTY)
 
 _APP_C_SRCS = $(_C_ENTRY_FILE) $(_C_SOURCES_FUNC) $(_C_SOURCES_3PTY)
 

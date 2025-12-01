@@ -48,6 +48,11 @@ dbg_server:
 dbg_client:
 	@make dbg_client -C $(MQC_PROJ_HOME)  GDB_SCRIPT_PATH=${PWD}/$(DBG_CLIENT_SCRIPT_PATH)
 
-# build and run unit tests
 include tests/unittest.mk
+
+REFMT_SRC_FILES = $(_COMMON_C_HEADERS) $(_COMMON_C_ENTRY_FILE) $(_COMMON_C_SOURCES_FUNC) \
+				  $(_COMMON_C_SOURCES_3PTY) $(TEST_SRC)
+
+reformat:
+	@clang-format-18 -i --style=file  $(REFMT_SRC_FILES)
 
