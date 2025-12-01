@@ -7,25 +7,25 @@ extern "C" {
 
 // return code that represents status after executing TLS function
 typedef enum {
-    GMON_RESP_OK              =  0,
-    GMON_RESP_SKIP            =  2,
-    GMON_RESP_ERR             = -1,
-    GMON_RESP_ERRARGS         = -2,
-    GMON_RESP_ERRMEM          = -3,
-    GMON_RESP_ERR_MSG_ENCODE  = -5,
-    GMON_RESP_ERR_MSG_DECODE  = -6,
-    GMON_RESP_TIMEOUT         = -7,  // network connection timeout, or read sensor timeout
+    GMON_RESP_OK = 0,
+    GMON_RESP_SKIP = 2,
+    GMON_RESP_ERR = -1,
+    GMON_RESP_ERRARGS = -2,
+    GMON_RESP_ERRMEM = -3,
+    GMON_RESP_ERR_MSG_ENCODE = -5,
+    GMON_RESP_ERR_MSG_DECODE = -6,
+    GMON_RESP_TIMEOUT = -7, // network connection timeout, or read sensor timeout
     GMON_RESP_ERR_NOT_SUPPORT = -8,
-    GMON_RESP_MALFORMED_DATA  = -9,
-    GMON_RESP_INVALID_REQ     = -10, // invalid request from the remote user to configure system
-    GMON_RESP_SENSOR_FAIL     = -11, // operation related to sensor (e.g. read) failed
-    GMON_RESP_CTRL_FAIL       = -12, // control failure e.g. pump, fan, lamp doesn't work when
-                                     // user need to change their state
-    GMON_RESP_ERR_CONN        = -15, // Connection error (failed) to MQTT broker 
-    GMON_RESP_ERR_SECURE_CONN = -16, // secure connection error, failed to start a session of secure connection
+    GMON_RESP_MALFORMED_DATA = -9,
+    GMON_RESP_INVALID_REQ = -10, // invalid request from the remote user to configure system
+    GMON_RESP_SENSOR_FAIL = -11, // operation related to sensor (e.g. read) failed
+    GMON_RESP_CTRL_FAIL = -12,   // control failure e.g. pump, fan, lamp doesn't work when
+                                 // user need to change their state
+    GMON_RESP_ERR_CONN = -15,    // Connection error (failed) to MQTT broker
+    GMON_RESP_ERR_SECURE_CONN =
+        -16, // secure connection error, failed to start a session of secure connection
 
 } gMonStatus;
-
 
 typedef enum {
     GMON_OUT_DEV_STATUS_OFF = 0,
@@ -35,13 +35,13 @@ typedef enum {
 } gMonActuatorStatus;
 
 typedef struct {
-    unsigned short  len;
-    unsigned char  *data;
+    unsigned short len;
+    unsigned char *data;
 } gmonStr_t;
 
 typedef struct {
-    float  temporature;
-    float  humidity;
+    float temporature;
+    float humidity;
 } gmonAirCond_t;
 
 typedef enum {
@@ -60,50 +60,50 @@ typedef struct {
     union {
         GMON_SENSORDATA_COMMON_FIELDS;
     } data;
-    unsigned int  curr_ticks;
-    unsigned int  curr_days ;
+    unsigned int curr_ticks;
+    unsigned int curr_days;
     struct {
-        unsigned char alloc:1;
+        unsigned char alloc : 1;
     } flgs;
 } gmonEvent_t;
 
 typedef struct {
     GMON_SENSORDATA_COMMON_FIELDS;
-    unsigned int  curr_ticks;
-    unsigned int  curr_days ;
+    unsigned int curr_ticks;
+    unsigned int curr_days;
     struct {
-        unsigned char air_val_written:1;
-        unsigned char soil_val_written:1;
-        unsigned char light_val_written:1;
+        unsigned char air_val_written   : 1;
+        unsigned char soil_val_written  : 1;
+        unsigned char light_val_written : 1;
     } flgs;
 } gmonSensorRecord_t;
 
 typedef struct {
-    unsigned int  read_interval_ms;
+    unsigned int read_interval_ms;
 } gMonSensor_t;
 
 typedef struct {
-    int             threshold;
+    int threshold;
     // maximum time in milliseconds for a device that has been
     // continuously working in one day, maximum value MUST NOT
     // be greater than 1000 * 60 * 60 * 24 = 0x5265c00
-    unsigned int    max_worktime;
+    unsigned int max_worktime;
     // current working time since this device is turned on last time
-    unsigned int    curr_worktime;
+    unsigned int curr_worktime;
     // minimum time in milliseconds to pause a device after it continuously
     // worked overtime but still needs to work longer to change
     // environment condition e.g. temperature drop, provide more growing
     // light...etc.
     // Again the maximum value MUST NOT be greater than 1000 * 60 * 60 * 24 = 0x5265c00
-    unsigned int    min_resttime;
-    unsigned int    curr_resttime;
+    unsigned int       min_resttime;
+    unsigned int       curr_resttime;
     gMonActuatorStatus status;
 } gMonActuator_t;
 
 typedef struct {
-    unsigned int  ticks_per_day;
-    unsigned int  days;
-    unsigned int  last_read;
+    unsigned int ticks_per_day;
+    unsigned int days;
+    unsigned int last_read;
 } gmonTick_t;
 
 // forware declaration

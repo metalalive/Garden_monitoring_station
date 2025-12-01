@@ -36,13 +36,34 @@ Click one of followings to check hardware-wiring diagram :
 - **Platform Abstraction Layer:** Offers a hardware-agnostic interface for interacting with the specific embedded system boards and connected sensors/actuators. This includes drivers for GPIO, SPI, and sensor-specific initialization/readout functions.
 - **Utilities Layer:** Includes common utility functions like time tracking, string conversions, and general data manipulation.
 
+
 ## Quick Start
 To get started with building and running the Garden Monitoring Station application, follow these steps:
+### Prerequisites
 
-#### Clone the MQTT Client Library
-This project relies on [external MQTT client C library](https://github.com/metalalive/MQTT_Client/). Clone it to your local file system (if not done yet) and note its path.
+To build and run the Garden Monitoring Station application, the following tools and third-party code repositories are required:
 
-#### Build Parameters
+#### Tools
+
+| Tool           | Version Required | Extra Description               |
+| :------------- | :--------------- | :------------------------------ |
+| GNU Make       | 4.3              | Build system                    |
+| GNU C Compiler | 14.2.0           | C/C++ compiler                  |
+| clang-format   | 18.1.3           | Optional, for code reformatting |
+
+#### Third-Party Code Repositories
+This project relies on the code repositories below. Clone them to your local file system (if not done yet) and note its path.
+
+| Codebase Name      | Version Required | Extra Description    |
+| :----------------- | :--------------- | :------------------- |
+| [`RealTimeOS-Playground`](https://github.com/metalalive/RealTimeOS-Playground) | Latest | Real-time OS for multi-tasking |
+| [`ESP8266_AT_parser`](https://github.com/metalalive/ESP8266_AT_parser) | Latest |ESP8266 Wi-Fi firmware abstraction|
+| [`MQTT_Client`](https://github.com/metalalive/MQTT_Client) | Latest | MQTT client C library for network data exchange |
+| [`jsmn`](https://github.com/zserge/jsmn) | Latest | For parsing serial string to JSON object |
+| [`Unity`](https://github.com/ThrowTheSwitch/Unity)   | Latest | Optional, for running unit tests |
+
+
+### Build Parameters
 **MQC_PROJ_HOME**
 The build system needs to know the location of the MQTT client library. Set parameter `MQC_PROJ_HOME` along with make commands that indicates root directory of your cloned `mqtt-client` repository.
 
@@ -50,20 +71,20 @@ The build system needs to know the location of the MQTT client library. Set para
 make <target-command> MQC_PROJ_HOME=/path/to/your/mqtt-client/
 ```
 
-#### Build the Application
+### Build the Application
 Navigate to the root directory of this project and run the build command:
 ```bash
 make build_exe
 ```
 This will compile all necessary components and create application image at `build/garden_monitor_edge.elf`.
 
-#### Run / Debug (Optional)
+### Run / Debug
 To run or debug the application on your target hardware, you can use the following commands:
 - Start a debugging server connecting to target embedded board: `make dbg_server`
 - load built image to target embedded board, control execution state on it through debugging client : `make dbg_client`
 - once new image is flashed to your target board, you can restart the execution next time by shutdown then powering up again (without debugging client intervention)
 
-#### Build Helper Documentation
+## Build Helper Documentation
 run `make help` for detail
 
 ## LICENSE

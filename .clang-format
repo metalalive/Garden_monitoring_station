@@ -1,0 +1,16 @@
+BasedOnStyle: LLVM
+IndentWidth: 4
+UseTab: Never
+IndentPPDirectives: BeforeHash
+
+ColumnLimit: 110
+SkipMacroDefinitionBody: false
+AlignConsecutiveMacros: Consecutive
+AlignConsecutiveBitFields: Consecutive
+AlignConsecutiveDeclarations: Consecutive
+BinPackArguments: true
+AllowAllArgumentsOnNextLine: true
+AlignAfterOpenBracket: BlockIndent
+AlignEscapedNewlines: DontAlign
+SortIncludes: false
+

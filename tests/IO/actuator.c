@@ -4,11 +4,9 @@
 
 TEST_GROUP(UpdateThresholdPump);
 
-TEST_SETUP(UpdateThresholdPump) {
-}
+TEST_SETUP(UpdateThresholdPump) {}
 
-TEST_TEAR_DOWN(UpdateThresholdPump) {
-}
+TEST_TEAR_DOWN(UpdateThresholdPump) {}
 
 TEST(UpdateThresholdPump, NullPointer) {
     gMonStatus status = staSetTrigThresholdPump(NULL, 50);
@@ -18,7 +16,8 @@ TEST(UpdateThresholdPump, NullPointer) {
 TEST(UpdateThresholdPump, ValidThresholdWithinRange) {
     gMonActuator_t pump = {0}; // Initialize all members to 0
     // Calculate a mid-range value for testing a valid threshold within bounds
-    unsigned int new_val = (GMON_MIN_ACTUATOR_TRIG_THRESHOLD_PUMP + GMON_MAX_ACTUATOR_TRIG_THRESHOLD_PUMP) / 2;
+    unsigned int new_val =
+        (GMON_MIN_ACTUATOR_TRIG_THRESHOLD_PUMP + GMON_MAX_ACTUATOR_TRIG_THRESHOLD_PUMP) / 2;
     gMonStatus status = staSetTrigThresholdPump(&pump, new_val);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     TEST_ASSERT_EQUAL(new_val, pump.threshold);
@@ -26,44 +25,39 @@ TEST(UpdateThresholdPump, ValidThresholdWithinRange) {
 
 TEST(UpdateThresholdPump, ThresholdAtMinBoundary) {
     gMonActuator_t pump = {0};
-    unsigned int new_val = GMON_MIN_ACTUATOR_TRIG_THRESHOLD_PUMP;
-    gMonStatus status = staSetTrigThresholdPump(&pump, new_val);
+    unsigned int   new_val = GMON_MIN_ACTUATOR_TRIG_THRESHOLD_PUMP;
+    gMonStatus     status = staSetTrigThresholdPump(&pump, new_val);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     TEST_ASSERT_EQUAL(new_val, pump.threshold);
 }
 
 TEST(UpdateThresholdPump, ThresholdAtMaxBoundary) {
     gMonActuator_t pump = {0};
-    unsigned int new_val = GMON_MAX_ACTUATOR_TRIG_THRESHOLD_PUMP;
-    gMonStatus status = staSetTrigThresholdPump(&pump, new_val);
+    unsigned int   new_val = GMON_MAX_ACTUATOR_TRIG_THRESHOLD_PUMP;
+    gMonStatus     status = staSetTrigThresholdPump(&pump, new_val);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     TEST_ASSERT_EQUAL(new_val, pump.threshold);
 }
 
 TEST(UpdateThresholdPump, ThresholdBelowMin) {
-    gMonActuator_t pump = { .threshold = 50 }; // Set an initial threshold to check it doesn't change
-    unsigned int new_val = GMON_MIN_ACTUATOR_TRIG_THRESHOLD_PUMP - 1;
-    gMonStatus status = staSetTrigThresholdPump(&pump, new_val);
+    gMonActuator_t pump = {.threshold = 50}; // Set an initial threshold to check it doesn't change
+    unsigned int   new_val = GMON_MIN_ACTUATOR_TRIG_THRESHOLD_PUMP - 1;
+    gMonStatus     status = staSetTrigThresholdPump(&pump, new_val);
     TEST_ASSERT_EQUAL(GMON_RESP_INVALID_REQ, status);
     TEST_ASSERT_EQUAL(50, pump.threshold); // Should remain unchanged
 }
 
 TEST_GROUP(MeasureWorkingTime);
 
-TEST_SETUP(MeasureWorkingTime) {
-}
+TEST_SETUP(MeasureWorkingTime) {}
 
-TEST_TEAR_DOWN(MeasureWorkingTime) {
-}
+TEST_TEAR_DOWN(MeasureWorkingTime) {}
 
 TEST(MeasureWorkingTime, OffToOn) {
     gMonActuator_t dev = {
-        .status = GMON_OUT_DEV_STATUS_OFF,
-        .max_worktime = 100,
-        .curr_worktime = 0,
-        .curr_resttime = 0
+        .status = GMON_OUT_DEV_STATUS_OFF, .max_worktime = 100, .curr_worktime = 0, .curr_resttime = 0
     };
-    unsigned int time_elapsed_ms = 10;
+    unsigned int       time_elapsed_ms = 10;
     gMonActuatorStatus new_status = staActuatorMeasureWorkingTime(&dev, time_elapsed_ms);
     TEST_ASSERT_EQUAL(GMON_OUT_DEV_STATUS_ON, new_status);
     TEST_ASSERT_EQUAL(10, dev.curr_worktime);
@@ -72,12 +66,9 @@ TEST(MeasureWorkingTime, OffToOn) {
 
 TEST(MeasureWorkingTime, OffStaysOffMaxWorktimeZero) {
     gMonActuator_t dev = {
-        .status = GMON_OUT_DEV_STATUS_OFF,
-        .max_worktime = 0,
-        .curr_worktime = 0,
-        .curr_resttime = 0
+        .status = GMON_OUT_DEV_STATUS_OFF, .max_worktime = 0, .curr_worktime = 0, .curr_resttime = 0
     };
-    unsigned int time_elapsed_ms = 10;
+    unsigned int       time_elapsed_ms = 10;
     gMonActuatorStatus new_status = staActuatorMeasureWorkingTime(&dev, time_elapsed_ms);
     TEST_ASSERT_EQUAL(GMON_OUT_DEV_STATUS_OFF, new_status);
     TEST_ASSERT_EQUAL(0, dev.curr_worktime);
@@ -86,12 +77,9 @@ TEST(MeasureWorkingTime, OffStaysOffMaxWorktimeZero) {
 
 TEST(MeasureWorkingTime, OnStaysOn) {
     gMonActuator_t dev = {
-        .status = GMON_OUT_DEV_STATUS_ON,
-        .max_worktime = 100,
-        .curr_worktime = 10,
-        .curr_resttime = 0
+        .status = GMON_OUT_DEV_STATUS_ON, .max_worktime = 100, .curr_worktime = 10, .curr_resttime = 0
     };
-    unsigned int time_elapsed_ms = 20;
+    unsigned int       time_elapsed_ms = 20;
     gMonActuatorStatus new_status = staActuatorMeasureWorkingTime(&dev, time_elapsed_ms);
     TEST_ASSERT_EQUAL(GMON_OUT_DEV_STATUS_ON, new_status);
     TEST_ASSERT_EQUAL(30, dev.curr_worktime);
@@ -100,12 +88,9 @@ TEST(MeasureWorkingTime, OnStaysOn) {
 
 TEST(MeasureWorkingTime, OnToPauseExactTime) {
     gMonActuator_t dev = {
-        .status = GMON_OUT_DEV_STATUS_ON,
-        .max_worktime = 100,
-        .curr_worktime = 90,
-        .curr_resttime = 0
+        .status = GMON_OUT_DEV_STATUS_ON, .max_worktime = 100, .curr_worktime = 90, .curr_resttime = 0
     };
-    unsigned int time_elapsed_ms = 10;
+    unsigned int       time_elapsed_ms = 10;
     gMonActuatorStatus new_status = staActuatorMeasureWorkingTime(&dev, time_elapsed_ms);
     TEST_ASSERT_EQUAL(GMON_OUT_DEV_STATUS_PAUSE, new_status);
     TEST_ASSERT_EQUAL(0, dev.curr_worktime);
@@ -114,12 +99,9 @@ TEST(MeasureWorkingTime, OnToPauseExactTime) {
 
 TEST(MeasureWorkingTime, OnToPauseOverTime) {
     gMonActuator_t dev = {
-        .status = GMON_OUT_DEV_STATUS_ON,
-        .max_worktime = 100,
-        .curr_worktime = 90,
-        .curr_resttime = 0
+        .status = GMON_OUT_DEV_STATUS_ON, .max_worktime = 100, .curr_worktime = 90, .curr_resttime = 0
     };
-    unsigned int time_elapsed_ms = 20;
+    unsigned int       time_elapsed_ms = 20;
     gMonActuatorStatus new_status = staActuatorMeasureWorkingTime(&dev, time_elapsed_ms);
     TEST_ASSERT_EQUAL(GMON_OUT_DEV_STATUS_PAUSE, new_status);
     TEST_ASSERT_EQUAL(0, dev.curr_worktime);
@@ -128,12 +110,9 @@ TEST(MeasureWorkingTime, OnToPauseOverTime) {
 
 TEST(MeasureWorkingTime, PauseStaysPause) {
     gMonActuator_t dev = {
-        .status = GMON_OUT_DEV_STATUS_PAUSE,
-        .min_resttime = 50,
-        .curr_worktime = 0,
-        .curr_resttime = 10
+        .status = GMON_OUT_DEV_STATUS_PAUSE, .min_resttime = 50, .curr_worktime = 0, .curr_resttime = 10
     };
-    unsigned int time_elapsed_ms = 20;
+    unsigned int       time_elapsed_ms = 20;
     gMonActuatorStatus new_status = staActuatorMeasureWorkingTime(&dev, time_elapsed_ms);
     TEST_ASSERT_EQUAL(GMON_OUT_DEV_STATUS_PAUSE, new_status);
     TEST_ASSERT_EQUAL(0, dev.curr_worktime);
@@ -142,12 +121,9 @@ TEST(MeasureWorkingTime, PauseStaysPause) {
 
 TEST(MeasureWorkingTime, PauseToOnExactTime) {
     gMonActuator_t dev = {
-        .status = GMON_OUT_DEV_STATUS_PAUSE,
-        .min_resttime = 50,
-        .curr_worktime = 0,
-        .curr_resttime = 40
+        .status = GMON_OUT_DEV_STATUS_PAUSE, .min_resttime = 50, .curr_worktime = 0, .curr_resttime = 40
     };
-    unsigned int time_elapsed_ms = 10;
+    unsigned int       time_elapsed_ms = 10;
     gMonActuatorStatus new_status = staActuatorMeasureWorkingTime(&dev, time_elapsed_ms);
     TEST_ASSERT_EQUAL(GMON_OUT_DEV_STATUS_ON, new_status);
     TEST_ASSERT_EQUAL(0, dev.curr_worktime);
@@ -156,12 +132,9 @@ TEST(MeasureWorkingTime, PauseToOnExactTime) {
 
 TEST(MeasureWorkingTime, PauseToOnOverTime) {
     gMonActuator_t dev = {
-        .status = GMON_OUT_DEV_STATUS_PAUSE,
-        .min_resttime = 50,
-        .curr_worktime = 0,
-        .curr_resttime = 40
+        .status = GMON_OUT_DEV_STATUS_PAUSE, .min_resttime = 50, .curr_worktime = 0, .curr_resttime = 40
     };
-    unsigned int time_elapsed_ms = 20;
+    unsigned int       time_elapsed_ms = 20;
     gMonActuatorStatus new_status = staActuatorMeasureWorkingTime(&dev, time_elapsed_ms);
     TEST_ASSERT_EQUAL(GMON_OUT_DEV_STATUS_ON, new_status);
     TEST_ASSERT_EQUAL(0, dev.curr_worktime);
@@ -176,7 +149,7 @@ TEST(MeasureWorkingTime, BrokenToOff) {
         .curr_worktime = 70,
         .curr_resttime = 30
     };
-    unsigned int time_elapsed_ms = 10;
+    unsigned int       time_elapsed_ms = 10;
     gMonActuatorStatus new_status = staActuatorMeasureWorkingTime(&dev, time_elapsed_ms);
     TEST_ASSERT_EQUAL(GMON_OUT_DEV_STATUS_OFF, new_status);
     TEST_ASSERT_EQUAL(70, dev.curr_worktime);
@@ -184,9 +157,9 @@ TEST(MeasureWorkingTime, BrokenToOff) {
 }
 
 TEST(UpdateThresholdPump, ThresholdAboveMax) {
-    gMonActuator_t pump = { .threshold = 50 };
-    unsigned int new_val = GMON_MAX_ACTUATOR_TRIG_THRESHOLD_PUMP + 1;
-    gMonStatus status = staSetTrigThresholdPump(&pump, new_val);
+    gMonActuator_t pump = {.threshold = 50};
+    unsigned int   new_val = GMON_MAX_ACTUATOR_TRIG_THRESHOLD_PUMP + 1;
+    gMonStatus     status = staSetTrigThresholdPump(&pump, new_val);
     TEST_ASSERT_EQUAL(GMON_RESP_INVALID_REQ, status);
     TEST_ASSERT_EQUAL(50, pump.threshold); // Should remain unchanged
 }

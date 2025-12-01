@@ -5,8 +5,7 @@
 extern "C" {
 #endif
 
-void pumpControllerTaskFn(void* params);
-
+void pumpControllerTaskFn(void *params);
 
 #ifdef __cplusplus
 }

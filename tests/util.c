@@ -73,8 +73,8 @@ TEST_TEAR_DOWN(CvtFloatToStr) {
 
 TEST(CvtFloatToStr, ZeroPrecision) {
     unsigned char outstr[10];
-    float num = 123.456f;
-    unsigned int len = staCvtFloatToStr(outstr, num, 0);
+    float         num = 123.456f;
+    unsigned int  len = staCvtFloatToStr(outstr, num, 0);
     outstr[len] = '\0'; // Null-terminate for string comparison
     TEST_ASSERT_EQUAL_STRING("123", outstr);
     TEST_ASSERT_EQUAL(3, len);
@@ -82,8 +82,8 @@ TEST(CvtFloatToStr, ZeroPrecision) {
 
 TEST(CvtFloatToStr, PositiveFloatWithPrecision) {
     unsigned char outstr[10];
-    float num = 123.456f;
-    unsigned int len = staCvtFloatToStr(outstr, num, 2);
+    float         num = 123.456f;
+    unsigned int  len = staCvtFloatToStr(outstr, num, 2);
     outstr[len] = '\0';
     TEST_ASSERT_EQUAL_STRING("123.45", outstr);
     TEST_ASSERT_EQUAL(6, len);
@@ -96,8 +96,8 @@ TEST(CvtFloatToStr, PositiveFloatWithPrecision) {
 
 TEST(CvtFloatToStr, NegativeFloatWithPrecision) {
     unsigned char outstr[10];
-    float num = -123.456f;
-    unsigned int len = staCvtFloatToStr(outstr, num, 2);
+    float         num = -123.456f;
+    unsigned int  len = staCvtFloatToStr(outstr, num, 2);
     outstr[len] = '\0';
     TEST_ASSERT_EQUAL_STRING("-123.45", outstr);
     TEST_ASSERT_EQUAL(7, len);
@@ -110,8 +110,8 @@ TEST(CvtFloatToStr, NegativeFloatWithPrecision) {
 
 TEST(CvtFloatToStr, ZeroValue) {
     unsigned char outstr[10];
-    float num = 0.0f;
-    unsigned int len = staCvtFloatToStr(outstr, num, 2);
+    float         num = 0.0f;
+    unsigned int  len = staCvtFloatToStr(outstr, num, 2);
     outstr[len] = '\0';
     TEST_ASSERT_EQUAL_STRING("0", outstr);
     TEST_ASSERT_EQUAL(1, len);
@@ -119,8 +119,8 @@ TEST(CvtFloatToStr, ZeroValue) {
 
 TEST(CvtFloatToStr, NegativeZeroValue) {
     unsigned char outstr[10];
-    float num = -0.0f; // Note: -0.0f is distinct from 0.0f for floats
-    unsigned int len = staCvtFloatToStr(outstr, num, 2);
+    float         num = -0.0f; // Note: -0.0f is distinct from 0.0f for floats
+    unsigned int  len = staCvtFloatToStr(outstr, num, 2);
     outstr[len] = '\0';
     TEST_ASSERT_EQUAL_STRING("0", outstr);
     TEST_ASSERT_EQUAL(1, len);
@@ -128,20 +128,18 @@ TEST(CvtFloatToStr, NegativeZeroValue) {
 
 TEST(CvtFloatToStr, LargeIntegralPart) {
     unsigned char outstr[20];
-    float num = 1234567.89f;
-    unsigned int len = staCvtFloatToStr(outstr, num, 1);
+    float         num = 1234567.89f;
+    unsigned int  len = staCvtFloatToStr(outstr, num, 1);
     outstr[len] = '\0';
     TEST_ASSERT_EQUAL_STRING("1234567.8", outstr);
     TEST_ASSERT_EQUAL(9, len);
 }
 
 TEST(CvtFloatToStr, RenderPlaceholder) {
-    unsigned char outstr[20] = {
-        'H', 'y', 'p', 'e', ' ', 0, 0, 0, 0, 0, 0, 0, 0,
-        ' ', 'D', 'R', 'i', 'V', 'e', 'n'
-    };
-    float num = -123.4567f;
-    unsigned int len = staCvtFloatToStr(&outstr[5], num, 3);
+    unsigned char outstr[20] = {'H', 'y', 'p', 'e', ' ', 0,   0,   0,   0,   0,
+                                0,   0,   0,   ' ', 'D', 'R', 'i', 'V', 'e', 'n'};
+    float         num = -123.4567f;
+    unsigned int  len = staCvtFloatToStr(&outstr[5], num, 3);
     TEST_ASSERT_EQUAL_STRING_LEN("Hype -123.456 DRiVen", outstr, 20);
     TEST_ASSERT_EQUAL(8, len);
 }
@@ -158,97 +156,97 @@ TEST_TEAR_DOWN(ChkIntFromStr) {
 
 TEST(ChkIntFromStr, NullStringPointer) {
     unsigned char *null_str = NULL;
-    gMonStatus status = staChkIntFromStr(null_str, 5);
+    gMonStatus     status = staChkIntFromStr(null_str, 5);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
 }
 
 TEST(ChkIntFromStr, ZeroSizeString) {
     unsigned char test_str[] = "123";
-    gMonStatus status = staChkIntFromStr(test_str, 0);
+    gMonStatus    status = staChkIntFromStr(test_str, 0);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
 }
 
 TEST(ChkIntFromStr, EmptyStringPointer) {
-    unsigned char *empty_str = (unsigned char*)"";
-    gMonStatus status = staChkIntFromStr(empty_str, 0);
+    unsigned char *empty_str = (unsigned char *)"";
+    gMonStatus     status = staChkIntFromStr(empty_str, 0);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
 }
 
 TEST(ChkIntFromStr, ValidPositiveInteger) {
     unsigned char test_str[] = "12345";
-    gMonStatus status = staChkIntFromStr(test_str, sizeof(test_str) - 1);
+    gMonStatus    status = staChkIntFromStr(test_str, sizeof(test_str) - 1);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
 }
 
 TEST(ChkIntFromStr, ValidPositiveSingleDigit) {
     unsigned char test_str[] = "7";
-    gMonStatus status = staChkIntFromStr(test_str, sizeof(test_str) - 1);
+    gMonStatus    status = staChkIntFromStr(test_str, sizeof(test_str) - 1);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
 }
 
 TEST(ChkIntFromStr, ValidPositiveZero) {
     unsigned char test_str[] = "0";
-    gMonStatus status = staChkIntFromStr(test_str, sizeof(test_str) - 1);
+    gMonStatus    status = staChkIntFromStr(test_str, sizeof(test_str) - 1);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
 }
 
 TEST(ChkIntFromStr, ValidNegativeInteger) {
     unsigned char test_str[] = "-12345";
-    gMonStatus status = staChkIntFromStr(test_str, sizeof(test_str) - 1);
+    gMonStatus    status = staChkIntFromStr(test_str, sizeof(test_str) - 1);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
 }
 
 TEST(ChkIntFromStr, ValidNegativeSingleDigit) {
     unsigned char test_str[] = "-7";
-    gMonStatus status = staChkIntFromStr(test_str, sizeof(test_str) - 1);
+    gMonStatus    status = staChkIntFromStr(test_str, sizeof(test_str) - 1);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
 }
 
 TEST(ChkIntFromStr, ValidNegativeZero) {
     unsigned char test_str[] = "-0";
-    gMonStatus status = staChkIntFromStr(test_str, sizeof(test_str) - 1);
+    gMonStatus    status = staChkIntFromStr(test_str, sizeof(test_str) - 1);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
 }
 
 TEST(ChkIntFromStr, StringWithAlphaChar) {
     unsigned char test_str[] = "123A45";
-    gMonStatus status = staChkIntFromStr(test_str, sizeof(test_str) - 1);
+    gMonStatus    status = staChkIntFromStr(test_str, sizeof(test_str) - 1);
     TEST_ASSERT_EQUAL(GMON_RESP_MALFORMED_DATA, status);
 }
 
 TEST(ChkIntFromStr, StringWithSpecialChar) {
     unsigned char test_str[] = "123.45";
-    gMonStatus status = staChkIntFromStr(test_str, sizeof(test_str) - 1);
+    gMonStatus    status = staChkIntFromStr(test_str, sizeof(test_str) - 1);
     TEST_ASSERT_EQUAL(GMON_RESP_MALFORMED_DATA, status);
 }
 
 TEST(ChkIntFromStr, StringWithLeadingSpace) {
     unsigned char test_str[] = " 123";
-    gMonStatus status = staChkIntFromStr(test_str, sizeof(test_str) - 1);
+    gMonStatus    status = staChkIntFromStr(test_str, sizeof(test_str) - 1);
     TEST_ASSERT_EQUAL(GMON_RESP_MALFORMED_DATA, status);
 }
 
 TEST(ChkIntFromStr, StringWithTrailingSpace) {
     unsigned char test_str[] = "123 ";
-    gMonStatus status = staChkIntFromStr(test_str, sizeof(test_str) - 1);
+    gMonStatus    status = staChkIntFromStr(test_str, sizeof(test_str) - 1);
     TEST_ASSERT_EQUAL(GMON_RESP_MALFORMED_DATA, status);
 }
 
 TEST(ChkIntFromStr, StringWithOnlySignAndNoDigits) {
     unsigned char test_str[] = "-";
-    gMonStatus status = staChkIntFromStr(test_str, sizeof(test_str) - 1);
+    gMonStatus    status = staChkIntFromStr(test_str, sizeof(test_str) - 1);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
 }
 
 TEST(ChkIntFromStr, StringWithOnlySignAndNonDigit) {
     unsigned char test_str[] = "-A";
-    gMonStatus status = staChkIntFromStr(test_str, sizeof(test_str) - 1);
+    gMonStatus    status = staChkIntFromStr(test_str, sizeof(test_str) - 1);
     TEST_ASSERT_EQUAL(GMON_RESP_MALFORMED_DATA, status);
 }
 
 TEST(ChkIntFromStr, StringStartingWithInvalidChar) {
     unsigned char test_str[] = "A123";
-    gMonStatus status = staChkIntFromStr(test_str, sizeof(test_str) - 1);
+    gMonStatus    status = staChkIntFromStr(test_str, sizeof(test_str) - 1);
     TEST_ASSERT_EQUAL(GMON_RESP_MALFORMED_DATA, status);
 }
 
@@ -264,97 +262,97 @@ TEST_TEAR_DOWN(CvtIntFromStr) {
 
 TEST(CvtIntFromStr, NullStringPointer) {
     unsigned char *null_str = NULL;
-    int result = staCvtIntFromStr(null_str, 5); // Size doesn't matter much for NULL
+    int            result = staCvtIntFromStr(null_str, 5); // Size doesn't matter much for NULL
     TEST_ASSERT_EQUAL(0, result);
 }
 
 TEST(CvtIntFromStr, ZeroSizeString) {
     unsigned char test_str[] = "123";
-    int result = staCvtIntFromStr(test_str, 0);
+    int           result = staCvtIntFromStr(test_str, 0);
     TEST_ASSERT_EQUAL(0, result);
 }
 
 TEST(CvtIntFromStr, EmptyStringPointer) {
-    unsigned char *empty_str = (unsigned char*)"";
-    int result = staCvtIntFromStr(empty_str, 0);
+    unsigned char *empty_str = (unsigned char *)"";
+    int            result = staCvtIntFromStr(empty_str, 0);
     TEST_ASSERT_EQUAL(0, result);
 }
 
 TEST(CvtIntFromStr, ValidPositiveInteger) {
     unsigned char test_str[] = "12345";
-    int result = staCvtIntFromStr(test_str, sizeof(test_str) - 1);
+    int           result = staCvtIntFromStr(test_str, sizeof(test_str) - 1);
     TEST_ASSERT_EQUAL(12345, result);
 }
 
 TEST(CvtIntFromStr, ValidPositiveSingleDigit) {
     unsigned char test_str[] = "7";
-    int result = staCvtIntFromStr(test_str, sizeof(test_str) - 1);
+    int           result = staCvtIntFromStr(test_str, sizeof(test_str) - 1);
     TEST_ASSERT_EQUAL(7, result);
 }
 
 TEST(CvtIntFromStr, ValidPositiveZero) {
     unsigned char test_str[] = "0";
-    int result = staCvtIntFromStr(test_str, sizeof(test_str) - 1);
+    int           result = staCvtIntFromStr(test_str, sizeof(test_str) - 1);
     TEST_ASSERT_EQUAL(0, result);
 }
 
 TEST(CvtIntFromStr, ValidNegativeInteger) {
     unsigned char test_str[] = "-12345";
-    int result = staCvtIntFromStr(test_str, sizeof(test_str) - 1);
+    int           result = staCvtIntFromStr(test_str, sizeof(test_str) - 1);
     TEST_ASSERT_EQUAL(-12345, result);
 }
 
 TEST(CvtIntFromStr, ValidNegativeSingleDigit) {
     unsigned char test_str[] = "-7";
-    int result = staCvtIntFromStr(test_str, sizeof(test_str) - 1);
+    int           result = staCvtIntFromStr(test_str, sizeof(test_str) - 1);
     TEST_ASSERT_EQUAL(-7, result);
 }
 
 TEST(CvtIntFromStr, ValidNegativeZero) {
     unsigned char test_str[] = "-0";
-    int result = staCvtIntFromStr(test_str, sizeof(test_str) - 1);
+    int           result = staCvtIntFromStr(test_str, sizeof(test_str) - 1);
     TEST_ASSERT_EQUAL(0, result); // -0 should be 0
 }
 
 TEST(CvtIntFromStr, StringWithAlphaChar) {
     unsigned char test_str[] = "123A45";
-    int result = staCvtIntFromStr(test_str, sizeof(test_str) - 1);
+    int           result = staCvtIntFromStr(test_str, sizeof(test_str) - 1);
     TEST_ASSERT_EQUAL(-1, result); // Should indicate error
 }
 
 TEST(CvtIntFromStr, StringWithSpecialChar) {
     unsigned char test_str[] = "123.45";
-    int result = staCvtIntFromStr(test_str, sizeof(test_str) - 1);
+    int           result = staCvtIntFromStr(test_str, sizeof(test_str) - 1);
     TEST_ASSERT_EQUAL(-1, result); // Should indicate error
 }
 
 TEST(CvtIntFromStr, StringWithLeadingSpace) {
     unsigned char test_str[] = " 123";
-    int result = staCvtIntFromStr(test_str, sizeof(test_str) - 1);
+    int           result = staCvtIntFromStr(test_str, sizeof(test_str) - 1);
     TEST_ASSERT_EQUAL(-1, result); // Space is not a digit
 }
 
 TEST(CvtIntFromStr, StringWithTrailingSpace) {
     unsigned char test_str[] = "123 ";
-    int result = staCvtIntFromStr(test_str, sizeof(test_str) - 1);
+    int           result = staCvtIntFromStr(test_str, sizeof(test_str) - 1);
     TEST_ASSERT_EQUAL(-1, result); // Space is not a digit
 }
 
 TEST(CvtIntFromStr, StringWithOnlySignAndNoDigits) {
     unsigned char test_str[] = "-";
-    int result = staCvtIntFromStr(test_str, sizeof(test_str) - 1);
+    int           result = staCvtIntFromStr(test_str, sizeof(test_str) - 1);
     TEST_ASSERT_EQUAL(0, result); // Current implementation returns 0 for "-"
 }
 
 TEST(CvtIntFromStr, StringWithOnlySignAndNonDigit) {
     unsigned char test_str[] = "-A";
-    int result = staCvtIntFromStr(test_str, sizeof(test_str) - 1);
+    int           result = staCvtIntFromStr(test_str, sizeof(test_str) - 1);
     TEST_ASSERT_EQUAL(-1, result); // Should indicate error after sign
 }
 
 TEST(CvtIntFromStr, StringStartingWithInvalidChar) {
     unsigned char test_str[] = "A123";
-    int result = staCvtIntFromStr(test_str, sizeof(test_str) - 1);
+    int           result = staCvtIntFromStr(test_str, sizeof(test_str) - 1);
     TEST_ASSERT_EQUAL(-1, result); // 'A' is not a digit
 }
 
@@ -473,7 +471,7 @@ TEST(TimeTracking, InitialNonZeroStateTicksAndDays) {
 TEST(TimeTracking, currTickWrapsAroundMaxUint32) {
     // This simulates the system tick counter overflowing and wrapping around.
     test_gmon_tick.last_read = UINT32_MAX - 100; // Near max value
-    setMockTickCount(50); // Simulate wrap-around (curr_tick < last_read)
+    setMockTickCount(50);                        // Simulate wrap-around (curr_tick < last_read)
     // diff = (UINT32_MAX - (UINT32_MAX - 100)) + 50 + 1 = 100 + 50 + 1 = 151
     TEST_ASSERT_EQUAL(151, stationGetTicksPerDay(&test_gmon_tick));
     TEST_ASSERT_EQUAL(0, stationGetDays(&test_gmon_tick));

@@ -40,6 +40,9 @@ AVAILABLE COMMANDS:
         Specifies the root directory of the jsmn library. Defaults to `/usr/local/include/jsmn` if not set.
         Example: make test JSMN_ROOT=/path/to/my/jsmn/
 
+  make reformat
+    Formats the C source and header files using clang-format-18 according to the project's style guidelines.
+
   make test_clean
     Removes all generated build artifacts specifically for the unit tests.
 

@@ -5,11 +5,11 @@
 extern "C" {
 #endif
 
-gMonStatus  staDaylightTrackInit(gardenMonitor_t *gmon);
+gMonStatus staDaylightTrackInit(gardenMonitor_t *gmon);
 
-gMonStatus  staSetRequiredDaylenTicks(gardenMonitor_t *gmon, unsigned int light_length);
+gMonStatus staSetRequiredDaylenTicks(gardenMonitor_t *gmon, unsigned int light_length);
 
-void lightControllerTaskFn(void* params);
+void lightControllerTaskFn(void *params);
 
 #ifdef __cplusplus
 }

@@ -8,6 +8,4 @@ static void RunAllTests(void) {
     RUN_TEST_GROUP(gMonDisplay);
 }
 
-int main(int argc, const char *argv[]) {
-    return UnityMain(argc, argv, RunAllTests);
-}
+int main(int argc, const char *argv[]) { return UnityMain(argc, argv, RunAllTests); }
