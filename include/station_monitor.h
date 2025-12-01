@@ -6,15 +6,15 @@ extern "C" {
 #endif
 
 struct gMonMsgPipe_t {
-    stationSysMsgbox_t  sensor2display;
-    stationSysMsgbox_t  sensor2net;
+    stationSysMsgbox_t sensor2display;
+    stationSysMsgbox_t sensor2net;
 };
 
-typedef struct  {
-    gmonStr_t  outflight;
-    gmonStr_t  inflight;
-    void      *jsn_decoded_token;
-    void      *jsn_decoder;
+typedef struct {
+    gmonStr_t outflight;
+    gmonStr_t inflight;
+    void     *jsn_decoded_token;
+    void     *jsn_decoder;
 } gMonRawMsg_t;
 
 // collecting all information, network handling objects in this application
@@ -39,33 +39,33 @@ typedef struct gardenMonitor_s {
         gMonSensor_t light;
         struct {
             gmonEvent_t *pool;
-            size_t len;
+            size_t       len;
         } event;
-        gmonSensorRecord_t  latest_records[GMON_CFG_NUM_SENSOR_RECORDS_KEEP];
+        gmonSensorRecord_t latest_records[GMON_CFG_NUM_SENSOR_RECORDS_KEEP];
     } sensors;
     struct {
         struct {
             struct {
-                gMonStatus  sensorread; // TODO, expand for each individual sensor
-                gMonStatus  netconn;
+                gMonStatus sensorread; // TODO, expand for each individual sensor
+                gMonStatus netconn;
             } interval;
             struct {
-                gMonStatus  air_temp;
-                gMonStatus  soil_moist;
-                gMonStatus  lightness;
-                gMonStatus  daylength;
+                gMonStatus air_temp;
+                gMonStatus soil_moist;
+                gMonStatus lightness;
+                gMonStatus daylength;
             } threshold;
-        } status ;
+        } status;
         struct {
-            unsigned int  ticks;
-            unsigned int  days ;
+            unsigned int ticks;
+            unsigned int days;
         } last_update;
-        unsigned int  required_light_daylength_ticks;
+        unsigned int required_light_daylength_ticks;
     } user_ctrl;
-    gMonDisplayContext_t  display;
-    gMonNet_t      netconn;
-    gmonTick_t     tick;
-    gMonRawMsg_t   rawmsg;
+    gMonDisplayContext_t display;
+    gMonNet_t            netconn;
+    gmonTick_t           tick;
+    gMonRawMsg_t         rawmsg;
 } gardenMonitor_t;
 
 #ifdef __cplusplus

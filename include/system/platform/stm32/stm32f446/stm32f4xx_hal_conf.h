@@ -141,9 +141,8 @@ extern "C" {
      * @brief External Low Speed oscillator (LSE) value.
      */
     #if !defined(LSE_VALUE)
-        #define LSE_VALUE \
-            ((uint32_t)32768U) /*!< Value of the External Low Speed oscillator in Hz */
-    #endif                     /* LSE_VALUE */
+        #define LSE_VALUE ((uint32_t)32768U) /*!< Value of the External Low Speed oscillator in Hz */
+    #endif                                   /* LSE_VALUE */
 
     #if !defined(LSE_STARTUP_TIMEOUT)
         #define LSE_STARTUP_TIMEOUT ((uint32_t)5000U) /*!< Time out for LSE start up, in ms */
@@ -156,7 +155,8 @@ extern "C" {
      */
     #if !defined(EXTERNAL_CLOCK_VALUE)
         #define EXTERNAL_CLOCK_VALUE \
-            ((uint32_t)12288000U) /*!< Value of the External audio frequency in Hz*/
+            ((uint32_t)12288000U) /*!< Value of the External audio frequency in \
+                                     Hz*/
     #endif                        /* EXTERNAL_CLOCK_VALUE */
 
     /* Tip: To avoid modifying this file each time you need to use different HSE,
@@ -215,17 +215,16 @@ extern "C" {
     #define PHY_BCR ((uint16_t)0x0000U) /*!< Transceiver Basic Control Register   */
     #define PHY_BSR ((uint16_t)0x0001U) /*!< Transceiver Basic Status Register    */
 
-    #define PHY_RESET           ((uint16_t)0x8000U) /*!< PHY Reset */
-    #define PHY_LOOPBACK        ((uint16_t)0x4000U) /*!< Select loop-back mode */
-    #define PHY_FULLDUPLEX_100M ((uint16_t)0x2100U) /*!< Set the full-duplex mode at 100 Mb/s */
-    #define PHY_HALFDUPLEX_100M ((uint16_t)0x2000U) /*!< Set the half-duplex mode at 100 Mb/s */
-    #define PHY_FULLDUPLEX_10M  ((uint16_t)0x0100U) /*!< Set the full-duplex mode at 10 Mb/s  */
-    #define PHY_HALFDUPLEX_10M  ((uint16_t)0x0000U) /*!< Set the half-duplex mode at 10 Mb/s  */
-    #define PHY_AUTONEGOTIATION ((uint16_t)0x1000U) /*!< Enable auto-negotiation function     */
-    #define PHY_RESTART_AUTONEGOTIATION \
-        ((uint16_t)0x0200U)                   /*!< Restart auto-negotiation function    */
-    #define PHY_POWERDOWN ((uint16_t)0x0800U) /*!< Select the power down mode           */
-    #define PHY_ISOLATE   ((uint16_t)0x0400U) /*!< Isolate PHY from MII                 */
+    #define PHY_RESET                   ((uint16_t)0x8000U) /*!< PHY Reset */
+    #define PHY_LOOPBACK                ((uint16_t)0x4000U) /*!< Select loop-back mode */
+    #define PHY_FULLDUPLEX_100M         ((uint16_t)0x2100U) /*!< Set the full-duplex mode at 100 Mb/s */
+    #define PHY_HALFDUPLEX_100M         ((uint16_t)0x2000U) /*!< Set the half-duplex mode at 100 Mb/s */
+    #define PHY_FULLDUPLEX_10M          ((uint16_t)0x0100U) /*!< Set the full-duplex mode at 10 Mb/s  */
+    #define PHY_HALFDUPLEX_10M          ((uint16_t)0x0000U) /*!< Set the half-duplex mode at 10 Mb/s  */
+    #define PHY_AUTONEGOTIATION         ((uint16_t)0x1000U) /*!< Enable auto-negotiation function     */
+    #define PHY_RESTART_AUTONEGOTIATION ((uint16_t)0x0200U) /*!< Restart auto-negotiation function    */
+    #define PHY_POWERDOWN               ((uint16_t)0x0800U) /*!< Select the power down mode           */
+    #define PHY_ISOLATE                 ((uint16_t)0x0400U) /*!< Isolate PHY from MII                 */
 
     #define PHY_AUTONEGO_COMPLETE ((uint16_t)0x0020U) /*!< Auto-Negotiation process completed   */
     #define PHY_LINKED_STATUS     ((uint16_t)0x0004U) /*!< Valid link established               */
@@ -234,10 +233,8 @@ extern "C" {
     /* Section 4: Extended PHY Registers */
     #define PHY_SR ((uint16_t)0x10U) /*!< PHY status register Offset                      */
 
-    #define PHY_SPEED_STATUS \
-        ((uint16_t)0x0002U) /*!< PHY Speed mask                                  */
-    #define PHY_DUPLEX_STATUS \
-        ((uint16_t)0x0004U) /*!< PHY Duplex mask                                 */
+    #define PHY_SPEED_STATUS  ((uint16_t)0x0002U) /*!< PHY Speed mask                                  */
+    #define PHY_DUPLEX_STATUS ((uint16_t)0x0004U) /*!< PHY Duplex mask                                 */
 
 /* ################## SPI peripheral configuration ########################## */
 
@@ -447,8 +444,7 @@ extern "C" {
      *         If expr is true, it returns no value.
      * @retval None
      */
-        #define assert_param(expr) \
-            ((expr) ? (void)0U : assert_failed((uint8_t *)__FILE__, __LINE__))
+        #define assert_param(expr) ((expr) ? (void)0U : assert_failed((uint8_t *)__FILE__, __LINE__))
 /* Exported functions ------------------------------------------------------- */
 void assert_failed(uint8_t *file, uint32_t line);
     #else

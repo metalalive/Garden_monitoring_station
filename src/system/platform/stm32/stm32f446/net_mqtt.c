@@ -76,9 +76,7 @@ HAL_StatusTypeDef STM32_HAL_DMA_Init(void) {
     haldma_usart3_rx.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
     HAL_StatusTypeDef result = HAL_DMA_Init(&haldma_usart3_rx);
     if (result == HAL_OK) {
-        HAL_NVIC_SetPriority(
-            DMA1_Stream1_IRQn, (configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY + 1), 0
-        );
+        HAL_NVIC_SetPriority(DMA1_Stream1_IRQn, (configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY + 1), 0);
         HAL_NVIC_EnableIRQ(DMA1_Stream1_IRQn);
         __HAL_LINKDMA(&haluart3, hdmarx, haldma_usart3_rx);
     }

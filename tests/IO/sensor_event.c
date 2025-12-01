@@ -116,8 +116,8 @@ TEST(SensorEvtPool, ReturnsErrorForNullRecord) {
 TEST(SensorEvtPool, ReturnsErrorForRecordOutsidePoolBounds_BeforeStart) {
     // The pool is initialized by stationIOinit in TEST_SETUP.
     // Create a pointer just before the pool starts
-    gmonEvent_t *invalid_record = gmon.sensors.event.pool - 1; 
-    gMonStatus status = staFreeSensorEvent(&gmon, invalid_record);
+    gmonEvent_t *invalid_record = gmon.sensors.event.pool - 1;
+    gMonStatus   status = staFreeSensorEvent(&gmon, invalid_record);
     TEST_ASSERT_EQUAL(GMON_RESP_ERRMEM, status);
 }
 
@@ -125,8 +125,8 @@ TEST(SensorEvtPool, ReturnsErrorForRecordOutsidePoolBounds_AfterEnd) {
     // The pool is initialized by stationIOinit in TEST_SETUP.
     // Create a pointer just after the pool ends
     // (gmon.sensors.event.pool + gmon.sensors.event.len is one past the last valid element)
-    gmonEvent_t *invalid_record = gmon.sensors.event.pool + gmon.sensors.event.len; 
-    gMonStatus status = staFreeSensorEvent(&gmon, invalid_record);
+    gmonEvent_t *invalid_record = gmon.sensors.event.pool + gmon.sensors.event.len;
+    gMonStatus   status = staFreeSensorEvent(&gmon, invalid_record);
     TEST_ASSERT_EQUAL(GMON_RESP_ERRMEM, status);
 }
 
@@ -135,8 +135,8 @@ TEST(SensorEvtPool, ReturnsErrorForMisalignedRecord) {
     gmonEvent_t *event = staAllocSensorEvent(&gmon);
     TEST_ASSERT_NOT_NULL(event);
     // Create a misaligned pointer (e.g., one byte into the event struct)
-    gmonEvent_t *misaligned_record = (gmonEvent_t*)((char*)event + 1);
-    gMonStatus status = staFreeSensorEvent(&gmon, misaligned_record);
+    gmonEvent_t *misaligned_record = (gmonEvent_t *)((char *)event + 1);
+    gMonStatus   status = staFreeSensorEvent(&gmon, misaligned_record);
     TEST_ASSERT_EQUAL(GMON_RESP_ERRMEM, status);
 }
 
@@ -188,13 +188,15 @@ TEST(cpySensorEvent, CopiesSingleEventSuccessfully) {
     TEST_ASSERT_EQUAL_FLOAT(src_event->data.air_cond.humidity, dst_event->data.air_cond.humidity);
     TEST_ASSERT_EQUAL(src_event->curr_ticks, dst_event->curr_ticks);
     TEST_ASSERT_EQUAL(src_event->curr_days, dst_event->curr_days);
-    TEST_ASSERT_EQUAL(src_event->flgs.alloc, dst_event->flgs.alloc); // Alloc flag should also be copied (value 1)
+    TEST_ASSERT_EQUAL(
+        src_event->flgs.alloc, dst_event->flgs.alloc
+    ); // Alloc flag should also be copied (value 1)
     staFreeSensorEvent(&gmon, src_event);
     staFreeSensorEvent(&gmon, dst_event);
 }
 
 TEST(cpySensorEvent, CopiesMultipleEventsSuccessfully) {
-    const size_t num_events_to_copy = 2; 
+    const size_t num_events_to_copy = 2;
     gmonEvent_t *src_events[num_events_to_copy];
     gmonEvent_t *dst_events[num_events_to_copy];
 
@@ -233,7 +235,7 @@ TEST(cpySensorEvent, ReturnsErrorIfDstNotAllocated) {
     TEST_ASSERT_EQUAL(GMON_RESP_ERRMEM, status);
     dst_event->flgs.alloc = 1;
     staFreeSensorEvent(&gmon, src_event);
-    staFreeSensorEvent(&gmon, dst_event); 
+    staFreeSensorEvent(&gmon, dst_event);
 }
 
 TEST(cpySensorEvent, ReturnsErrorIfSrcNotAllocated) {

@@ -17,9 +17,9 @@ TEST_TEAR_DOWN(RenderPrintText) {
 }
 
 TEST(RenderPrintText, InitOk) {
-    gMonStatus status;
+    gMonStatus          status;
     gMonDisplayBlock_t *dblk;
-    uint8_t idx;
+    uint8_t             idx;
 
     // Expected block types in order of initialization in staDisplayInit
     const gMonBlockType_t expected_btypes[GMON_DISPLAY_NUM_PRINT_STRINGS] = {
@@ -60,20 +60,19 @@ TEST(RenderPrintText, InitOk) {
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     TEST_ASSERT_EQUAL_STRING_LEN(
         "[Last Record]: Soil moisture: 789 , Air Temp: 134.5'C, Air Humidity: 101, Lightness: 1001.",
-        sensor_record_block->content.str.data,
-        sensor_record_block->content.str.len
+        sensor_record_block->content.str.data, sensor_record_block->content.str.len
     );
 
     // Test 2: Update Air Temperature and Humidity
     test_event.event_type = GMON_EVENT_AIR_TEMP_UPDATED;
     test_event.data.air_cond.temporature = 23.5f;
-    test_event.data.air_cond.humidity = 90.0f; // Expecting " 90" when formatted as 3-char float with 1 precision
+    test_event.data.air_cond.humidity =
+        90.0f; // Expecting " 90" when formatted as 3-char float with 1 precision
     status = sensor_record_block->render(&sensor_record_block->content, &test_event);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     TEST_ASSERT_EQUAL_STRING_LEN(
         "[Last Record]: Soil moisture: 789 , Air Temp: 23.5 'C, Air Humidity: 90 , Lightness: 1001.",
-        sensor_record_block->content.str.data,
-        sensor_record_block->content.str.len
+        sensor_record_block->content.str.data, sensor_record_block->content.str.len
     );
 
     // Test 3: Update Lightness
@@ -83,11 +82,8 @@ TEST(RenderPrintText, InitOk) {
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     TEST_ASSERT_EQUAL_STRING_LEN(
         "[Last Record]: Soil moisture: 789 , Air Temp: 23.5 'C, Air Humidity: 90 , Lightness: 1234.",
-        sensor_record_block->content.str.data,
-        sensor_record_block->content.str.len
+        sensor_record_block->content.str.data, sensor_record_block->content.str.len
     );
 } // end of TEST(RenderPrintText, InitOk)
 
-TEST_GROUP_RUNNER(gMonDisplay) {
-    RUN_TEST_CASE(RenderPrintText, InitOk);
-}
+TEST_GROUP_RUNNER(gMonDisplay) { RUN_TEST_CASE(RenderPrintText, InitOk); }

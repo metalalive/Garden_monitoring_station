@@ -7,26 +7,24 @@
 // * or remains for 70 us (for transmitting data bit 1).
 static void *dht11_signal_pin;
 
-gMonStatus  staSensorInitAirTemp(void) {
+gMonStatus staSensorInitAirTemp(void) {
     dht11_signal_pin = NULL;
     return staSensorPlatformInitAirTemp(&dht11_signal_pin);
 }
 
-gMonStatus  staSensorDeInitAirTemp(void) {
-    return  staSensorPlatformDeInitAirTemp();
-}
+gMonStatus staSensorDeInitAirTemp(void) { return staSensorPlatformDeInitAirTemp(); }
 
 // Helper function to measure the duration of a pin state
 static gMonStatus measureVerifyPulse(
     uint8_t expect_init_state, uint16_t refpoint_pulse_us, uint16_t deviation_us, uint16_t *actual_pulse_us
 ) {
-    uint16_t  pulse_us_read = 0;
-    uint8_t   state_low2high = 0, state_expected = 0, pulse_range_fit = 0;
+    uint16_t pulse_us_read = 0;
+    uint8_t  state_low2high = 0, state_expected = 0, pulse_range_fit = 0;
     assert(refpoint_pulse_us > deviation_us);
     gMonStatus status = staPlatformMeasurePulse(dht11_signal_pin, &state_low2high, &pulse_us_read);
     if (status == GMON_RESP_OK) {
-        uint16_t  maxlimit = refpoint_pulse_us + deviation_us;
-        uint16_t  minlimit = refpoint_pulse_us - deviation_us;
+        uint16_t maxlimit = refpoint_pulse_us + deviation_us;
+        uint16_t minlimit = refpoint_pulse_us - deviation_us;
         state_expected = (expect_init_state != state_low2high);
         pulse_range_fit = (pulse_us_read >= minlimit && pulse_us_read <= maxlimit);
         if (state_expected && pulse_range_fit) {
@@ -39,7 +37,6 @@ static gMonStatus measureVerifyPulse(
     }
     return status;
 }
-
 
 /**
  * @brief Reads 40-bit data from the DHT11 sensor.
@@ -60,24 +57,28 @@ static gMonStatus readDht11SensorData(uint8_t data[5]) {
     // After MCU pulls the line HIGH for 20-40us and releases it (sets pin to input mode),
     // the DHT11 should respond by pulling the line LOW for ~80us.
     gMonStatus status = GMON_RESP_OK;
-    uint16_t pulse_us = 0, idx;
+    uint16_t   pulse_us = 0, idx;
     // 1. check whether to sample DHT11's LOW acknowledgment pulse with
     // positive-integer length time.
     status = measureVerifyPulse(GMON_PLATFORM_PIN_RESET, 80, 40, NULL);
-    if (status != GMON_RESP_OK) return status;
+    if (status != GMON_RESP_OK)
+        return status;
 
     // 2. Check for DHT11's 80us HIGH acknowledgment pulse
     status = measureVerifyPulse(GMON_PLATFORM_PIN_SET, 80, 8, NULL);
-    if (status != GMON_RESP_OK) return status;
+    if (status != GMON_RESP_OK)
+        return status;
 
     // 3. Read 40 bits of data
     for (idx = 0; idx < 40; idx++) {
         // Each data bit transmission starts with a 50us LOW pulse
         status = measureVerifyPulse(GMON_PLATFORM_PIN_RESET, 50, 7, NULL);
-        if (status != GMON_RESP_OK) return status;
+        if (status != GMON_RESP_OK)
+            return status;
         // The length of the subsequent HIGH pulse determines the bit value
         status = measureVerifyPulse(GMON_PLATFORM_PIN_SET, 45, 35, &pulse_us);
-        if (status != GMON_RESP_OK) return status;
+        if (status != GMON_RESP_OK)
+            return status;
         // Decode bit based on HIGH pulse duration:
         //   - 15-30us indicates '0'
         //   - 62~70us indicates '1'
@@ -99,9 +100,8 @@ static gMonStatus readDht11SensorData(uint8_t data[5]) {
 // TODO, FIXME :
 // modify function signature for introducing external reliable reference positive-integer
 // which can calibrate the sensor here .
-gMonStatus  staSensorReadAirTemp(float *air_temp, float *air_humid)
-{
-    if(air_temp == NULL || air_humid == NULL) {
+gMonStatus staSensorReadAirTemp(float *air_temp, float *air_humid) {
+    if (air_temp == NULL || air_humid == NULL) {
         return GMON_RESP_ERRARGS;
     }
     gMonStatus status = GMON_RESP_OK;
@@ -121,21 +121,25 @@ gMonStatus  staSensorReadAirTemp(float *air_temp, float *air_humid)
         // shorter high-voltage pulse and respond. TODO: test the behavior
         stationSysDelayUs(2);
         status = staPlatformPinSetDirection(dht11_signal_pin, GMON_PLATFORM_PIN_DIRECTION_IN);
-        if(status != GMON_RESP_OK) { goto done; }
+        if (status != GMON_RESP_OK) {
+            goto done;
+        }
         // check response signal from DHT11
         status = readDht11SensorData(record_dht_data);
-        if(status != GMON_RESP_OK) { goto done; }
+        if (status != GMON_RESP_OK) {
+            goto done;
+        }
 
-        sum_data_bits = (record_dht_data[0] + record_dht_data[1] + record_dht_data[2] + record_dht_data[3]) & 0xff;
-        if(sum_data_bits != record_dht_data[4]) {
+        sum_data_bits =
+            (record_dht_data[0] + record_dht_data[1] + record_dht_data[2] + record_dht_data[3]) & 0xff;
+        if (sum_data_bits != record_dht_data[4]) {
             status = GMON_RESP_SENSOR_FAIL;
             goto done;
         }
         *air_humid = record_dht_data[0] + record_dht_data[1] / 10.f;
-        *air_temp  = record_dht_data[2] + record_dht_data[3] / 10.f;
+        *air_temp = record_dht_data[2] + record_dht_data[3] / 10.f;
     }
 done:
     stationSysExitCritical();
     return status;
 } // end of staSensorReadAirTemp
-
