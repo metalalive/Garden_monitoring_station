@@ -5,8 +5,6 @@
 extern "C" {
 #endif
 
-gMonStatus staAirCondTrackInit(void);
-
 void airQualityMonitorTaskFn(void *params);
 
 #ifdef __cplusplus

@@ -33,7 +33,7 @@ typedef struct gardenMonitor_s {
         void *display_handler;
     } tasks;
     struct gMonMsgPipe_t msgpipe;
-    struct {
+    struct { // TODO, variable size of `gMonSensor_t` instances
         gMonSensor_t soil_moist;
         gMonSensor_t air_temp;
         gMonSensor_t light;

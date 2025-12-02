@@ -15,16 +15,16 @@ gMonStatus   staFreeSensorEvent(gardenMonitor_t *, gmonEvent_t *);
 gMonStatus   staCpySensorEvent(gmonEvent_t *dst, gmonEvent_t *src, size_t sz);
 gMonStatus   staNotifyOthersWithEvent(gardenMonitor_t *, gmonEvent_t *, uint32_t block_time);
 
-gMonStatus staSensorInitSoilMoist(void);
-gMonStatus staSensorDeInitSoilMoist(void);
+gMonStatus staSensorInitSoilMoist(gMonSensor_t *);
+gMonStatus staSensorDeInitSoilMoist(gMonSensor_t *);
 gMonStatus staSensorReadSoilMoist(unsigned int *out);
 
-gMonStatus staSensorInitAirTemp(void);
-gMonStatus staSensorDeInitAirTemp(void);
+gMonStatus staSensorInitAirTemp(gMonSensor_t *);
+gMonStatus staSensorDeInitAirTemp(gMonSensor_t *);
 gMonStatus staSensorReadAirTemp(float *air_temp, float *air_humid);
 
-gMonStatus staSensorInitLight(void);
-gMonStatus staSensorDeInitLight(void);
+gMonStatus staSensorInitLight(gMonSensor_t *);
+gMonStatus staSensorDeInitLight(gMonSensor_t *);
 gMonStatus staSensorReadLight(unsigned int *out);
 
 // device-specific functions

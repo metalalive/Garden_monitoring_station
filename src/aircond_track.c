@@ -1,7 +1,5 @@
 #include "station_include.h"
 
-gMonStatus staAirCondTrackInit(void) { return GMON_RESP_OK; }
-
 void airQualityMonitorTaskFn(void *params) {
     float air_temp = 0.f, air_humid = 0.f;
 

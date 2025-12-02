@@ -7,12 +7,16 @@
 // * or remains for 70 us (for transmitting data bit 1).
 static void *dht11_signal_pin;
 
-gMonStatus staSensorInitAirTemp(void) {
-    dht11_signal_pin = NULL;
-    return staSensorPlatformInitAirTemp(&dht11_signal_pin);
+gMonStatus staSensorInitAirTemp(gMonSensor_t *s) {
+    s->read_interval_ms = GMON_CFG_SENSOR_READ_INTERVAL_MS;
+    s->num_items = GMON_CFG_NUM_AIR_SENSORS;
+    s->num_resamples = GMON_CFG_AIR_SENSOR_NUM_OVERSAMPLE;
+    gMonStatus status = staSensorPlatformInitAirTemp(s);
+    dht11_signal_pin = s->lowlvl;
+    return status;
 }
 
-gMonStatus staSensorDeInitAirTemp(void) { return staSensorPlatformDeInitAirTemp(); }
+gMonStatus staSensorDeInitAirTemp(gMonSensor_t *s) { return staSensorPlatformDeInitAirTemp(s); }
 
 // Helper function to measure the duration of a pin state
 static gMonStatus measureVerifyPulse(

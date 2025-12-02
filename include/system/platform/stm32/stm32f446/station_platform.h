@@ -23,15 +23,15 @@ extern "C" {
 gMonStatus stationPlatformInit(void);
 gMonStatus stationPlatformDeinit(void);
 
-gMonStatus staSensorPlatformInitSoilMoist(void);
-gMonStatus staSensorPlatformDeInitSoilMoist(void);
+gMonStatus staSensorPlatformInitSoilMoist(gMonSensor_t *);
+gMonStatus staSensorPlatformDeInitSoilMoist(gMonSensor_t *);
 gMonStatus staPlatformReadSoilMoistSensor(unsigned int *out);
 
-gMonStatus staSensorPlatformInitAirTemp(void **pinstruct);
-gMonStatus staSensorPlatformDeInitAirTemp(void);
+gMonStatus staSensorPlatformInitAirTemp(gMonSensor_t *);
+gMonStatus staSensorPlatformDeInitAirTemp(gMonSensor_t *);
 
-gMonStatus staSensorPlatformInitLight(void);
-gMonStatus staSensorPlatformDeInitLight(void);
+gMonStatus staSensorPlatformInitLight(gMonSensor_t *);
+gMonStatus staSensorPlatformDeInitLight(gMonSensor_t *);
 gMonStatus staPlatformReadLightSensor(unsigned int *out);
 
 gMonStatus staActuatorPlatformInitPump(void **pinstruct);

@@ -105,18 +105,13 @@ gMonStatus stationIOinit(gardenMonitor_t *gmon) {
     gmon->sensors.event.len = GMON_NUM_SENSOR_EVENTS;
     XMEMSET(gmon->sensors.event.pool, 0x00, sizeof(gmonEvent_t) * GMON_NUM_SENSOR_EVENTS);
 
-    gmon->sensors.soil_moist.read_interval_ms = GMON_CFG_SENSOR_READ_INTERVAL_MS;
-    gmon->sensors.air_temp.read_interval_ms = GMON_CFG_SENSOR_READ_INTERVAL_MS;
-    gmon->sensors.light.read_interval_ms = GMON_CFG_SENSOR_READ_INTERVAL_MS;
+    status = GMON_SENSOR_INIT_FN_SOIL_MOIST(&gmon->sensors.soil_moist);
     if (status < 0)
         goto done;
-    status = GMON_SENSOR_INIT_FN_SOIL_MOIST();
+    status = GMON_SENSOR_INIT_FN_LIGHT(&gmon->sensors.light);
     if (status < 0)
         goto done;
-    status = GMON_SENSOR_INIT_FN_LIGHT();
-    if (status < 0)
-        goto done;
-    status = GMON_SENSOR_INIT_FN_AIR_TEMP();
+    status = GMON_SENSOR_INIT_FN_AIR_TEMP(&gmon->sensors.air_temp);
     if (status < 0)
         goto done;
     status = GMON_ACTUATOR_INIT_FN_PUMP(&gmon->actuator.pump);

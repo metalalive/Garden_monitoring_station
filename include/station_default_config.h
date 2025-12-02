@@ -30,45 +30,69 @@ extern "C" {
 #endif // end of GMON_CFG_NETCONN_START_INTERVAL_MS
 
 #ifdef GMON_CFG_ENABLE_SENSOR_SOIL_MOIST
-    #define GMON_SENSOR_INIT_FN_SOIL_MOIST()        staSensorInitSoilMoist()
-    #define GMON_SENSOR_DEINIT_FN_SOIL_MOIST()      staSensorDeInitSoilMoist()
+    #define GMON_SENSOR_INIT_FN_SOIL_MOIST(s)       staSensorInitSoilMoist(s)
+    #define GMON_SENSOR_DEINIT_FN_SOIL_MOIST(s)     staSensorDeInitSoilMoist(s)
     #define GMON_SENSOR_READ_FN_SOIL_MOIST(readout) staSensorReadSoilMoist((readout))
     #ifndef GMON_CFG_SENSOR_READ_INTERVAL_MS_SOIL_MOIST
         #define GMON_CFG_SENSOR_READ_INTERVAL_MS_SOIL_MOIST 2000
     #endif
+    #ifndef GMON_CFG_NUM_SOIL_SENSORS
+        #define GMON_CFG_NUM_SOIL_SENSORS 1
+    #endif
+    #ifndef GMON_CFG_SOIL_SENSOR_NUM_OVERSAMPLE
+        #define GMON_CFG_SOIL_SENSOR_NUM_OVERSAMPLE 1
+    #endif
 #else
-    #define GMON_SENSOR_INIT_FN_SOIL_MOIST()            GMON_RESP_OK
-    #define GMON_SENSOR_DEINIT_FN_SOIL_MOIST()          GMON_RESP_OK
+    #define GMON_SENSOR_INIT_FN_SOIL_MOIST(s)           GMON_RESP_OK
+    #define GMON_SENSOR_DEINIT_FN_SOIL_MOIST(s)         GMON_RESP_OK
     #define GMON_SENSOR_READ_FN_SOIL_MOIST(readout)     GMON_RESP_OK
     #define GMON_CFG_SENSOR_READ_INTERVAL_MS_SOIL_MOIST 0xffffffff
+    #define GMON_CFG_NUM_SOIL_SENSORS                   0
+    #define GMON_CFG_SOIL_SENSOR_NUM_OVERSAMPLE         0
 #endif // end of GMON_CFG_ENABLE_SENSOR_SOIL_MOIST
 
 #ifdef GMON_CFG_ENABLE_SENSOR_AIR_TEMP
-    #define GMON_SENSOR_INIT_FN_AIR_TEMP()                    staSensorInitAirTemp()
-    #define GMON_SENSOR_DEINIT_FN_AIR_TEMP()                  staSensorDeInitAirTemp()
+    #define GMON_SENSOR_INIT_FN_AIR_TEMP(s)                   staSensorInitAirTemp(s)
+    #define GMON_SENSOR_DEINIT_FN_AIR_TEMP(s)                 staSensorDeInitAirTemp(s)
     #define GMON_SENSOR_READ_FN_AIR_TEMP(air_temp, air_humid) staSensorReadAirTemp((air_temp), (air_humid))
     #ifndef GMON_CFG_SENSOR_READ_INTERVAL_MS_AIR_TEMP
         #define GMON_CFG_SENSOR_READ_INTERVAL_MS_AIR_TEMP 7000
     #endif
+    #ifndef GMON_CFG_NUM_AIR_SENSORS
+        #define GMON_CFG_NUM_AIR_SENSORS 1
+    #endif
+    #ifndef GMON_CFG_AIR_SENSOR_NUM_OVERSAMPLE
+        #define GMON_CFG_AIR_SENSOR_NUM_OVERSAMPLE 1
+    #endif
 #else
-    #define GMON_SENSOR_INIT_FN_AIR_TEMP()                    GMON_RESP_OK
-    #define GMON_SENSOR_DEINIT_FN_AIR_TEMP()                  GMON_RESP_OK
+    #define GMON_SENSOR_INIT_FN_AIR_TEMP(s)                   GMON_RESP_OK
+    #define GMON_SENSOR_DEINIT_FN_AIR_TEMP(s)                 GMON_RESP_OK
     #define GMON_SENSOR_READ_FN_AIR_TEMP(air_temp, air_humid) GMON_RESP_OK
     #define GMON_CFG_SENSOR_READ_INTERVAL_MS_AIR_TEMP         0xffffffff
+    #define GMON_CFG_NUM_AIR_SENSORS                          0
+    #define GMON_CFG_AIR_SENSOR_NUM_OVERSAMPLE                0
 #endif // end of GMON_CFG_ENABLE_SENSOR_AIR_TEMP
 
 #ifdef GMON_CFG_ENABLE_LIGHT_SENSOR
-    #define GMON_SENSOR_INIT_FN_LIGHT()          staSensorInitLight()
-    #define GMON_SENSOR_DEINIT_FN_LIGHT()        staSensorDeInitLight()
+    #define GMON_SENSOR_INIT_FN_LIGHT(s)         staSensorInitLight(s)
+    #define GMON_SENSOR_DEINIT_FN_LIGHT(s)       staSensorDeInitLight(s)
     #define GMON_SENSOR_READ_FN_LIGHT(lightness) staSensorReadLight((lightness))
     #ifndef GMON_CFG_SENSOR_READ_INTERVAL_MS_LIGHT
         #define GMON_CFG_SENSOR_READ_INTERVAL_MS_LIGHT 10000
     #endif
+    #ifndef GMON_CFG_NUM_LIGHT_SENSORS
+        #define GMON_CFG_NUM_LIGHT_SENSORS 1
+    #endif
+    #ifndef GMON_CFG_LIGHT_SENSOR_NUM_OVERSAMPLE
+        #define GMON_CFG_LIGHT_SENSOR_NUM_OVERSAMPLE 1
+    #endif
 #else
-    #define GMON_SENSOR_INIT_FN_LIGHT()            GMON_RESP_OK
-    #define GMON_SENSOR_DEINIT_FN_LIGHT()          GMON_RESP_OK
+    #define GMON_SENSOR_INIT_FN_LIGHT(s)           GMON_RESP_OK
+    #define GMON_SENSOR_DEINIT_FN_LIGHT(s)         GMON_RESP_OK
     #define GMON_SENSOR_READ_FN_LIGHT(lightness)   GMON_RESP_OK
     #define GMON_CFG_SENSOR_READ_INTERVAL_MS_LIGHT 0xffffffff
+    #define GMON_CFG_NUM_LIGHT_SENSORS             0
+    #define GMON_CFG_LIGHT_SENSOR_NUM_OVERSAMPLE   0
 #endif // end of GMON_CFG_ENABLE_LIGHT_SENSOR
 
 #ifdef GMON_CFG_ENABLE_ACTUATOR_PUMP

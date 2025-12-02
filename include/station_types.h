@@ -79,7 +79,10 @@ typedef struct {
 } gmonSensorRecord_t;
 
 typedef struct {
-    unsigned int read_interval_ms;
+    unsigned int  read_interval_ms;
+    unsigned char num_items     : 4;
+    unsigned char num_resamples : 4;
+    void         *lowlvl;
 } gMonSensor_t;
 
 typedef struct {
