@@ -5,6 +5,8 @@
 extern "C" {
 #endif
 
+gmonSensorSample_t *staAllocSensorSampleBuffer(gMonSensor_t *, gmonSensorDataType_t);
+
 void pumpControllerTaskFn(void *params);
 
 #ifdef __cplusplus

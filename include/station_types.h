@@ -22,8 +22,8 @@ typedef enum {
     GMON_RESP_CTRL_FAIL = -12,   // control failure e.g. pump, fan, lamp doesn't work when
                                  // user need to change their state
     GMON_RESP_ERR_CONN = -15,    // Connection error (failed) to MQTT broker
-    GMON_RESP_ERR_SECURE_CONN =
-        -16, // secure connection error, failed to start a session of secure connection
+    // secure connection error, failed to start a session of secure connection
+    GMON_RESP_ERR_SECURE_CONN = -16,
 
 } gMonStatus;
 
@@ -43,6 +43,23 @@ typedef struct {
     float temporature;
     float humidity;
 } gmonAirCond_t;
+
+typedef enum {
+    GMON_SENSOR_DATA_TYPE_UNKNOWN = 0,
+    GMON_SENSOR_DATA_TYPE_U32 = 1,
+    GMON_SENSOR_DATA_TYPE_AIRCOND,
+} gmonSensorDataType_t;
+
+typedef struct {
+    gmonSensorDataType_t dtype;
+    unsigned short       len;    // num of items in `data` field
+    unsigned char        id : 4; // identity for each sensor type
+    // array of values read from an individual sensor
+    // cast the pointer to corresponding type depending on `dtype` above :
+    // - unsigned int , if GMON_SENSOR_DATA_TYPE_U32
+    // - gmonAirCond_t , if GMON_SENSOR_DATA_TYPE_AIRCOND
+    void *data;
+} gmonSensorSample_t;
 
 typedef enum {
     GMON_EVENT_SOIL_MOISTURE_UPDATED,
@@ -79,10 +96,12 @@ typedef struct {
 } gmonSensorRecord_t;
 
 typedef struct {
-    unsigned int  read_interval_ms;
+    void        *lowlvl;
+    unsigned int read_interval_ms;
+    // number of sensors installed in one spot ,
+    // note current appllication does not identify sensors in several different spots
     unsigned char num_items     : 4;
     unsigned char num_resamples : 4;
-    void         *lowlvl;
 } gMonSensor_t;
 
 typedef struct {

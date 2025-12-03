@@ -1,19 +1,15 @@
 #include "station_include.h"
 
 gMonStatus staDaylightTrackInit(gardenMonitor_t *gmon) {
-    gMonStatus status = GMON_RESP_OK;
-    if (gmon == NULL) {
+    if (gmon == NULL)
         return GMON_RESP_ERRARGS;
-    }
-    status = staSetRequiredDaylenTicks(gmon, GMON_CFG_DEFAULT_REQUIRED_LIGHT_LENGTH_TICKS);
-    return status;
+    return staSetRequiredDaylenTicks(gmon, GMON_CFG_DEFAULT_REQUIRED_LIGHT_LENGTH_TICKS);
 }
 
 gMonStatus staSetRequiredDaylenTicks(gardenMonitor_t *gmon, unsigned int light_length) {
     gMonStatus status = GMON_RESP_OK;
-    if (gmon == NULL) {
+    if (gmon == NULL)
         return GMON_RESP_ERRARGS;
-    }
     if (light_length <= GMON_MAX_REQUIRED_LIGHT_LENGTH_TICKS) {
         stationSysEnterCritical();
         gmon->user_ctrl.required_light_daylength_ticks = light_length;
@@ -30,13 +26,16 @@ void lightControllerTaskFn(void *params) {
     gMonStatus     status = GMON_RESP_OK;
     gmonEvent_t   *event = NULL;
 
-    gardenMonitor_t *gmon = (gardenMonitor_t *)params;
+    gardenMonitor_t    *gmon = (gardenMonitor_t *)params;
+    gMonSensor_t       *sensor = &gmon->sensors.light;
+    gmonSensorSample_t *read_vals = staAllocSensorSampleBuffer(sensor, GMON_SENSOR_DATA_TYPE_U32);
     while (1) {
         curr_ticks = stationGetTicksPerDay(&gmon->tick);
         curr_days = stationGetDays(&gmon->tick);
         // Interactively read from light-relevant sensors
-        status = GMON_SENSOR_READ_FN_LIGHT(&lightness);
+        status = GMON_SENSOR_READ_FN_LIGHT(sensor, read_vals);
         if (status == GMON_RESP_OK) {
+            lightness = ((unsigned int *)read_vals[0].data)[0];
             event = staAllocSensorEvent(gmon);
             if (event != NULL) {
                 event->event_type = GMON_EVENT_LIGHTNESS_UPDATED;
@@ -53,4 +52,4 @@ void lightControllerTaskFn(void *params) {
         }
         stationSysDelayMs(gmon->sensors.light.read_interval_ms);
     }
-}
+} // end of lightControllerTaskFn

@@ -25,14 +25,14 @@ gMonStatus stationPlatformDeinit(void);
 
 gMonStatus staSensorPlatformInitSoilMoist(gMonSensor_t *);
 gMonStatus staSensorPlatformDeInitSoilMoist(gMonSensor_t *);
-gMonStatus staPlatformReadSoilMoistSensor(unsigned int *out);
+gMonStatus staPlatformReadSoilMoistSensor(gMonSensor_t *, gmonSensorSample_t *);
 
 gMonStatus staSensorPlatformInitAirTemp(gMonSensor_t *);
 gMonStatus staSensorPlatformDeInitAirTemp(gMonSensor_t *);
 
 gMonStatus staSensorPlatformInitLight(gMonSensor_t *);
 gMonStatus staSensorPlatformDeInitLight(gMonSensor_t *);
-gMonStatus staPlatformReadLightSensor(unsigned int *out);
+gMonStatus staPlatformReadLightSensor(gMonSensor_t *, gmonSensorSample_t *);
 
 gMonStatus staActuatorPlatformInitPump(void **pinstruct);
 gMonStatus staActuatorPlatformInitFan(void **pinstruct);

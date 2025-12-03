@@ -9,10 +9,11 @@ gMonStatus staSensorInitLight(gMonSensor_t *s) {
 
 gMonStatus staSensorDeInitLight(gMonSensor_t *s) { return staSensorPlatformDeInitLight(s); }
 
-gMonStatus staSensorReadLight(unsigned int *out) {
+gMonStatus staSensorReadLight(gMonSensor_t *sensor, gmonSensorSample_t *read_val) {
     gMonStatus status = GMON_RESP_OK;
     stationSysEnterCritical();
-    status = staPlatformReadLightSensor(out);
+    status = staPlatformReadLightSensor(sensor, read_val);
+    // TODO, filter noise
     stationSysExitCritical();
     return status;
 }

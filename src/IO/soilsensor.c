@@ -11,10 +11,11 @@ gMonStatus staSensorInitSoilMoist(gMonSensor_t *s) {
 
 gMonStatus staSensorDeInitSoilMoist(gMonSensor_t *s) { return staSensorPlatformDeInitSoilMoist(s); }
 
-gMonStatus staSensorReadSoilMoist(unsigned int *out) {
+gMonStatus staSensorReadSoilMoist(gMonSensor_t *sensor, gmonSensorSample_t *readval) {
     gMonStatus status = GMON_RESP_OK;
     stationSysEnterCritical();
-    status = staPlatformReadSoilMoistSensor(out);
+    status = staPlatformReadSoilMoistSensor(sensor, readval);
+    // TODO, filter noise
     stationSysExitCritical();
     return status;
 }

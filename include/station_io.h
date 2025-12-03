@@ -17,15 +17,15 @@ gMonStatus   staNotifyOthersWithEvent(gardenMonitor_t *, gmonEvent_t *, uint32_t
 
 gMonStatus staSensorInitSoilMoist(gMonSensor_t *);
 gMonStatus staSensorDeInitSoilMoist(gMonSensor_t *);
-gMonStatus staSensorReadSoilMoist(unsigned int *out);
+gMonStatus staSensorReadSoilMoist(gMonSensor_t *, gmonSensorSample_t *);
 
 gMonStatus staSensorInitAirTemp(gMonSensor_t *);
 gMonStatus staSensorDeInitAirTemp(gMonSensor_t *);
-gMonStatus staSensorReadAirTemp(float *air_temp, float *air_humid);
+gMonStatus staSensorReadAirTemp(gMonSensor_t *, gmonSensorSample_t *);
 
 gMonStatus staSensorInitLight(gMonSensor_t *);
 gMonStatus staSensorDeInitLight(gMonSensor_t *);
-gMonStatus staSensorReadLight(unsigned int *out);
+gMonStatus staSensorReadLight(gMonSensor_t *, gmonSensorSample_t *);
 
 // device-specific functions
 gMonStatus staActuatorInitPump(gMonActuator_t *);

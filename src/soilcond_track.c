@@ -6,14 +6,16 @@ void pumpControllerTaskFn(void *params) {
     gMonStatus     status = GMON_RESP_OK;
     gmonEvent_t   *event = NULL;
 
-    gardenMonitor_t *gmon = (gardenMonitor_t *)params;
+    gardenMonitor_t    *gmon = (gardenMonitor_t *)params;
+    gMonSensor_t       *sensor = &gmon->sensors.soil_moist;
+    gmonSensorSample_t *read_vals = staAllocSensorSampleBuffer(sensor, GMON_SENSOR_DATA_TYPE_U32);
     while (1) {
         curr_ticks = stationGetTicksPerDay(&gmon->tick);
         curr_days = stationGetDays(&gmon->tick);
 
-        // 1. Read Soil Moisture and create an event
-        status = GMON_SENSOR_READ_FN_SOIL_MOIST(&soil_moist);
+        status = GMON_SENSOR_READ_FN_SOIL_MOIST(sensor, read_vals);
         if (status == GMON_RESP_OK) {
+            soil_moist = ((unsigned int *)read_vals[0].data)[0]; // TODO
             event = staAllocSensorEvent(gmon);
             if (event != NULL) {
                 event->event_type = GMON_EVENT_SOIL_MOISTURE_UPDATED;
@@ -28,4 +30,4 @@ void pumpControllerTaskFn(void *params) {
         // The interval will be updated by network handling task during runtime
         stationSysDelayMs(gmon->sensors.soil_moist.read_interval_ms);
     }
-}
+} // end of pumpControllerTaskFn
