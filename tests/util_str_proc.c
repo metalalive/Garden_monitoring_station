@@ -3,15 +3,52 @@
 #include "station_include.h"
 #include "mocks.h"
 
+TEST_GROUP(UpdateBitFlag);
+
+TEST_SETUP(UpdateBitFlag) {}
+
+TEST_TEAR_DOWN(UpdateBitFlag) {}
+
+TEST(UpdateBitFlag, SetClearOk) {
+#define NUM_ELEMENTS 2
+    unsigned char arr[NUM_ELEMENTS] = {0x00, 0xFF};
+    staSetBitFlag(arr, 2, 1);
+    TEST_ASSERT_EQUAL_HEX8(0x04, arr[0]);
+    TEST_ASSERT_EQUAL_HEX8(0xFF, arr[1]);
+    staSetBitFlag(arr, 4, 1);
+    TEST_ASSERT_EQUAL_HEX8(0x14, arr[0]);
+    TEST_ASSERT_EQUAL_HEX8(0xFF, arr[1]);
+    staSetBitFlag(arr, 8, 0);
+    TEST_ASSERT_EQUAL_HEX8(0x14, arr[0]);
+    TEST_ASSERT_EQUAL_HEX8(0xFE, arr[1]);
+    staSetBitFlag(arr, 0, 1);
+    TEST_ASSERT_EQUAL_HEX8(0x15, arr[0]);
+    TEST_ASSERT_EQUAL_HEX8(0xFE, arr[1]);
+    TEST_ASSERT_TRUE(staGetBitFlag(arr, 14));
+    staSetBitFlag(arr, 14, 0);
+    TEST_ASSERT_EQUAL_HEX8(0x15, arr[0]);
+    TEST_ASSERT_EQUAL_HEX8(0xBE, arr[1]);
+    TEST_ASSERT_FALSE(staGetBitFlag(arr, 14));
+    staSetBitFlag(arr, 4, 0);
+    staSetBitFlag(arr, 15, 0);
+    TEST_ASSERT_EQUAL_HEX8(0x05, arr[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x3E, arr[1]);
+    TEST_ASSERT_TRUE(staGetBitFlag(arr, 0));
+    TEST_ASSERT_FALSE(staGetBitFlag(arr, 1));
+    TEST_ASSERT_TRUE(staGetBitFlag(arr, 2));
+    TEST_ASSERT_FALSE(staGetBitFlag(arr, 3));
+    TEST_ASSERT_FALSE(staGetBitFlag(arr, 8));
+    TEST_ASSERT_TRUE(staGetBitFlag(arr, 9));
+    TEST_ASSERT_TRUE(staGetBitFlag(arr, 10));
+    TEST_ASSERT_TRUE(staGetBitFlag(arr, 11));
+#undef NUM_ELEMENTS
+}
+
 TEST_GROUP(ReverseString);
 
-TEST_SETUP(ReverseString) {
-    // No specific setup needed for staReverseString tests
-}
+TEST_SETUP(ReverseString) {}
 
-TEST_TEAR_DOWN(ReverseString) {
-    // No specific tear down needed
-}
+TEST_TEAR_DOWN(ReverseString) {}
 
 TEST(ReverseString, NullStringPointer) {
     unsigned char *null_str = NULL;
@@ -252,13 +289,9 @@ TEST(ChkIntFromStr, StringStartingWithInvalidChar) {
 
 TEST_GROUP(CvtIntFromStr);
 
-TEST_SETUP(CvtIntFromStr) {
-    // No specific setup needed
-}
+TEST_SETUP(CvtIntFromStr) {}
 
-TEST_TEAR_DOWN(CvtIntFromStr) {
-    // No specific tear down needed
-}
+TEST_TEAR_DOWN(CvtIntFromStr) {}
 
 TEST(CvtIntFromStr, NullStringPointer) {
     unsigned char *null_str = NULL;
@@ -478,7 +511,8 @@ TEST(TimeTracking, currTickWrapsAroundMaxUint32) {
     TEST_ASSERT_EQUAL(50, test_gmon_tick.last_read);
 }
 
-TEST_GROUP_RUNNER(gMonUtility) {
+TEST_GROUP_RUNNER(gMonUtilityStrProcess) {
+    RUN_TEST_CASE(UpdateBitFlag, SetClearOk);
     RUN_TEST_CASE(ReverseString, NullStringPointer);
     RUN_TEST_CASE(ReverseString, ZeroSizeString);
     RUN_TEST_CASE(ReverseString, SingleCharacterString);

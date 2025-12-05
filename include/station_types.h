@@ -52,13 +52,18 @@ typedef enum {
 
 typedef struct {
     gmonSensorDataType_t dtype;
-    unsigned short       len;    // num of items in `data` field
-    unsigned char        id : 4; // identity for each sensor type
+    // num of items in `data` field
+    unsigned short len;
+    // identity for each sensor type
+    unsigned char id : 4;
     // array of values read from an individual sensor
     // cast the pointer to corresponding type depending on `dtype` above :
     // - unsigned int , if GMON_SENSOR_DATA_TYPE_U32
     // - gmonAirCond_t , if GMON_SENSOR_DATA_TYPE_AIRCOND
     void *data;
+    // 1-bit flag for each read data  which indicates whether it
+    // is outlier among sample data sequence due to impulse noise
+    unsigned char *outlier;
 } gmonSensorSample_t;
 
 typedef enum {
@@ -80,6 +85,9 @@ typedef struct {
     unsigned int curr_ticks;
     unsigned int curr_days;
     struct {
+        // data-corruption flags for installed sensors of the same type,
+        // each bit flag indicates sensor ID from `gmonSensorSample_t`
+        unsigned char corruption;
         unsigned char alloc : 1;
     } flgs;
 } gmonEvent_t;
@@ -97,6 +105,7 @@ typedef struct {
 
 typedef struct {
     void        *lowlvl;
+    float        outlier_threshold;
     unsigned int read_interval_ms;
     // number of sensors installed in one spot ,
     // note current appllication does not identify sensors in several different spots

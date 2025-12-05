@@ -5,6 +5,7 @@ gMonStatus staSensorInitAirTemp(gMonSensor_t *s) {
     s->read_interval_ms = GMON_CFG_SENSOR_READ_INTERVAL_MS;
     s->num_items = GMON_CFG_NUM_AIR_SENSORS;
     s->num_resamples = GMON_CFG_AIR_SENSOR_NUM_OVERSAMPLE;
+    s->outlier_threshold = GMON_AIR_SENSOR_OUTLIER_THRESHOLD;
     return staSensorPlatformInitAirTemp(s);
 }
 

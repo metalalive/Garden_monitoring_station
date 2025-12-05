@@ -8,6 +8,9 @@ void airQualityMonitorTaskFn(void *params) {
     while (1) {
         gMonStatus status = GMON_SENSOR_READ_FN_AIR_TEMP(sensor, read_vals);
         if (status == GMON_RESP_OK) {
+            status = staSensorDetectNoise(sensor->outlier_threshold, read_vals, sensor->num_items);
+        }
+        if (status == GMON_RESP_OK) {
             gmonAirCond_t *newread = &((gmonAirCond_t *)read_vals[0].data)[0]; // TODO
             gmonEvent_t   *event = staAllocSensorEvent(gmon);
             if (event != NULL) {
