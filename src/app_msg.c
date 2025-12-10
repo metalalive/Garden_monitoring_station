@@ -632,7 +632,7 @@ gmonSensorRecord_t staUpdateLastRecord(gmonSensorRecord_t *records, gmonEvent_t 
         // from the new event.
         records[0].curr_ticks = evt->curr_ticks;
         records[0].curr_days = evt->curr_days;
-        records[0].soil_moist = evt->data.soil_moist;
+        records[0].soil_moist = ((unsigned int *)evt->data)[0]; // TODO
         records[0].flgs.soil_val_written = 1;
         break;
     case GMON_EVENT_LIGHTNESS_UPDATED:
@@ -641,7 +641,7 @@ gmonSensorRecord_t staUpdateLastRecord(gmonSensorRecord_t *records, gmonEvent_t 
         }
         records[0].curr_ticks = evt->curr_ticks;
         records[0].curr_days = evt->curr_days;
-        records[0].lightness = evt->data.lightness;
+        records[0].lightness = ((unsigned int *)evt->data)[0]; // TODO
         records[0].flgs.light_val_written = 1;
         break;
     case GMON_EVENT_AIR_TEMP_UPDATED:
@@ -650,7 +650,7 @@ gmonSensorRecord_t staUpdateLastRecord(gmonSensorRecord_t *records, gmonEvent_t 
         }
         records[0].curr_ticks = evt->curr_ticks;
         records[0].curr_days = evt->curr_days;
-        records[0].air_cond = evt->data.air_cond;
+        records[0].air_cond = ((gmonAirCond_t *)evt->data)[0]; // TODO
         records[0].flgs.air_val_written = 1;
         break;
     default:

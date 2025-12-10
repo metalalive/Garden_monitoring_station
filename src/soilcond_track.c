@@ -16,10 +16,12 @@ void pumpControllerTaskFn(void *params) {
         status = GMON_SENSOR_READ_FN_SOIL_MOIST(sensor, read_vals);
         if (status == GMON_RESP_OK) {
             soil_moist = ((unsigned int *)read_vals[0].data)[0]; // TODO
-            event = staAllocSensorEvent(&gmon->sensors.event);
+            event = staAllocSensorEvent(
+                &gmon->sensors.event, GMON_EVENT_SOIL_MOISTURE_UPDATED, sensor->num_items
+            );
             if (event != NULL) {
-                event->event_type = GMON_EVENT_SOIL_MOISTURE_UPDATED;
-                event->data.soil_moist = soil_moist;
+                unsigned int *data = event->data;
+                data[0] = soil_moist; // TODO
                 event->curr_ticks = curr_ticks;
                 event->curr_days = curr_days;
                 staNotifyOthersWithEvent(gmon, event, block_time);

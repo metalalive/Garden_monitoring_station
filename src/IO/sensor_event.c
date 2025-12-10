@@ -1,8 +1,22 @@
 #include "station_include.h"
 
-gmonEvent_t *staAllocSensorEvent(gMonEvtPool_t *epool) {
+gmonEvent_t *staAllocSensorEvent(gMonEvtPool_t *epool, gmonEventType_t etyp, unsigned char num_sensors) {
     gmonEvent_t *out = NULL;
     uint16_t     idx = 0;
+    unsigned int nbytes_per_sensor = 0;
+    if (epool == NULL || num_sensors == 0)
+        return NULL;
+    switch (etyp) {
+    case GMON_EVENT_SOIL_MOISTURE_UPDATED:
+    case GMON_EVENT_LIGHTNESS_UPDATED:
+        nbytes_per_sensor = sizeof(unsigned int);
+        break;
+    case GMON_EVENT_AIR_TEMP_UPDATED:
+        nbytes_per_sensor = sizeof(gmonAirCond_t);
+        break;
+    default:
+        return NULL;
+    }
     stationSysEnterCritical();
     for (idx = 0; idx < epool->len; idx++) {
         if (epool->pool[idx].flgs.alloc == 0) {
@@ -13,6 +27,11 @@ gmonEvent_t *staAllocSensorEvent(gMonEvtPool_t *epool) {
         }
     }
     stationSysExitCritical();
+    if (out) {
+        out->data = XCALLOC(num_sensors, nbytes_per_sensor);
+        out->event_type = etyp;
+        out->num_active_sensors = num_sensors;
+    }
     return out;
 }
 
@@ -34,33 +53,29 @@ gMonStatus staFreeSensorEvent(gMonEvtPool_t *epool, gmonEvent_t *record) {
             status = GMON_RESP_ERRMEM; // memory not aligned
             break;
         } else if (record == addr_start) {
-            if (addr_start->flgs.alloc != 0) {
-                addr_start->flgs.alloc = 0;
-            }
+            if (record->flgs.alloc != 0)
+                record->flgs.alloc = 0;
             break;
         }
     }
 done:
     stationSysExitCritical();
-    return status;
-}
-
-gMonStatus staCpySensorEvent(gmonEvent_t *dst, gmonEvent_t *src, size_t sz) {
-    unsigned int idx = 0;
-    gMonStatus   status = GMON_RESP_OK;
-    if (dst == NULL || src == NULL || sz == 0) {
-        return GMON_RESP_ERRARGS;
-    }
-    for (idx = 0; idx < sz; idx++) {
-        if (dst[idx].flgs.alloc == 0 || src[idx].flgs.alloc == 0) {
-            status = GMON_RESP_ERRMEM;
-            break;
-        }
-    }
     if (status == GMON_RESP_OK) {
-        XMEMCPY(dst, src, sizeof(gmonEvent_t) * sz);
+        XMEMFREE(record->data);
+        record->data = NULL;
     }
     return status;
+} // end of staFreeSensorEvent
+
+gMonStatus staCpySensorEvent(gmonEvent_t *dst, gmonEvent_t *src) {
+    if (dst == NULL || src == NULL)
+        return GMON_RESP_ERRARGS;
+    if (dst->flgs.alloc == 0 || src->flgs.alloc == 0)
+        return GMON_RESP_ERRMEM;
+    void *databak = dst->data;
+    XMEMCPY(dst, src, sizeof(gmonEvent_t) * 0x1);
+    dst->data = databak;
+    return GMON_RESP_OK;
 }
 
 static gMonStatus staAddEventToMsgPipe(
@@ -82,11 +97,12 @@ static gMonStatus staAddEventToMsgPipe(
     return status;
 }
 
-gMonStatus staNotifyOthersWithEvent(gardenMonitor_t *gmon, gmonEvent_t *event, uint32_t block_time) {
-    gmonEvent_t *event_copy = staAllocSensorEvent(&gmon->sensors.event);
-    gMonStatus   status = staCpySensorEvent(event_copy, event, (size_t)0x1);
-    staAddEventToMsgPipe(gmon, gmon->msgpipe.sensor2display, event, block_time);
-    staAddEventToMsgPipe(gmon, gmon->msgpipe.sensor2net, event_copy, block_time);
+gMonStatus staNotifyOthersWithEvent(gardenMonitor_t *gmon, gmonEvent_t *evt, uint32_t block_time) {
+    gMonEvtPool_t *epool = &gmon->sensors.event;
+    gmonEvent_t   *evt_copy = staAllocSensorEvent(epool, evt->event_type, evt->num_active_sensors);
+    gMonStatus     status = staCpySensorEvent(evt_copy, evt);
+    staAddEventToMsgPipe(gmon, gmon->msgpipe.sensor2display, evt, block_time);
+    staAddEventToMsgPipe(gmon, gmon->msgpipe.sensor2net, evt_copy, block_time);
     return status;
 }
 

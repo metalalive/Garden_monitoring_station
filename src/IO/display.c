@@ -80,7 +80,7 @@ static gMonStatus staUpdatePrintStrSensorData(gmonPrintInfo_t *content, void *ap
     gmonEvent_t   *new_evt = app_ctx;
     unsigned char *dst_buf = NULL;
     uint8_t        num_chr = 0;
-
+    // TODO, expand multi-sensor values in display
     const short fix_content_idx[] = {
         30, 4, 12, 5, 18, 3, 13, 4, 1, 0,
     };
@@ -91,23 +91,23 @@ static gMonStatus staUpdatePrintStrSensorData(gmonPrintInfo_t *content, void *ap
     case GMON_EVENT_SOIL_MOISTURE_UPDATED:
         dst_buf = var_content_ptr[0];
         XMEMSET(dst_buf, 0x20, fix_content_idx[1]);
-        num_chr = staCvtUNumToStr(dst_buf, new_evt->data.soil_moist);
+        num_chr = staCvtUNumToStr(dst_buf, ((unsigned int *)new_evt->data)[0]);
         XASSERT(num_chr <= fix_content_idx[1]);
         break;
     case GMON_EVENT_AIR_TEMP_UPDATED:
         dst_buf = var_content_ptr[1];
         XMEMSET(dst_buf, 0x20, fix_content_idx[3]);
-        num_chr = staCvtFloatToStr(dst_buf, new_evt->data.air_cond.temporature, 0x1);
+        num_chr = staCvtFloatToStr(dst_buf, ((gmonAirCond_t *)new_evt->data)[0].temporature, 0x1);
         XASSERT(num_chr <= fix_content_idx[3]);
         dst_buf = var_content_ptr[2];
         XMEMSET(dst_buf, 0x20, fix_content_idx[5]);
-        num_chr = staCvtFloatToStr(dst_buf, new_evt->data.air_cond.humidity, 0x1);
+        num_chr = staCvtFloatToStr(dst_buf, ((gmonAirCond_t *)new_evt->data)[0].humidity, 0x1);
         XASSERT(num_chr <= fix_content_idx[5]);
         break;
     case GMON_EVENT_LIGHTNESS_UPDATED:
         dst_buf = var_content_ptr[3];
         XMEMSET(dst_buf, 0x20, fix_content_idx[7]);
-        num_chr = staCvtUNumToStr(dst_buf, new_evt->data.lightness);
+        num_chr = staCvtUNumToStr(dst_buf, ((unsigned int *)new_evt->data)[0]);
         XASSERT(num_chr <= fix_content_idx[7]);
         break;
     default:

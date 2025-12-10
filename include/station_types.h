@@ -78,18 +78,18 @@ typedef enum {
     unsigned int  lightness;
 
 typedef struct {
-    gmonEventType_t event_type : 4;
+    gmonEventType_t event_type         : 4;
+    unsigned char   num_active_sensors : 4;
     struct {
         // data-corruption flags for installed sensors of the same type,
         // each bit flag indicates sensor ID from `gmonSensorSample_t`
         unsigned char corruption;
         unsigned char alloc : 1;
     } flgs;
-    union {
-        GMON_SENSORDATA_COMMON_FIELDS;
-    } data;
     unsigned int curr_ticks;
     unsigned int curr_days;
+    // point to array of one of the types in `GMON_SENSORDATA_COMMON_FIELDS`
+    void *data;
 } gmonEvent_t;
 
 typedef struct {

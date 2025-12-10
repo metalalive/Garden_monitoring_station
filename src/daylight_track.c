@@ -36,10 +36,11 @@ void lightControllerTaskFn(void *params) {
         status = GMON_SENSOR_READ_FN_LIGHT(sensor, read_vals);
         if (status == GMON_RESP_OK) {
             lightness = ((unsigned int *)read_vals[0].data)[0];
-            event = staAllocSensorEvent(&gmon->sensors.event);
+            event =
+                staAllocSensorEvent(&gmon->sensors.event, GMON_EVENT_LIGHTNESS_UPDATED, sensor->num_items);
             if (event != NULL) {
-                event->event_type = GMON_EVENT_LIGHTNESS_UPDATED;
-                event->data.lightness = lightness;
+                unsigned int *data = event->data;
+                data[0] = lightness;
                 event->curr_ticks = curr_ticks;
                 event->curr_days = curr_days;
                 // Pass the read data to message pipe

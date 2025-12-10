@@ -12,12 +12,12 @@ void airQualityMonitorTaskFn(void *params) {
         }
         if (status == GMON_RESP_OK) {
             gmonAirCond_t *newread = &((gmonAirCond_t *)read_vals[0].data)[0]; // TODO
-            gmonEvent_t   *event = staAllocSensorEvent(&gmon->sensors.event);
+            gmonEvent_t   *event =
+                staAllocSensorEvent(&gmon->sensors.event, GMON_EVENT_AIR_TEMP_UPDATED, sensor->num_items);
             if (event != NULL) {
+                gmonAirCond_t *data = event->data;
                 // TODO, calibration, reference point from remote user request
-                event->event_type = GMON_EVENT_AIR_TEMP_UPDATED;
-                event->data.air_cond.temporature = newread->temporature;
-                event->data.air_cond.humidity = newread->humidity;
+                data[0] = (gmonAirCond_t){newread->temporature, newread->humidity};
                 event->curr_ticks = stationGetTicksPerDay(&gmon->tick);
                 event->curr_days = stationGetDays(&gmon->tick);
                 staNotifyOthersWithEvent(gmon, event, block_time);
