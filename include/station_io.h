@@ -10,8 +10,8 @@ extern "C" {
 gMonStatus stationIOinit(gardenMonitor_t *);
 gMonStatus stationIOdeinit(gardenMonitor_t *);
 
-gmonEvent_t *staAllocSensorEvent(gardenMonitor_t *);
-gMonStatus   staFreeSensorEvent(gardenMonitor_t *, gmonEvent_t *);
+gmonEvent_t *staAllocSensorEvent(gMonEvtPool_t *);
+gMonStatus   staFreeSensorEvent(gMonEvtPool_t *, gmonEvent_t *);
 gMonStatus   staCpySensorEvent(gmonEvent_t *dst, gmonEvent_t *src, size_t sz);
 gMonStatus   staNotifyOthersWithEvent(gardenMonitor_t *, gmonEvent_t *, uint32_t block_time);
 

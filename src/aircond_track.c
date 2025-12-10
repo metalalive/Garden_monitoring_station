@@ -12,7 +12,7 @@ void airQualityMonitorTaskFn(void *params) {
         }
         if (status == GMON_RESP_OK) {
             gmonAirCond_t *newread = &((gmonAirCond_t *)read_vals[0].data)[0]; // TODO
-            gmonEvent_t   *event = staAllocSensorEvent(gmon);
+            gmonEvent_t   *event = staAllocSensorEvent(&gmon->sensors.event);
             if (event != NULL) {
                 // TODO, calibration, reference point from remote user request
                 event->event_type = GMON_EVENT_AIR_TEMP_UPDATED;

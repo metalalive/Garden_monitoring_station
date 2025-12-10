@@ -51,11 +51,11 @@ typedef enum {
 } gmonSensorDataType_t;
 
 typedef struct {
-    gmonSensorDataType_t dtype;
-    // num of items in `data` field
-    unsigned short len;
+    gmonSensorDataType_t dtype : 4;
     // identity for each sensor type
     unsigned char id : 4;
+    // num of items in `data` field
+    unsigned short len;
     // array of values read from an individual sensor
     // cast the pointer to corresponding type depending on `dtype` above :
     // - unsigned int , if GMON_SENSOR_DATA_TYPE_U32
@@ -78,18 +78,18 @@ typedef enum {
     unsigned int  lightness;
 
 typedef struct {
-    gmonEventType_t event_type;
-    union {
-        GMON_SENSORDATA_COMMON_FIELDS;
-    } data;
-    unsigned int curr_ticks;
-    unsigned int curr_days;
+    gmonEventType_t event_type : 4;
     struct {
         // data-corruption flags for installed sensors of the same type,
         // each bit flag indicates sensor ID from `gmonSensorSample_t`
         unsigned char corruption;
         unsigned char alloc : 1;
     } flgs;
+    union {
+        GMON_SENSORDATA_COMMON_FIELDS;
+    } data;
+    unsigned int curr_ticks;
+    unsigned int curr_days;
 } gmonEvent_t;
 
 typedef struct {
@@ -102,6 +102,11 @@ typedef struct {
         unsigned char light_val_written : 1;
     } flgs;
 } gmonSensorRecord_t;
+
+typedef struct {
+    gmonEvent_t *pool;
+    unsigned int len;
+} gMonEvtPool_t;
 
 typedef struct {
     void        *lowlvl;

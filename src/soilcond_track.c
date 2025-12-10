@@ -16,7 +16,7 @@ void pumpControllerTaskFn(void *params) {
         status = GMON_SENSOR_READ_FN_SOIL_MOIST(sensor, read_vals);
         if (status == GMON_RESP_OK) {
             soil_moist = ((unsigned int *)read_vals[0].data)[0]; // TODO
-            event = staAllocSensorEvent(gmon);
+            event = staAllocSensorEvent(&gmon->sensors.event);
             if (event != NULL) {
                 event->event_type = GMON_EVENT_SOIL_MOISTURE_UPDATED;
                 event->data.soil_moist = soil_moist;

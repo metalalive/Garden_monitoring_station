@@ -34,6 +34,7 @@ _COMMON_C_SOURCES_FUNC = \
     src/app_msg.c \
     src/network/mqtt_client.c \
     src/IO/sensor_event.c \
+    src/IO/sensor_sample.c \
     src/IO/actuator.c  \
     src/IO/display.c \
     src/IO/display/textfonts.c \

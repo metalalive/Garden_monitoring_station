@@ -372,7 +372,7 @@ void stationDisplayTaskFn(void *params) {
             dblk->render(&dblk->content, new_evt);
             dblk = &display_ctx->blocks[GMON_BLOCK_ACTUATOR_STATUS];
             dblk->render(&dblk->content, gmon);
-            staFreeSensorEvent(gmon, new_evt);
+            staFreeSensorEvent(&gmon->sensors.event, new_evt);
             new_evt = NULL;
         }
         switch_lines_cnt = displayVerticalScroll(

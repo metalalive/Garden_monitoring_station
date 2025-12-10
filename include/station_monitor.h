@@ -34,13 +34,10 @@ typedef struct gardenMonitor_s {
     } tasks;
     struct gMonMsgPipe_t msgpipe;
     struct { // TODO, variable size of `gMonSensor_t` instances
-        gMonSensor_t soil_moist;
-        gMonSensor_t air_temp;
-        gMonSensor_t light;
-        struct {
-            gmonEvent_t *pool;
-            size_t       len;
-        } event;
+        gMonSensor_t       soil_moist;
+        gMonSensor_t       air_temp;
+        gMonSensor_t       light;
+        gMonEvtPool_t      event;
         gmonSensorRecord_t latest_records[GMON_CFG_NUM_SENSOR_RECORDS_KEEP];
     } sensors;
     struct {
