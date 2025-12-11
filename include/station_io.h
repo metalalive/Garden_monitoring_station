@@ -27,8 +27,8 @@ gMonStatus staSensorInitLight(gMonSensor_t *);
 gMonStatus staSensorDeInitLight(gMonSensor_t *);
 gMonStatus staSensorReadLight(gMonSensor_t *, gmonSensorSample_t *);
 
-gMonStatus
-staSensorDetectNoise(float threshold, const gmonSensorSample_t *sensorsamples, unsigned char num_items);
+gMonStatus staSensorDetectNoise(float threshold, gmonSensorSample_t *, unsigned char num_items);
+gMonStatus staSensorSampleToEvent(gmonEvent_t *, gmonSensorSample_t *);
 
 // device-specific functions
 gMonStatus staActuatorInitPump(gMonActuator_t *);

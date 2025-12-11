@@ -79,7 +79,7 @@ static void staSensorU32DetectNoise(
     }
 }
 static void staSensorAirCondDetectNoise(
-    float threshold, const gmonSensorSample_t *sensorsamples, unsigned char num_items, unsigned short tot_len
+    float threshold, gmonSensorSample_t *sensorsamples, unsigned char num_items, unsigned short tot_len
 ) {
     const float    threshold_hi = threshold, threshold_lo = threshold_hi * -1.f;
     unsigned int   samples_cloned[tot_len], median = 0, mad = 0;
@@ -123,8 +123,49 @@ static void staSensorAirCondDetectNoise(
     }
 } // end of staSensorAirCondDetectNoise
 
-gMonStatus
-staSensorDetectNoise(float threshold, const gmonSensorSample_t *sensorsamples, unsigned char num_items) {
+static unsigned short
+staAggregateU32Samples(gmonEvent_t *evt, gmonSensorSample_t *ssample, unsigned char s_idx) {
+    unsigned int  *raw_data = (unsigned int *)ssample->data;
+    unsigned int   sum = 0;
+    unsigned short valid_sample_count = 0, outlier_count = 0;
+
+    for (unsigned short j = 0; j < ssample->len; ++j) {
+        if (staGetBitFlag(ssample->outlier, j) == 0) { // Not an outlier
+            sum += raw_data[j];
+            valid_sample_count++;
+        } else {
+            outlier_count++;
+        }
+    }
+    if (valid_sample_count > 0)
+        ((unsigned int *)evt->data)[s_idx] = (unsigned int)(sum / valid_sample_count);
+    return outlier_count;
+}
+
+static unsigned short
+staAggregateAirCondSamples(gmonEvent_t *evt, gmonSensorSample_t *ssample, unsigned char s_idx) {
+    gmonAirCond_t *raw_data = (gmonAirCond_t *)ssample->data;
+    float          temp_sum = 0.0f, humid_sum = 0.0f;
+    unsigned short valid_sample_count = 0, outlier_count = 0;
+
+    for (unsigned short j = 0; j < ssample->len; ++j) {
+        if (staGetBitFlag(ssample->outlier, j) == 0) { // Not an outlier
+            temp_sum += raw_data[j].temporature;
+            humid_sum += raw_data[j].humidity;
+            valid_sample_count++;
+        } else {
+            outlier_count++;
+        }
+    }
+    gmonAirCond_t *event_air_cond = &((gmonAirCond_t *)evt->data)[s_idx];
+    if (valid_sample_count > 0) {
+        event_air_cond->temporature = temp_sum / valid_sample_count;
+        event_air_cond->humidity = humid_sum / valid_sample_count;
+    }
+    return outlier_count;
+}
+
+gMonStatus staSensorDetectNoise(float threshold, gmonSensorSample_t *sensorsamples, unsigned char num_items) {
     if (sensorsamples == NULL || threshold < 0.01 || num_items == 0)
         return GMON_RESP_ERRARGS;
     gMonStatus     status = GMON_RESP_OK;
@@ -146,4 +187,42 @@ staSensorDetectNoise(float threshold, const gmonSensorSample_t *sensorsamples, u
         break;
     }
     return status;
+}
+
+gMonStatus staSensorSampleToEvent(gmonEvent_t *evt, gmonSensorSample_t *samples) {
+    if (evt == NULL || samples == NULL || evt->num_active_sensors == 0)
+        return GMON_RESP_ERRARGS;
+
+    gmonSensorDataType_t dtype0 = samples[0].dtype;
+    evt->flgs.corruption = 0;
+
+    for (unsigned char i = 0; i < evt->num_active_sensors; ++i) {
+        gmonSensorSample_t  *current_sample = &samples[i];
+        gmonSensorDataType_t dtype = current_sample->dtype;
+        unsigned short       outlier_count = 0;
+
+        if (dtype0 != dtype || current_sample->len == 0 || current_sample->data == NULL ||
+            current_sample->outlier == NULL) {
+            // If data types mismatch, no samples, no data, or no outlier info, consider this sensor corrupted
+            staSetBitFlag(&evt->flgs.corruption, current_sample->id - 1, 1);
+            continue; // Skip to processing the next sensor
+        }
+        switch (dtype) {
+        case GMON_SENSOR_DATA_TYPE_U32:
+            outlier_count = staAggregateU32Samples(evt, current_sample, i);
+            break;
+        case GMON_SENSOR_DATA_TYPE_AIRCOND:
+            outlier_count = staAggregateAirCondSamples(evt, current_sample, i);
+            break;
+        default:
+            // Unsupported data type for aggregation, mark sensor as corrupted
+            outlier_count = current_sample->len;
+            break;
+        }
+        // If more than half of samples were outliers, set corruption flag for the sensor
+        if (outlier_count >= ((current_sample->len + 1) >> 1)) {
+            staSetBitFlag(&evt->flgs.corruption, current_sample->id - 1, 1);
+        }
+    }
+    return GMON_RESP_OK;
 }

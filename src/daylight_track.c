@@ -22,7 +22,6 @@ gMonStatus staSetRequiredDaylenTicks(gardenMonitor_t *gmon, unsigned int light_l
 
 void lightControllerTaskFn(void *params) {
     const uint32_t block_time = 0;
-    unsigned int   lightness = 0, curr_ticks = 0, curr_days = 0;
     gMonStatus     status = GMON_RESP_OK;
     gmonEvent_t   *event = NULL;
 
@@ -30,27 +29,25 @@ void lightControllerTaskFn(void *params) {
     gMonSensor_t       *sensor = &gmon->sensors.light;
     gmonSensorSample_t *read_vals = staAllocSensorSampleBuffer(sensor, GMON_SENSOR_DATA_TYPE_U32);
     while (1) {
-        curr_ticks = stationGetTicksPerDay(&gmon->tick);
-        curr_days = stationGetDays(&gmon->tick);
+        // The interval for bulb will be updated by network handling task during runtime
+        stationSysDelayMs(gmon->sensors.light.read_interval_ms);
         // Interactively read from light-relevant sensors
         status = GMON_SENSOR_READ_FN_LIGHT(sensor, read_vals);
-        if (status == GMON_RESP_OK) {
-            lightness = ((unsigned int *)read_vals[0].data)[0];
-            event =
-                staAllocSensorEvent(&gmon->sensors.event, GMON_EVENT_LIGHTNESS_UPDATED, sensor->num_items);
-            if (event != NULL) {
-                unsigned int *data = event->data;
-                data[0] = lightness;
-                event->curr_ticks = curr_ticks;
-                event->curr_days = curr_days;
-                // Pass the read data to message pipe
-                staNotifyOthersWithEvent(gmon, event, block_time);
-            }
-            // TODO, redesign how to determine max work time of artifical light
-            gmon->actuator.bulb.max_worktime = 1230;
-            // The interval for bulb will be updated by network handling task during runtime
-            status = GMON_ACTUATOR_TRIG_FN_BULB(&gmon->actuator.bulb, lightness, &gmon->sensors.light);
-        }
-        stationSysDelayMs(gmon->sensors.light.read_interval_ms);
+        if (status == GMON_RESP_OK)
+            continue;
+        event = staAllocSensorEvent(&gmon->sensors.event, GMON_EVENT_LIGHTNESS_UPDATED, sensor->num_items);
+        if (event == NULL)
+            continue;
+        status = staSensorSampleToEvent(event, read_vals);
+        XASSERT(status == GMON_RESP_OK);
+        unsigned int lightness = ((unsigned int *)event->data)[0];
+        // TODO, redesign how to determine max work time of artifical light
+        gmon->actuator.bulb.max_worktime = 1230;
+        status = GMON_ACTUATOR_TRIG_FN_BULB(&gmon->actuator.bulb, lightness, &gmon->sensors.light);
+        XASSERT(status == GMON_RESP_OK);
+        event->curr_ticks = stationGetTicksPerDay(&gmon->tick);
+        event->curr_days = stationGetDays(&gmon->tick);
+        // Pass the read data to message pipe
+        staNotifyOthersWithEvent(gmon, event, block_time);
     }
 } // end of lightControllerTaskFn

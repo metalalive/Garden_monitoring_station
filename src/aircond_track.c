@@ -6,26 +6,26 @@ void airQualityMonitorTaskFn(void *params) {
     gMonSensor_t       *sensor = &gmon->sensors.air_temp;
     gmonSensorSample_t *read_vals = staAllocSensorSampleBuffer(sensor, GMON_SENSOR_DATA_TYPE_AIRCOND);
     while (1) {
-        gMonStatus status = GMON_SENSOR_READ_FN_AIR_TEMP(sensor, read_vals);
-        if (status == GMON_RESP_OK) {
-            status = staSensorDetectNoise(sensor->outlier_threshold, read_vals, sensor->num_items);
-        }
-        if (status == GMON_RESP_OK) {
-            gmonAirCond_t *newread = &((gmonAirCond_t *)read_vals[0].data)[0]; // TODO
-            gmonEvent_t   *event =
-                staAllocSensorEvent(&gmon->sensors.event, GMON_EVENT_AIR_TEMP_UPDATED, sensor->num_items);
-            if (event != NULL) {
-                gmonAirCond_t *data = event->data;
-                // TODO, calibration, reference point from remote user request
-                data[0] = (gmonAirCond_t){newread->temporature, newread->humidity};
-                event->curr_ticks = stationGetTicksPerDay(&gmon->tick);
-                event->curr_days = stationGetDays(&gmon->tick);
-                staNotifyOthersWithEvent(gmon, event, block_time);
-            }
-            // The interval for fan will be updated by network handling task during runtime
-            status =
-                GMON_ACTUATOR_TRIG_FN_FAN(&gmon->actuator.fan, newread->temporature, &gmon->sensors.air_temp);
-        }
+        // The interval for fan will be updated by network handling task during runtime
         stationSysDelayMs(gmon->sensors.air_temp.read_interval_ms);
+        gMonStatus status = GMON_SENSOR_READ_FN_AIR_TEMP(sensor, read_vals);
+        if (status != GMON_RESP_OK)
+            continue;
+        status = staSensorDetectNoise(sensor->outlier_threshold, read_vals, sensor->num_items);
+        if (status != GMON_RESP_OK)
+            continue;
+        gmonEvent_t *event =
+            staAllocSensorEvent(&gmon->sensors.event, GMON_EVENT_AIR_TEMP_UPDATED, sensor->num_items);
+        if (event == NULL)
+            continue;
+        status = staSensorSampleToEvent(event, read_vals);
+        XASSERT(status == GMON_RESP_OK)
+        // TODO, calibration, reference point from remote user request
+        gmonAirCond_t *nr = &((gmonAirCond_t *)event->data)[0]; // TODO
+        status = GMON_ACTUATOR_TRIG_FN_FAN(&gmon->actuator.fan, nr->temporature, &gmon->sensors.air_temp);
+        XASSERT(status == GMON_RESP_OK);
+        event->curr_ticks = stationGetTicksPerDay(&gmon->tick);
+        event->curr_days = stationGetDays(&gmon->tick);
+        staNotifyOthersWithEvent(gmon, event, block_time);
     }
 }
