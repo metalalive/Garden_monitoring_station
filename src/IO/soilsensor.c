@@ -2,23 +2,24 @@
 // current implementation can fit with following sensors :
 // e.g. YL69, Capactive Soil Moisture Sensor v1.2
 
-gMonStatus staSensorInitSoilMoist(gMonSensor_t *s) {
+gMonStatus staSensorInitSoilMoist(gMonSensorMeta_t *s) {
     s->read_interval_ms = GMON_CFG_SENSOR_READ_INTERVAL_MS;
     s->num_items = GMON_CFG_NUM_SOIL_SENSORS;
     s->num_resamples = GMON_CFG_SOIL_SENSOR_NUM_OVERSAMPLE;
     s->outlier_threshold = GMON_SOIL_SENSOR_OUTLIER_THRESHOLD;
+    s->mad_threshold = GMON_SOIL_SENSOR_MAD_THRESHOLD;
     return staSensorPlatformInitSoilMoist(s);
 }
 
-gMonStatus staSensorDeInitSoilMoist(gMonSensor_t *s) { return staSensorPlatformDeInitSoilMoist(s); }
+gMonStatus staSensorDeInitSoilMoist(gMonSensorMeta_t *s) { return staSensorPlatformDeInitSoilMoist(s); }
 
-gMonStatus staSensorReadSoilMoist(gMonSensor_t *sensor, gmonSensorSample_t *readval) {
+gMonStatus staSensorReadSoilMoist(gMonSensorMeta_t *sensor, gmonSensorSample_t *readval) {
     gMonStatus status = GMON_RESP_OK;
     stationSysEnterCritical();
     status = staPlatformReadSoilMoistSensor(sensor, readval);
     stationSysExitCritical();
     if (status == GMON_RESP_OK) {
-        status = staSensorDetectNoise(sensor->outlier_threshold, readval, sensor->num_items);
+        status = staSensorDetectNoise(sensor, readval);
     }
     return status;
 }

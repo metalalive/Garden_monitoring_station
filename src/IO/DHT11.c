@@ -1,15 +1,16 @@
 #include <assert.h>
 #include "station_include.h"
 
-gMonStatus staSensorInitAirTemp(gMonSensor_t *s) {
+gMonStatus staSensorInitAirTemp(gMonSensorMeta_t *s) {
     s->read_interval_ms = GMON_CFG_SENSOR_READ_INTERVAL_MS;
     s->num_items = GMON_CFG_NUM_AIR_SENSORS;
     s->num_resamples = GMON_CFG_AIR_SENSOR_NUM_OVERSAMPLE;
     s->outlier_threshold = GMON_AIR_SENSOR_OUTLIER_THRESHOLD;
+    s->mad_threshold = GMON_AIR_SENSOR_MAD_THRESHOLD;
     return staSensorPlatformInitAirTemp(s);
 }
 
-gMonStatus staSensorDeInitAirTemp(gMonSensor_t *s) { return staSensorPlatformDeInitAirTemp(s); }
+gMonStatus staSensorDeInitAirTemp(gMonSensorMeta_t *s) { return staSensorPlatformDeInitAirTemp(s); }
 
 // Helper function to measure the duration of a pin state
 static gMonStatus measureVerifyPulse(
@@ -95,15 +96,13 @@ static gMonStatus readDht11SensorData(void *signal_pin, uint8_t data[5]) {
     return status;
 } // end of readDht11SensorData
 
-static gMonStatus sensorReadAirIteration(void *signal_pin, gmonSensorSample_t *out) {
+static gMonStatus sensorReadAirIteration(void *signal_pin, gmonAirCond_t *out) {
     gMonStatus status = GMON_RESP_OK;
     uint16_t   sum_data_bits = 0;
     uint8_t    record_dht_data[5] = {0};
     // Cast data pointer to gmonAirCond_t for storing humidity and temperature
-    gmonAirCond_t *air_cond_output = (gmonAirCond_t *)out->data;
-    if (air_cond_output == NULL)
+    if (out == NULL)
         return GMON_RESP_ERRMEM;
-    stationSysDelayMs(1000); // Wait 1 second after power on without sending any data
     staPlatformPinSetDirection(signal_pin, GMON_PLATFORM_PIN_DIRECTION_OUT);
     staPlatformWritePin(signal_pin, GMON_PLATFORM_PIN_RESET);
     stationSysDelayMs(18); // keep start-out signal from MCU for at least 18 ms
@@ -129,8 +128,8 @@ static gMonStatus sensorReadAirIteration(void *signal_pin, gmonSensorSample_t *o
             status = GMON_RESP_SENSOR_FAIL;
             goto done;
         }
-        air_cond_output->humidity = record_dht_data[0] + record_dht_data[1] / 10.f;
-        air_cond_output->temporature = record_dht_data[2] + record_dht_data[3] / 10.f;
+        out->humidity = record_dht_data[0] + record_dht_data[1] / 10.f;
+        out->temporature = record_dht_data[2] + record_dht_data[3] / 10.f;
     }
 done:
     stationSysExitCritical();
@@ -141,12 +140,12 @@ done:
 // - modify function signature for introducing external reliable reference positive-integer
 //   which can calibrate the sensor here .
 // - set up power gate to this device
-gMonStatus staSensorReadAirTemp(gMonSensor_t *sensor, gmonSensorSample_t *out) {
-    if (sensor == NULL || sensor->lowlvl == NULL || sensor->num_items == 0 || out == NULL) {
+gMonStatus staSensorReadAirTemp(gMonSensorMeta_t *sensor, gmonSensorSample_t *out) {
+    if (sensor == NULL || sensor->lowlvl == NULL || sensor->num_items == 0 || out == NULL)
         return GMON_RESP_ERRARGS;
-    }
     gMonStatus final_status = GMON_RESP_OK;
     void      *signal_pin = sensor->lowlvl;
+    stationSysDelayMs(1000); // Wait 1 second after power on without sending any data
     // Iterate through each 'air sensor' item (if num_items > 1)
     for (unsigned char item_idx = 0; item_idx < sensor->num_items; ++item_idx) {
         // Ensure the data buffer for this specific sample is allocated
@@ -158,9 +157,8 @@ gMonStatus staSensorReadAirTemp(gMonSensor_t *sensor, gmonSensorSample_t *out) {
         gMonStatus current_item_status = GMON_RESP_SENSOR_FAIL;
         // Perform resampling for the current sensor item
         for (unsigned char resample_idx = 0; resample_idx < sensor->num_resamples; ++resample_idx) {
-            current_item_status = sensorReadAirIteration(signal_pin, &out[item_idx]);
-            if (current_item_status == GMON_RESP_OK)
-                break; // A successful read for this item, no need for further resamples
+            current_item_status =
+                sensorReadAirIteration(signal_pin, &((gmonAirCond_t *)out[item_idx].data)[resample_idx]);
         }
         if (current_item_status != GMON_RESP_OK) {
             // If after all resamples, this item still failed, propagate the error.

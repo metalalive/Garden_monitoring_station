@@ -5,7 +5,7 @@ void pumpControllerTaskFn(void *params) {
     gMonStatus     status = GMON_RESP_OK;
 
     gardenMonitor_t    *gmon = (gardenMonitor_t *)params;
-    gMonSensor_t       *sensor = &gmon->sensors.soil_moist;
+    gMonSensorMeta_t   *sensor = &gmon->sensors.soil_moist;
     gmonSensorSample_t *read_vals = staAllocSensorSampleBuffer(sensor, GMON_SENSOR_DATA_TYPE_U32);
     while (1) {
         // apply configurable delay time for this sensor.

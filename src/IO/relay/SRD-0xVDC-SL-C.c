@@ -67,7 +67,7 @@ done:
 
 gMonStatus staActuatorDeinitBulb(void) { return staActuatorDeinitGenericBulb(); }
 
-gMonStatus staActuatorTrigPump(gMonActuator_t *dev, unsigned int soil_moist, gMonSensor_t *sensor) {
+gMonStatus staActuatorTrigPump(gMonActuator_t *dev, unsigned int soil_moist, gMonSensorMeta_t *sensor) {
     gMonStatus         status = GMON_RESP_OK;
     gMonActuatorStatus dev_status = GMON_OUT_DEV_STATUS_OFF;
     uint8_t            pin_state = 0;
@@ -84,7 +84,7 @@ gMonStatus staActuatorTrigPump(gMonActuator_t *dev, unsigned int soil_moist, gMo
     return status;
 }
 
-gMonStatus staActuatorTrigFan(gMonActuator_t *dev, float air_temp, gMonSensor_t *sensor) {
+gMonStatus staActuatorTrigFan(gMonActuator_t *dev, float air_temp, gMonSensorMeta_t *sensor) {
     gMonStatus         status = GMON_RESP_OK;
     gMonActuatorStatus dev_status = GMON_OUT_DEV_STATUS_OFF;
     float              threshold = 0.f;
@@ -103,7 +103,7 @@ gMonStatus staActuatorTrigFan(gMonActuator_t *dev, float air_temp, gMonSensor_t 
     return status;
 }
 
-gMonStatus staActuatorTrigBulb(gMonActuator_t *dev, unsigned int lightness, gMonSensor_t *sensor) {
+gMonStatus staActuatorTrigBulb(gMonActuator_t *dev, unsigned int lightness, gMonSensorMeta_t *sensor) {
     // TODO: finish implementation, maximum working time per day for a bulb must be estimate,
     // in case that the plant you're growing still needs more growing light of a day.
     gMonStatus         status = GMON_RESP_OK;

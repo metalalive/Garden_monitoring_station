@@ -61,27 +61,27 @@ gMonStatus UTestSysMsgBoxPut(stationSysMsgbox_t msgbuf, void *msg, uint32_t bloc
     return GMON_RESP_OK;
 }
 
-gMonStatus staSensorInitSoilMoist(gMonSensor_t *s) {
+gMonStatus staSensorInitSoilMoist(gMonSensorMeta_t *s) {
     (void)s;
     return GMON_RESP_OK;
 }
-gMonStatus staSensorDeInitSoilMoist(gMonSensor_t *s) {
+gMonStatus staSensorDeInitSoilMoist(gMonSensorMeta_t *s) {
     (void)s;
     return GMON_RESP_OK;
 }
-gMonStatus staSensorInitLight(gMonSensor_t *s) {
+gMonStatus staSensorInitLight(gMonSensorMeta_t *s) {
     (void)s;
     return GMON_RESP_OK;
 }
-gMonStatus staSensorDeInitLight(gMonSensor_t *s) {
+gMonStatus staSensorDeInitLight(gMonSensorMeta_t *s) {
     (void)s;
     return GMON_RESP_OK;
 }
-gMonStatus staSensorInitAirTemp(gMonSensor_t *s) {
+gMonStatus staSensorInitAirTemp(gMonSensorMeta_t *s) {
     (void)s;
     return GMON_RESP_OK;
 }
-gMonStatus staSensorDeInitAirTemp(gMonSensor_t *s) {
+gMonStatus staSensorDeInitAirTemp(gMonSensorMeta_t *s) {
     (void)s;
     return GMON_RESP_OK;
 }

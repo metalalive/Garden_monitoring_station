@@ -123,6 +123,10 @@ extern "C" {
 #define GMON_AIR_SENSOR_OUTLIER_THRESHOLD   3.6f
 #define GMON_LIGHT_SENSOR_OUTLIER_THRESHOLD 3.5f
 
+#define GMON_SOIL_SENSOR_MAD_THRESHOLD  1.5f
+#define GMON_AIR_SENSOR_MAD_THRESHOLD   0.55f
+#define GMON_LIGHT_SENSOR_MAD_THRESHOLD 1.8f
+
 #ifdef GMON_CFG_ENABLE_ACTUATOR_PUMP
     #define GMON_ACTUATOR_INIT_FN_PUMP(dev)                   staActuatorInitPump((dev))
     #define GMON_ACTUATOR_DEINIT_FN_PUMP()                    staActuatorDeinitPump()

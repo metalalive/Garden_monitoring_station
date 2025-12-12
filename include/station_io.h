@@ -15,33 +15,33 @@ gMonStatus   staFreeSensorEvent(gMonEvtPool_t *, gmonEvent_t *);
 gMonStatus   staCpySensorEvent(gmonEvent_t *dst, gmonEvent_t *src);
 gMonStatus   staNotifyOthersWithEvent(gardenMonitor_t *, gmonEvent_t *, uint32_t block_time);
 
-gMonStatus staSensorInitSoilMoist(gMonSensor_t *);
-gMonStatus staSensorDeInitSoilMoist(gMonSensor_t *);
-gMonStatus staSensorReadSoilMoist(gMonSensor_t *, gmonSensorSample_t *);
+gMonStatus staSensorInitSoilMoist(gMonSensorMeta_t *);
+gMonStatus staSensorDeInitSoilMoist(gMonSensorMeta_t *);
+gMonStatus staSensorReadSoilMoist(gMonSensorMeta_t *, gmonSensorSample_t *);
 
-gMonStatus staSensorInitAirTemp(gMonSensor_t *);
-gMonStatus staSensorDeInitAirTemp(gMonSensor_t *);
-gMonStatus staSensorReadAirTemp(gMonSensor_t *, gmonSensorSample_t *);
+gMonStatus staSensorInitAirTemp(gMonSensorMeta_t *);
+gMonStatus staSensorDeInitAirTemp(gMonSensorMeta_t *);
+gMonStatus staSensorReadAirTemp(gMonSensorMeta_t *, gmonSensorSample_t *);
 
-gMonStatus staSensorInitLight(gMonSensor_t *);
-gMonStatus staSensorDeInitLight(gMonSensor_t *);
-gMonStatus staSensorReadLight(gMonSensor_t *, gmonSensorSample_t *);
+gMonStatus staSensorInitLight(gMonSensorMeta_t *);
+gMonStatus staSensorDeInitLight(gMonSensorMeta_t *);
+gMonStatus staSensorReadLight(gMonSensorMeta_t *, gmonSensorSample_t *);
 
-gMonStatus staSensorDetectNoise(float threshold, gmonSensorSample_t *, unsigned char num_items);
+gMonStatus staSensorDetectNoise(gMonSensorMeta_t *, gmonSensorSample_t *);
 gMonStatus staSensorSampleToEvent(gmonEvent_t *, gmonSensorSample_t *);
 
 // device-specific functions
 gMonStatus staActuatorInitPump(gMonActuator_t *);
 gMonStatus staActuatorDeinitPump(void);
-gMonStatus staActuatorTrigPump(gMonActuator_t *, unsigned int soil_moist, gMonSensor_t *);
+gMonStatus staActuatorTrigPump(gMonActuator_t *, unsigned int soil_moist, gMonSensorMeta_t *);
 
 gMonStatus staActuatorInitFan(gMonActuator_t *);
 gMonStatus staActuatorDeinitFan(void);
-gMonStatus staActuatorTrigFan(gMonActuator_t *, float air_temp, gMonSensor_t *);
+gMonStatus staActuatorTrigFan(gMonActuator_t *, float air_temp, gMonSensorMeta_t *);
 
 gMonStatus staActuatorInitBulb(gMonActuator_t *);
 gMonStatus staActuatorDeinitBulb(void);
-gMonStatus staActuatorTrigBulb(gMonActuator_t *, unsigned int lightness, gMonSensor_t *);
+gMonStatus staActuatorTrigBulb(gMonActuator_t *, unsigned int lightness, gMonSensorMeta_t *);
 
 // generic functions to init device
 gMonStatus staActuatorInitGenericPump(gMonActuator_t *);

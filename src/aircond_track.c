@@ -3,7 +3,7 @@
 void airQualityMonitorTaskFn(void *params) {
     const uint32_t      block_time = 0;
     gardenMonitor_t    *gmon = (gardenMonitor_t *)params;
-    gMonSensor_t       *sensor = &gmon->sensors.air_temp;
+    gMonSensorMeta_t   *sensor = &gmon->sensors.air_temp;
     gmonSensorSample_t *read_vals = staAllocSensorSampleBuffer(sensor, GMON_SENSOR_DATA_TYPE_AIRCOND);
     while (1) {
         // The interval for fan will be updated by network handling task during runtime
@@ -11,7 +11,7 @@ void airQualityMonitorTaskFn(void *params) {
         gMonStatus status = GMON_SENSOR_READ_FN_AIR_TEMP(sensor, read_vals);
         if (status != GMON_RESP_OK)
             continue;
-        status = staSensorDetectNoise(sensor->outlier_threshold, read_vals, sensor->num_items);
+        status = staSensorDetectNoise(sensor, read_vals);
         if (status != GMON_RESP_OK)
             continue;
         gmonEvent_t *event =

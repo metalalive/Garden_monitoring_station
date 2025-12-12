@@ -26,14 +26,14 @@ void lightControllerTaskFn(void *params) {
     gmonEvent_t   *event = NULL;
 
     gardenMonitor_t    *gmon = (gardenMonitor_t *)params;
-    gMonSensor_t       *sensor = &gmon->sensors.light;
+    gMonSensorMeta_t   *sensor = &gmon->sensors.light;
     gmonSensorSample_t *read_vals = staAllocSensorSampleBuffer(sensor, GMON_SENSOR_DATA_TYPE_U32);
     while (1) {
         // The interval for bulb will be updated by network handling task during runtime
         stationSysDelayMs(gmon->sensors.light.read_interval_ms);
         // Interactively read from light-relevant sensors
         status = GMON_SENSOR_READ_FN_LIGHT(sensor, read_vals);
-        if (status == GMON_RESP_OK)
+        if (status != GMON_RESP_OK)
             continue;
         event = staAllocSensorEvent(&gmon->sensors.event, GMON_EVENT_LIGHTNESS_UPDATED, sensor->num_items);
         if (event == NULL)

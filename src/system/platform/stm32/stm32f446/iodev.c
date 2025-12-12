@@ -262,32 +262,32 @@ done:
     return (status == HAL_OK ? GMON_RESP_OK : GMON_RESP_ERR);
 }
 
-gMonStatus staSensorPlatformInitSoilMoist(gMonSensor_t *s) {
+gMonStatus staSensorPlatformInitSoilMoist(gMonSensorMeta_t *s) {
     if (s->num_items != 1)
         return GMON_RESP_ERRARGS;
     s->lowlvl = (void *)&hal_extended_adc_devices[0];
     return GMON_RESP_OK;
 }
 
-gMonStatus staSensorPlatformDeInitSoilMoist(gMonSensor_t *s) {
+gMonStatus staSensorPlatformDeInitSoilMoist(gMonSensorMeta_t *s) {
     s->lowlvl = NULL;
     return GMON_RESP_OK;
 }
 
-gMonStatus staSensorPlatformInitLight(gMonSensor_t *s) {
+gMonStatus staSensorPlatformInitLight(gMonSensorMeta_t *s) {
     if (s->num_items != 2)
         return GMON_RESP_ERRARGS;
     s->lowlvl = (void *)&hal_extended_adc_devices[1];
     return GMON_RESP_OK;
 }
 
-gMonStatus staSensorPlatformDeInitLight(gMonSensor_t *s) {
+gMonStatus staSensorPlatformDeInitLight(gMonSensorMeta_t *s) {
     s->lowlvl = NULL;
     return GMON_RESP_OK;
 }
 
 static gMonStatus
-staPlatformGenericReadADC(gMonSensor_t *sensor, unsigned int timeout, gmonSensorSample_t *out) {
+staPlatformGenericReadADC(gMonSensorMeta_t *sensor, unsigned int timeout, gmonSensorSample_t *out) {
     if (sensor == NULL || out == NULL || sensor->num_items == 0)
         return GMON_RESP_ERRARGS;
     if (out->dtype != GMON_SENSOR_DATA_TYPE_U32)
@@ -341,15 +341,15 @@ done:
     return (hal_status == HAL_OK ? GMON_RESP_OK : GMON_RESP_ERR);
 } // end of staPlatformGenericReadADC
 
-gMonStatus staPlatformReadSoilMoistSensor(gMonSensor_t *sensor, gmonSensorSample_t *out) {
+gMonStatus staPlatformReadSoilMoistSensor(gMonSensorMeta_t *sensor, gmonSensorSample_t *out) {
     return staPlatformGenericReadADC(sensor, 100, out);
 }
 
-gMonStatus staPlatformReadLightSensor(gMonSensor_t *sensor, gmonSensorSample_t *out) {
+gMonStatus staPlatformReadLightSensor(gMonSensorMeta_t *sensor, gmonSensorSample_t *out) {
     return staPlatformGenericReadADC(sensor, 80, out);
 }
 
-gMonStatus staSensorPlatformInitAirTemp(gMonSensor_t *s) {
+gMonStatus staSensorPlatformInitAirTemp(gMonSensorMeta_t *s) {
     if (s == NULL || s->num_items != 1)
         return GMON_RESP_ERRARGS;
     void **pinstruct = &s->lowlvl;
@@ -357,7 +357,7 @@ gMonStatus staSensorPlatformInitAirTemp(gMonSensor_t *s) {
     return GMON_RESP_OK;
 }
 
-gMonStatus staSensorPlatformDeInitAirTemp(gMonSensor_t *s) {
+gMonStatus staSensorPlatformDeInitAirTemp(gMonSensorMeta_t *s) {
     s->lowlvl = NULL;
     return GMON_RESP_OK;
 }

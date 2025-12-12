@@ -1,6 +1,6 @@
 #include "station_include.h"
 
-gmonSensorSample_t *staAllocSensorSampleBuffer(gMonSensor_t *sensor, gmonSensorDataType_t dtype) {
+gmonSensorSample_t *staAllocSensorSampleBuffer(gMonSensorMeta_t *sensor, gmonSensorDataType_t dtype) {
     gmonSensorSample_t *out = NULL;
     if (sensor == NULL || sensor->num_items == 0)
         return NULL;
@@ -58,67 +58,72 @@ gmonSensorSample_t *staAllocSensorSampleBuffer(gMonSensor_t *sensor, gmonSensorD
 } // end of staAllocSensorSampleBuffer
 
 static void staSensorU32DetectNoise(
-    float threshold, const gmonSensorSample_t *sensorsamples, unsigned char num_items, unsigned short tot_len
+    gMonSensorMeta_t *s_meta, const gmonSensorSample_t *s_samples, unsigned short tot_len
 ) {
-    const float    threshold_hi = threshold, threshold_lo = threshold_hi * -1.f;
+    const float    threshold_hi = s_meta->outlier_threshold, threshold_lo = threshold_hi * -1.f;
     unsigned short idx = 0, jdx = 0;
     unsigned int   samples_cloned[tot_len];
-    unsigned int  *flattened_samples = sensorsamples[0].data;
+    unsigned int  *flattened_samples = s_samples[0].data;
     XMEMCPY(samples_cloned, flattened_samples, sizeof(unsigned int) * tot_len);
     // implement modified Z-score at here for outlier detection
     unsigned int median = staFindMedian(samples_cloned, tot_len);
-    unsigned int mad = staMedianAbsDeviation(median, samples_cloned, tot_len);
-    for (idx = 0; idx < num_items; idx++) {
-        unsigned int *d = sensorsamples[idx].data;
-        for (jdx = 0; jdx < sensorsamples[idx].len; jdx++) {
+    float        mad = (float)staMedianAbsDeviation(median, samples_cloned, tot_len);
+    if (mad < s_meta->mad_threshold)
+        mad = s_meta->mad_threshold;
+    for (idx = 0; idx < s_meta->num_items; idx++) {
+        unsigned int *d = s_samples[idx].data;
+        for (jdx = 0; jdx < s_samples[idx].len; jdx++) {
             int   diff = (int)d[jdx] - (int)median;
             float zscore = GMON_STATS_SD2MAD_RATIO * diff / mad;
             char  beyondscope = (zscore < threshold_lo) || (threshold_hi < zscore);
-            staSetBitFlag(sensorsamples[idx].outlier, jdx, beyondscope);
+            staSetBitFlag(s_samples[idx].outlier, jdx, beyondscope);
         }
     }
 }
-static void staSensorAirCondDetectNoise(
-    float threshold, gmonSensorSample_t *sensorsamples, unsigned char num_items, unsigned short tot_len
-) {
-    const float    threshold_hi = threshold, threshold_lo = threshold_hi * -1.f;
-    unsigned int   samples_cloned[tot_len], median = 0, mad = 0;
+static void
+staSensorAirCondDetectNoise(gMonSensorMeta_t *s_meta, gmonSensorSample_t *s_samples, unsigned short tot_len) {
+    const float    threshold_hi = s_meta->outlier_threshold, threshold_lo = threshold_hi * -1.f;
+    unsigned int   samples_cloned[tot_len], median = 0;
     unsigned short idx = 0, jdx = 0, kdx = 0;
     // -------------------
-    for (idx = 0, kdx = 0; idx < num_items; kdx += sensorsamples[idx++].len) {
-        gmonAirCond_t *d = sensorsamples[idx].data;
-        for (jdx = 0; jdx < sensorsamples[idx].len; jdx++) {
+    for (idx = 0, kdx = 0; idx < s_meta->num_items; kdx += s_samples[idx++].len) {
+        gmonAirCond_t *d = s_samples[idx].data;
+        for (jdx = 0; jdx < s_samples[idx].len; jdx++) {
             samples_cloned[kdx + jdx] = (unsigned int)d[jdx].temporature;
         }
     }
     median = staFindMedian(samples_cloned, tot_len);
-    mad = staMedianAbsDeviation(median, samples_cloned, tot_len);
-    for (idx = 0; idx < num_items; idx++) {
-        gmonAirCond_t *d = sensorsamples[idx].data;
-        for (jdx = 0; jdx < sensorsamples[idx].len; jdx++) {
+    float mad = (float)staMedianAbsDeviation(median, samples_cloned, tot_len);
+    if (mad < s_meta->mad_threshold)
+        mad = s_meta->mad_threshold;
+    for (idx = 0; idx < s_meta->num_items; idx++) {
+        gmonAirCond_t *d = s_samples[idx].data;
+        for (jdx = 0; jdx < s_samples[idx].len; jdx++) {
             float diff = d[jdx].temporature - (float)median;
             float zscore = GMON_STATS_SD2MAD_RATIO * diff / mad;
             char  beyondscope = (zscore < threshold_lo) || (threshold_hi < zscore);
-            staSetBitFlag(sensorsamples[idx].outlier, jdx, beyondscope);
+            staSetBitFlag(s_samples[idx].outlier, jdx, beyondscope);
         }
     }
     // -------------------
-    for (idx = 0, kdx = 0; idx < num_items; kdx += sensorsamples[idx++].len) {
-        gmonAirCond_t *d = sensorsamples[idx].data;
-        for (jdx = 0; jdx < sensorsamples[idx].len; jdx++) {
+    for (idx = 0, kdx = 0; idx < s_meta->num_items; kdx += s_samples[idx++].len) {
+        gmonAirCond_t *d = s_samples[idx].data;
+        for (jdx = 0; jdx < s_samples[idx].len; jdx++) {
             samples_cloned[kdx + jdx] = (unsigned int)d[jdx].humidity;
         }
     }
     median = staFindMedian(samples_cloned, tot_len);
-    mad = staMedianAbsDeviation(median, samples_cloned, tot_len);
-    for (idx = 0; idx < num_items; idx++) {
-        gmonAirCond_t *d = sensorsamples[idx].data;
-        for (jdx = 0; jdx < sensorsamples[idx].len; jdx++) {
+    mad = (float)staMedianAbsDeviation(median, samples_cloned, tot_len);
+    if (mad < s_meta->mad_threshold)
+        mad = s_meta->mad_threshold;
+    for (idx = 0; idx < s_meta->num_items; idx++) {
+        gmonAirCond_t *d = s_samples[idx].data;
+        for (jdx = 0; jdx < s_samples[idx].len; jdx++) {
             float diff = d[jdx].humidity - (float)median;
             float zscore = GMON_STATS_SD2MAD_RATIO * diff / mad;
             char  beyondscope = (zscore < threshold_lo) || (threshold_hi < zscore);
-            if (staGetBitFlag(sensorsamples[idx].outlier, jdx) == 0x0)
-                staSetBitFlag(sensorsamples[idx].outlier, jdx, beyondscope);
+            if (staGetBitFlag(s_samples[idx].outlier, jdx) == 0x0)
+                staSetBitFlag(s_samples[idx].outlier, jdx, beyondscope);
         }
     }
 } // end of staSensorAirCondDetectNoise
@@ -165,22 +170,23 @@ staAggregateAirCondSamples(gmonEvent_t *evt, gmonSensorSample_t *ssample, unsign
     return outlier_count;
 }
 
-gMonStatus staSensorDetectNoise(float threshold, gmonSensorSample_t *sensorsamples, unsigned char num_items) {
-    if (sensorsamples == NULL || threshold < 0.01 || num_items == 0)
+gMonStatus staSensorDetectNoise(gMonSensorMeta_t *s_meta, gmonSensorSample_t *s_samples) {
+    if (s_samples == NULL || s_meta == NULL || s_meta->mad_threshold < 0.01f ||
+        s_meta->outlier_threshold < 0.01f || s_meta->num_items == 0)
         return GMON_RESP_ERRARGS;
     gMonStatus     status = GMON_RESP_OK;
     unsigned short tot_len = 0, idx = 0;
-    for (idx = 0; idx < num_items; idx++) {
-        if (sensorsamples[idx].data == NULL || sensorsamples[idx].outlier == NULL)
+    for (idx = 0; idx < s_meta->num_items; idx++) {
+        if (s_samples[idx].data == NULL || s_samples[idx].outlier == NULL)
             return GMON_RESP_ERRMEM;
-        tot_len += sensorsamples[idx].len;
+        tot_len += s_samples[idx].len;
     }
-    switch (sensorsamples[0].dtype) {
+    switch (s_samples[0].dtype) {
     case GMON_SENSOR_DATA_TYPE_U32:
-        staSensorU32DetectNoise(threshold, sensorsamples, num_items, tot_len);
+        staSensorU32DetectNoise(s_meta, s_samples, tot_len);
         break;
     case GMON_SENSOR_DATA_TYPE_AIRCOND:
-        staSensorAirCondDetectNoise(threshold, sensorsamples, num_items, tot_len);
+        staSensorAirCondDetectNoise(s_meta, s_samples, tot_len);
         break;
     default:
         status = GMON_RESP_MALFORMED_DATA;

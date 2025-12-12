@@ -344,9 +344,10 @@ static gMonStatus staDecodeActuatorsBlock(
 }
 
 static gMonStatus staDecodeSensorConfig(
-    const unsigned char *json_data, jsmntok_t *tokens, int start_object_token_idx, gMonSensor_t *sensor_cfg,
-    gMonActuator_t *actuator, gMonStatus (*set_threshold_fn)(gMonActuator_t *, unsigned int),
-    gMonStatus *threshold_status_field, int *tokens_consumed_out
+    const unsigned char *json_data, jsmntok_t *tokens, int start_object_token_idx,
+    gMonSensorMeta_t *sensor_cfg, gMonActuator_t                               *actuator,
+    gMonStatus (*set_threshold_fn)(gMonActuator_t *, unsigned int), gMonStatus *threshold_status_field,
+    int *tokens_consumed_out
 ) {
     gMonStatus status = GMON_RESP_OK;
     int        parsed_int = 0;

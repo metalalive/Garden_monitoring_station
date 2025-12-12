@@ -108,15 +108,20 @@ typedef struct {
     unsigned int len;
 } gMonEvtPool_t;
 
+// metadata for a sensor type
 typedef struct {
-    void        *lowlvl;
-    float        outlier_threshold;
+    void *lowlvl;
+    // ratio threshold which a sample data will be considered as outlier in detection function
+    float outlier_threshold;
+    // saturate minimal MAD threshold (Median Absolute Deviation) for specific sensor,
+    // this takes effect when estimated MAD function returns zero in z-score calculation.
+    float        mad_threshold;
     unsigned int read_interval_ms;
     // number of sensors installed in one spot ,
     // note current appllication does not identify sensors in several different spots
     unsigned char num_items     : 4;
     unsigned char num_resamples : 4;
-} gMonSensor_t;
+} gMonSensorMeta_t;
 
 typedef struct {
     int threshold;
