@@ -33,15 +33,15 @@ gMonStatus staSensorSampleToEvent(gmonEvent_t *, gmonSensorSample_t *);
 // device-specific functions
 gMonStatus staActuatorInitPump(gMonActuator_t *);
 gMonStatus staActuatorDeinitPump(void);
-gMonStatus staActuatorTrigPump(gMonActuator_t *, unsigned int soil_moist, gMonSensorMeta_t *);
+gMonStatus staActuatorTrigPump(gMonActuator_t *, gmonEvent_t *, gMonSensorMeta_t *);
 
 gMonStatus staActuatorInitFan(gMonActuator_t *);
 gMonStatus staActuatorDeinitFan(void);
-gMonStatus staActuatorTrigFan(gMonActuator_t *, float air_temp, gMonSensorMeta_t *);
+gMonStatus staActuatorTrigFan(gMonActuator_t *, gmonEvent_t *, gMonSensorMeta_t *);
 
 gMonStatus staActuatorInitBulb(gMonActuator_t *);
 gMonStatus staActuatorDeinitBulb(void);
-gMonStatus staActuatorTrigBulb(gMonActuator_t *, unsigned int lightness, gMonSensorMeta_t *);
+gMonStatus staActuatorTrigBulb(gMonActuator_t *, gmonEvent_t *, gMonSensorMeta_t *);
 
 // generic functions to init device
 gMonStatus staActuatorInitGenericPump(gMonActuator_t *);
@@ -52,6 +52,9 @@ gMonStatus staActuatorDeinitGenericFan(void);
 
 gMonStatus staActuatorInitGenericBulb(gMonActuator_t *);
 gMonStatus staActuatorDeinitGenericBulb(void);
+
+gMonStatus staActuatorAggregateU32(gmonEvent_t *, gMonActuator_t *, int *value);
+gMonStatus staActuatorAggregateAirCond(gmonEvent_t *, gMonActuator_t *, int *value);
 
 gMonActuatorStatus staActuatorMeasureWorkingTime(gMonActuator_t *, unsigned int time_elapsed_ms);
 

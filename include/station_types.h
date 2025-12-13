@@ -72,11 +72,6 @@ typedef enum {
     GMON_EVENT_LIGHTNESS_UPDATED,
 } gmonEventType_t;
 
-#define GMON_SENSORDATA_COMMON_FIELDS \
-    gmonAirCond_t air_cond; \
-    unsigned int  soil_moist; \
-    unsigned int  lightness;
-
 typedef struct {
     gmonEventType_t event_type         : 4;
     unsigned char   num_active_sensors : 4;
@@ -88,14 +83,21 @@ typedef struct {
     } flgs;
     unsigned int curr_ticks;
     unsigned int curr_days;
-    // point to array of one of the types in `GMON_SENSORDATA_COMMON_FIELDS`
+    // depend on `event_type`, this field points to array of one of following types :
+    // - `unsigned int`, if `GMON_EVENT_SOIL_MOISTURE_UPDATED` or `GMON_EVENT_LIGHTNESS_UPDATED`
+    // - `gmonAirCond_t`, if `GMON_EVENT_AIR_TEMP_UPDATED`
     void *data;
 } gmonEvent_t;
 
+// TODO, change type of `soil_moist` and `lightness` to `unsigned short`
+// for memory efficiency
+
 typedef struct {
-    GMON_SENSORDATA_COMMON_FIELDS;
-    unsigned int curr_ticks;
-    unsigned int curr_days;
+    gmonAirCond_t air_cond;
+    unsigned int  soil_moist;
+    unsigned int  lightness;
+    unsigned int  curr_ticks;
+    unsigned int  curr_days;
     struct {
         unsigned char air_val_written   : 1;
         unsigned char soil_val_written  : 1;
@@ -124,7 +126,7 @@ typedef struct {
 } gMonSensorMeta_t;
 
 typedef struct {
-    int threshold;
+    // ---- TODO, shorten data size on some fields ----
     // maximum time in milliseconds for a device that has been
     // continuously working in one day, maximum value MUST NOT
     // be greater than 1000 * 60 * 60 * 24 = 0x5265c00
@@ -136,9 +138,22 @@ typedef struct {
     // environment condition e.g. temperature drop, provide more growing
     // light...etc.
     // Again the maximum value MUST NOT be greater than 1000 * 60 * 60 * 24 = 0x5265c00
-    unsigned int       min_resttime;
-    unsigned int       curr_resttime;
+    unsigned int min_resttime;
+    unsigned int curr_resttime;
+    // threshold that turns ON / OFF low-level device
+    int threshold;
+    // low-level device status
     gMonActuatorStatus status;
+    // Bitmask to select specific sensor IDs (pointed by `gmonSensorSample_t.id`)
+    unsigned char sensor_id_mask;
+    // EMA (Exponential Moving Average) is applied to event data aggregation, where
+    // the outcome will be compared with pre-defined threshold field above.
+    struct {
+        // weight in fixed-point representation (fixed scaling factor = 2)
+        unsigned char lambda_fixp;
+        // last aggregated event data which compares with the threshold
+        int last_aggregated;
+    } ema;
 } gMonActuator_t;
 
 typedef struct {

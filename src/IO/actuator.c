@@ -9,39 +9,46 @@
 static unsigned int gmon_bulb_max_worktime_default;
 
 gMonStatus staActuatorInitGenericPump(gMonActuator_t *dev) {
-    if (dev == NULL) {
+    if (dev == NULL)
         return GMON_RESP_ERRARGS;
-    }
     staSetTrigThresholdPump(dev, (unsigned int)GMON_CFG_ACTUATOR_TRIG_THRESHOLD_PUMP);
     dev->status = GMON_OUT_DEV_STATUS_OFF;
+    dev->ema.last_aggregated = 0;
     dev->max_worktime = GMON_CFG_ACTUATOR_MAX_WORKTIME_PUMP;
     dev->min_resttime = GMON_CFG_ACTUATOR_MIN_RESTTIME_PUMP;
+    // TODO, the fields below should also be able to change through remote network users
+    dev->sensor_id_mask = GMON_CFG_ACTUATOR_SENSOR_MASK_PUMP;
+    dev->ema.lambda_fixp = GMON_CFG_ACTUATOR_EMA_LAMBDA_PUMP;
     return GMON_RESP_OK;
 }
 
 gMonStatus staActuatorDeinitGenericPump(void) { return GMON_RESP_OK; }
 
 gMonStatus staActuatorInitGenericFan(gMonActuator_t *dev) {
-    if (dev == NULL) {
+    if (dev == NULL)
         return GMON_RESP_ERRARGS;
-    }
     staSetTrigThresholdFan(dev, (unsigned int)GMON_CFG_ACTUATOR_TRIG_THRESHOLD_FAN);
     dev->status = GMON_OUT_DEV_STATUS_OFF;
+    dev->ema.last_aggregated = 0;
     dev->max_worktime = GMON_CFG_ACTUATOR_MAX_WORKTIME_FAN;
     dev->min_resttime = GMON_CFG_ACTUATOR_MIN_RESTTIME_FAN;
+    dev->sensor_id_mask = GMON_CFG_ACTUATOR_SENSOR_MASK_FAN;
+    dev->ema.lambda_fixp = GMON_CFG_ACTUATOR_EMA_LAMBDA_FAN;
     return GMON_RESP_OK;
 }
 
 gMonStatus staActuatorDeinitGenericFan(void) { return GMON_RESP_OK; }
 
 gMonStatus staActuatorInitGenericBulb(gMonActuator_t *dev) {
-    if (dev == NULL) {
+    if (dev == NULL)
         return GMON_RESP_ERRARGS;
-    }
     staSetTrigThresholdBulb(dev, (unsigned int)GMON_CFG_ACTUATOR_TRIG_THRESHOLD_BULB);
     dev->status = GMON_OUT_DEV_STATUS_OFF;
+    dev->ema.last_aggregated = 0;
     dev->max_worktime = 0;
     dev->min_resttime = GMON_CFG_ACTUATOR_MIN_RESTTIME_BULB;
+    dev->sensor_id_mask = GMON_CFG_ACTUATOR_SENSOR_MASK_BULB;
+    dev->ema.lambda_fixp = GMON_CFG_ACTUATOR_EMA_LAMBDA_BULB;
     // blub device is mapped to light sensor, which is read in about every 10 to 30 minutes
     gmon_bulb_max_worktime_default = GMON_CFG_ACTUATOR_MAX_WORKTIME_BULB;
     return GMON_RESP_OK;
@@ -85,6 +92,82 @@ gMonStatus staSetTrigThresholdBulb(gMonActuator_t *dev, unsigned int new_val) {
         (unsigned int)GMON_MIN_ACTUATOR_TRIG_THRESHOLD_BULB
     );
 }
+
+gMonStatus staActuatorAggregateU32(gmonEvent_t *evt, gMonActuator_t *dev, int *value) {
+    if (evt == NULL || dev == NULL || value == NULL)
+        return GMON_RESP_ERRARGS;
+    if (evt->num_active_sensors == 0x0 || dev->sensor_id_mask == 0x0)
+        return GMON_RESP_MALFORMED_DATA;
+
+    unsigned int *event_data_u32 = (unsigned int *)evt->data;
+    unsigned int  sum = 0, count = 0, avg = 0;
+    for (unsigned char i = 0; i < evt->num_active_sensors; i++) {
+        // Aggregate data if the sensor is relevant to the actuator (mask bit set)
+        // and its data is not marked as corrupted (corruption flag clear).
+        if (staGetBitFlag(&dev->sensor_id_mask, i) && !staGetBitFlag(&evt->flgs.corruption, i)) {
+            sum += event_data_u32[i];
+            count++;
+        }
+    }
+    if (count == 0 || sum == 0)
+        return GMON_RESP_SKIP;
+    avg = sum / count;
+    if (avg == 0)
+        return GMON_RESP_SKIP;
+    int ma0 = dev->ema.last_aggregated, ma1 = 0;
+    if (ma0 == 0) {
+        ma1 = (int)avg;
+    } else {
+        ma1 = staExpMovingAvg((int)avg, ma0, dev->ema.lambda_fixp);
+    }
+    *value = ma1;
+    dev->ema.last_aggregated = ma1;
+    return GMON_RESP_OK;
+} // end of staActuatorAggregateU32
+
+gMonStatus staActuatorAggregateAirCond(gmonEvent_t *evt, gMonActuator_t *dev, int *value) {
+    if (evt == NULL || dev == NULL || value == NULL)
+        return GMON_RESP_ERRARGS;
+    if (evt->num_active_sensors == 0x0 || dev->sensor_id_mask == 0x0)
+        return GMON_RESP_MALFORMED_DATA;
+
+    gmonAirCond_t *event_data_ac = (gmonAirCond_t *)evt->data;
+    gmonAirCond_t  sum = {0}, avg = {0};
+    unsigned int   count = 0;
+    unsigned char  i = 0;
+    for (i = 0, count = 0; i < evt->num_active_sensors; i++) {
+        // Aggregate data if the sensor is relevant to the actuator (mask bit set)
+        // and its data is not marked as corrupted (corruption flag clear).
+        if (staGetBitFlag(&dev->sensor_id_mask, i) && !staGetBitFlag(&evt->flgs.corruption, i)) {
+            sum.temporature += event_data_ac[i].temporature;
+            sum.humidity += event_data_ac[i].humidity;
+            count++;
+        }
+    }
+    if (count == 0 || sum.temporature == 0.f || sum.humidity == 0.f)
+        return GMON_RESP_SKIP;
+    avg.temporature = sum.temporature / count;
+    avg.humidity = sum.humidity / count;
+    if (avg.temporature == 0.f || avg.humidity == 0.f)
+        return GMON_RESP_SKIP;
+    // normalize the average numbers, multiply by 100, and reuse `sum` to save them
+    sum.temporature = (avg.temporature - GMON_MIN_AIR_TEMPERATURE) * 100 /
+                      (GMON_MAX_AIR_TEMPERATURE - GMON_MIN_AIR_TEMPERATURE);
+    sum.humidity = (avg.humidity - GMON_MIN_AIR_HUMIDITY_SUPPORTED) * 100 /
+                   (GMON_MAX_AIR_HUMIDITY_SUPPORTED - GMON_MIN_AIR_HUMIDITY_SUPPORTED);
+#define AIRTEMP_WEIGHT 0.55
+    float new_aircond = AIRTEMP_WEIGHT * sum.temporature + (1 - AIRTEMP_WEIGHT) * sum.humidity;
+#undef AIRTEMP_WEIGHT
+    int ma0 = dev->ema.last_aggregated, ma1 = 0;
+    if (ma0 == 0) {
+        ma1 = (int)new_aircond;
+    } else {
+        ma1 = staExpMovingAvg((int)new_aircond, ma0, dev->ema.lambda_fixp);
+    }
+    *value = ma1;
+    dev->ema.last_aggregated = ma1;
+    return GMON_RESP_OK;
+} // end of staActuatorAggregateAirCond
 
 gMonStatus staPauseWorkingActuators(gardenMonitor_t *gmon) {
     if (gmon == NULL) {

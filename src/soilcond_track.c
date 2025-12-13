@@ -20,9 +20,7 @@ void pumpControllerTaskFn(void *params) {
             continue;
         status = staSensorSampleToEvent(event, read_vals);
         XASSERT(status == GMON_RESP_OK)
-        unsigned int soil_moist = ((unsigned int *)event->data)[0]; // TODO
-        status = GMON_ACTUATOR_TRIG_FN_PUMP(&gmon->actuator.pump, soil_moist, &gmon->sensors.soil_moist);
-        XASSERT(status == GMON_RESP_OK);
+        status = GMON_ACTUATOR_TRIG_FN_PUMP(&gmon->actuator.pump, event, &gmon->sensors.soil_moist);
         event->curr_ticks = stationGetTicksPerDay(&gmon->tick);
         event->curr_days = stationGetDays(&gmon->tick);
         staNotifyOthersWithEvent(gmon, event, block_time);

@@ -67,55 +67,71 @@ done:
 
 gMonStatus staActuatorDeinitBulb(void) { return staActuatorDeinitGenericBulb(); }
 
-gMonStatus staActuatorTrigPump(gMonActuator_t *dev, unsigned int soil_moist, gMonSensorMeta_t *sensor) {
-    gMonStatus         status = GMON_RESP_OK;
-    gMonActuatorStatus dev_status = GMON_OUT_DEV_STATUS_OFF;
-    uint8_t            pin_state = 0;
-    XASSERT(dev != NULL);
-    // output device starts working until either max working time reached or actual read value lesser than
-    // threshold larger input value means dry soil
-    dev_status = (dev->threshold < soil_moist) ? staActuatorMeasureWorkingTime(dev, sensor->read_interval_ms)
-                                               : GMON_OUT_DEV_STATUS_OFF;
+gMonStatus staActuatorTrigPump(gMonActuator_t *dev, gmonEvent_t *evt, gMonSensorMeta_t *sensor) {
+    gMonStatus status = GMON_RESP_OK;
+    if (dev == NULL || evt == NULL || sensor == NULL) {
+        return GMON_RESP_ERRARGS;
+    } else if (evt->event_type != GMON_EVENT_SOIL_MOISTURE_UPDATED) {
+        return GMON_RESP_ERRARGS;
+    }
+    int soil_moist = 0;
+    status = staActuatorAggregateU32(evt, dev, &soil_moist);
+    // output device starts working until either max working time reached or actual read
+    // value lesser than threshold larger input value means dry soil
+    gMonActuatorStatus dev_status = ((status == GMON_RESP_OK) && (dev->threshold < soil_moist))
+                                        ? staActuatorMeasureWorkingTime(dev, sensor->read_interval_ms)
+                                        : GMON_OUT_DEV_STATUS_OFF;
     if (dev->status != dev_status) {
         dev->status = dev_status;
-        pin_state = (dev_status == GMON_OUT_DEV_STATUS_ON ? GMON_PLATFORM_PIN_SET : GMON_PLATFORM_PIN_RESET);
+        uint8_t pin_state =
+            (dev_status == GMON_OUT_DEV_STATUS_ON ? GMON_PLATFORM_PIN_SET : GMON_PLATFORM_PIN_RESET);
         status = staPlatformWritePin(srd0xvdc_trig_pin_pump, pin_state);
     }
     return status;
 }
 
-gMonStatus staActuatorTrigFan(gMonActuator_t *dev, float air_temp, gMonSensorMeta_t *sensor) {
-    gMonStatus         status = GMON_RESP_OK;
-    gMonActuatorStatus dev_status = GMON_OUT_DEV_STATUS_OFF;
-    float              threshold = 0.f;
-    uint8_t            pin_state = 0;
-    XASSERT(dev != NULL);
-    threshold = (float)dev->threshold * 1.f;
-    // output device starts working until either max working time reached or actual read value lesser than
-    // threshold
-    dev_status = (threshold < air_temp) ? staActuatorMeasureWorkingTime(dev, sensor->read_interval_ms)
+gMonStatus staActuatorTrigFan(gMonActuator_t *dev, gmonEvent_t *evt, gMonSensorMeta_t *sensor) {
+    gMonStatus status = GMON_RESP_OK;
+    if (dev == NULL || evt == NULL || sensor == NULL) {
+        return GMON_RESP_ERRARGS;
+    } else if (evt->event_type != GMON_EVENT_AIR_TEMP_UPDATED) {
+        return GMON_RESP_ERRARGS;
+    }
+    int air_cond = 0;
+    status = staActuatorAggregateAirCond(evt, dev, &air_cond);
+    // output device starts working until either max working time reached or actual read
+    // value lesser than threshold
+    gMonActuatorStatus dev_status = ((status == GMON_RESP_OK) && (dev->threshold < air_cond))
+                                        ? staActuatorMeasureWorkingTime(dev, sensor->read_interval_ms)
                                         : GMON_OUT_DEV_STATUS_OFF;
     if (dev->status != dev_status) {
         dev->status = dev_status;
-        pin_state = (dev_status == GMON_OUT_DEV_STATUS_ON ? GMON_PLATFORM_PIN_SET : GMON_PLATFORM_PIN_RESET);
+        uint8_t pin_state =
+            (dev_status == GMON_OUT_DEV_STATUS_ON ? GMON_PLATFORM_PIN_SET : GMON_PLATFORM_PIN_RESET);
         status = staPlatformWritePin(srd0xvdc_trig_pin_fan, pin_state);
     }
     return status;
 }
 
-gMonStatus staActuatorTrigBulb(gMonActuator_t *dev, unsigned int lightness, gMonSensorMeta_t *sensor) {
+gMonStatus staActuatorTrigBulb(gMonActuator_t *dev, gmonEvent_t *evt, gMonSensorMeta_t *sensor) {
+    if (dev == NULL || evt == NULL || sensor == NULL) {
+        return GMON_RESP_ERRARGS;
+    } else if (evt->event_type != GMON_EVENT_LIGHTNESS_UPDATED) {
+        return GMON_RESP_ERRARGS;
+    }
+    gMonStatus status = GMON_RESP_OK;
     // TODO: finish implementation, maximum working time per day for a bulb must be estimate,
     // in case that the plant you're growing still needs more growing light of a day.
-    gMonStatus         status = GMON_RESP_OK;
-    gMonActuatorStatus dev_status = GMON_OUT_DEV_STATUS_OFF;
-    uint8_t            pin_state = 0;
-    XASSERT(dev != NULL);
+    int lightness = 0;
+    status = staActuatorAggregateU32(evt, dev, &lightness);
     // smaller value means less natural light
-    dev_status = (dev->threshold > lightness) ? staActuatorMeasureWorkingTime(dev, sensor->read_interval_ms)
-                                              : GMON_OUT_DEV_STATUS_OFF;
+    gMonActuatorStatus dev_status = ((status == GMON_RESP_OK) && (dev->threshold > lightness))
+                                        ? staActuatorMeasureWorkingTime(dev, sensor->read_interval_ms)
+                                        : GMON_OUT_DEV_STATUS_OFF;
     if (dev->status != dev_status) {
         dev->status = dev_status;
-        pin_state = (dev_status == GMON_OUT_DEV_STATUS_ON ? GMON_PLATFORM_PIN_SET : GMON_PLATFORM_PIN_RESET);
+        uint8_t pin_state =
+            (dev_status == GMON_OUT_DEV_STATUS_ON ? GMON_PLATFORM_PIN_SET : GMON_PLATFORM_PIN_RESET);
         status = staPlatformWritePin(srd0xvdc_trig_pin_bulb, pin_state);
     }
     return status;

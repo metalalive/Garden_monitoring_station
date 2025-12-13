@@ -114,6 +114,11 @@ unsigned int staMedianAbsDeviation(unsigned int median, unsigned int *list, unsi
     return staFindMedian(v, len);
 }
 
+int staExpMovingAvg(int new, int old, unsigned char lambda) {
+    int out = lambda * new + (100 - lambda) * old;
+    return out / 100;
+}
+
 void staReverseString(unsigned char *str, unsigned int sz) {
     unsigned int idx = 0, jdx = 0;
     if (str != NULL && sz > 0) {

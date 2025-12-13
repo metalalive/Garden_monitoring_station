@@ -21,8 +21,7 @@ void airQualityMonitorTaskFn(void *params) {
         status = staSensorSampleToEvent(event, read_vals);
         XASSERT(status == GMON_RESP_OK)
         // TODO, calibration, reference point from remote user request
-        gmonAirCond_t *nr = &((gmonAirCond_t *)event->data)[0]; // TODO
-        status = GMON_ACTUATOR_TRIG_FN_FAN(&gmon->actuator.fan, nr->temporature, &gmon->sensors.air_temp);
+        status = GMON_ACTUATOR_TRIG_FN_FAN(&gmon->actuator.fan, event, &gmon->sensors.air_temp);
         XASSERT(status == GMON_RESP_OK);
         event->curr_ticks = stationGetTicksPerDay(&gmon->tick);
         event->curr_days = stationGetDays(&gmon->tick);

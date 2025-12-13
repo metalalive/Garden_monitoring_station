@@ -41,6 +41,8 @@ unsigned int staFindMedian(unsigned int *list, unsigned short len);
 
 unsigned int staMedianAbsDeviation(unsigned int median, unsigned int *list, unsigned short len);
 
+int staExpMovingAvg(int new, int old, unsigned char lambda);
+
 #ifdef __cplusplus
 }
 #endif
