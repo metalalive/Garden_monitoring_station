@@ -1,24 +1,18 @@
 #include "station_include.h"
 
-static void *srd0xvdc_trig_pin_pump;
-static void *srd0xvdc_trig_pin_fan;
-static void *srd0xvdc_trig_pin_bulb;
-
 gMonStatus staActuatorInitPump(gMonActuator_t *dev) {
     gMonStatus status = GMON_RESP_OK;
-    srd0xvdc_trig_pin_pump = NULL;
-    if (dev == NULL) {
-        status = GMON_RESP_ERRARGS;
-        goto done;
-    }
+    if (dev == NULL)
+        return GMON_RESP_ERRARGS;
+    dev->lowlvl = NULL;
     status = staActuatorInitGenericPump(dev);
     if (status != GMON_RESP_OK)
         goto done;
-    status = staActuatorPlatformInitPump(&srd0xvdc_trig_pin_pump);
-    XASSERT(srd0xvdc_trig_pin_pump != NULL);
+    status = staActuatorPlatformInitPump(&dev->lowlvl);
     if (status != GMON_RESP_OK)
         goto done;
-    status = staPlatformPinSetDirection(srd0xvdc_trig_pin_pump, GMON_PLATFORM_PIN_DIRECTION_OUT);
+    XASSERT(dev->lowlvl != NULL);
+    status = staPlatformPinSetDirection(dev->lowlvl, GMON_PLATFORM_PIN_DIRECTION_OUT);
 done:
     return status;
 }
@@ -27,19 +21,19 @@ gMonStatus staActuatorDeinitPump(void) { return staActuatorDeinitGenericPump(); 
 
 gMonStatus staActuatorInitFan(gMonActuator_t *dev) {
     gMonStatus status = GMON_RESP_OK;
-    srd0xvdc_trig_pin_fan = NULL;
     if (dev == NULL) {
         status = GMON_RESP_ERRARGS;
         goto done;
     }
+    dev->lowlvl = NULL;
     status = staActuatorInitGenericFan(dev);
     if (status != GMON_RESP_OK)
         goto done;
-    status = staActuatorPlatformInitFan(&srd0xvdc_trig_pin_fan);
-    XASSERT(srd0xvdc_trig_pin_fan != NULL);
+    status = staActuatorPlatformInitFan(&dev->lowlvl);
+    XASSERT(dev->lowlvl != NULL);
     if (status != GMON_RESP_OK)
         goto done;
-    status = staPlatformPinSetDirection(srd0xvdc_trig_pin_fan, GMON_PLATFORM_PIN_DIRECTION_OUT);
+    status = staPlatformPinSetDirection(dev->lowlvl, GMON_PLATFORM_PIN_DIRECTION_OUT);
 done:
     return status;
 }
@@ -48,19 +42,19 @@ gMonStatus staActuatorDeinitFan(void) { return staActuatorDeinitGenericFan(); }
 
 gMonStatus staActuatorInitBulb(gMonActuator_t *dev) {
     gMonStatus status = GMON_RESP_OK;
-    srd0xvdc_trig_pin_bulb = NULL;
     if (dev == NULL) {
         status = GMON_RESP_ERRARGS;
         goto done;
     }
+    dev->lowlvl = NULL;
     status = staActuatorInitGenericBulb(dev);
     if (status != GMON_RESP_OK)
         goto done;
-    status = staActuatorPlatformInitBulb(&srd0xvdc_trig_pin_bulb);
-    XASSERT(srd0xvdc_trig_pin_bulb != NULL);
+    status = staActuatorPlatformInitBulb(&dev->lowlvl);
     if (status != GMON_RESP_OK)
         goto done;
-    status = staPlatformPinSetDirection(srd0xvdc_trig_pin_bulb, GMON_PLATFORM_PIN_DIRECTION_OUT);
+    XASSERT(dev->lowlvl != NULL);
+    status = staPlatformPinSetDirection(dev->lowlvl, GMON_PLATFORM_PIN_DIRECTION_OUT);
 done:
     return status;
 }
@@ -85,7 +79,7 @@ gMonStatus staActuatorTrigPump(gMonActuator_t *dev, gmonEvent_t *evt, gMonSensor
         dev->status = dev_status;
         uint8_t pin_state =
             (dev_status == GMON_OUT_DEV_STATUS_ON ? GMON_PLATFORM_PIN_SET : GMON_PLATFORM_PIN_RESET);
-        status = staPlatformWritePin(srd0xvdc_trig_pin_pump, pin_state);
+        status = staPlatformWritePin(dev->lowlvl, pin_state);
     }
     return status;
 }
@@ -108,7 +102,7 @@ gMonStatus staActuatorTrigFan(gMonActuator_t *dev, gmonEvent_t *evt, gMonSensorM
         dev->status = dev_status;
         uint8_t pin_state =
             (dev_status == GMON_OUT_DEV_STATUS_ON ? GMON_PLATFORM_PIN_SET : GMON_PLATFORM_PIN_RESET);
-        status = staPlatformWritePin(srd0xvdc_trig_pin_fan, pin_state);
+        status = staPlatformWritePin(dev->lowlvl, pin_state);
     }
     return status;
 }
@@ -132,7 +126,7 @@ gMonStatus staActuatorTrigBulb(gMonActuator_t *dev, gmonEvent_t *evt, gMonSensor
         dev->status = dev_status;
         uint8_t pin_state =
             (dev_status == GMON_OUT_DEV_STATUS_ON ? GMON_PLATFORM_PIN_SET : GMON_PLATFORM_PIN_RESET);
-        status = staPlatformWritePin(srd0xvdc_trig_pin_bulb, pin_state);
+        status = staPlatformWritePin(dev->lowlvl, pin_state);
     }
     return status;
 }

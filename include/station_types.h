@@ -126,6 +126,7 @@ typedef struct {
 } gMonSensorMeta_t;
 
 typedef struct {
+    void *lowlvl;
     // ---- TODO, shorten data size on some fields ----
     // maximum time in milliseconds for a device that has been
     // continuously working in one day, maximum value MUST NOT
@@ -143,7 +144,7 @@ typedef struct {
     // threshold that turns ON / OFF low-level device
     int threshold;
     // low-level device status
-    gMonActuatorStatus status;
+    gMonActuatorStatus status : 8;
     // Bitmask to select specific sensor IDs (pointed by `gmonSensorSample_t.id`)
     unsigned char sensor_id_mask;
     // EMA (Exponential Moving Average) is applied to event data aggregation, where
