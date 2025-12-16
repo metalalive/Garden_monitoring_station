@@ -61,14 +61,6 @@ gMonStatus UTestSysMsgBoxPut(stationSysMsgbox_t msgbuf, void *msg, uint32_t bloc
     return GMON_RESP_OK;
 }
 
-gMonStatus staSensorInitSoilMoist(gMonSensorMeta_t *s) {
-    (void)s;
-    return GMON_RESP_OK;
-}
-gMonStatus staSensorDeInitSoilMoist(gMonSensorMeta_t *s) {
-    (void)s;
-    return GMON_RESP_OK;
-}
 gMonStatus staSensorInitLight(gMonSensorMeta_t *s) {
     (void)s;
     return GMON_RESP_OK;
@@ -126,3 +118,17 @@ gMonStatus staDiplayDevPrintString(gmonPrintInfo_t *printinfo) {
 unsigned short staDisplayDevGetScreenWidth(void) { return 120; }
 
 gMonStatus staDisplayRefreshScreen(void) { return GMON_RESP_OK; }
+
+gMonStatus staSensorPlatformInitSoilMoist(gMonSensorMeta_t *s) {
+    (void)s;
+    return GMON_RESP_OK;
+}
+gMonStatus staSensorPlatformDeInitSoilMoist(gMonSensorMeta_t *s) {
+    (void)s;
+    return GMON_RESP_OK;
+}
+gMonStatus staPlatformReadSoilMoistSensor(gMonSensorMeta_t *meta, gmonSensorSample_t *sample) {
+    (void)meta;
+    (void)sample;
+    return GMON_RESP_OK;
+}
