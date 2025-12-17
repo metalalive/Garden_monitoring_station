@@ -12,7 +12,7 @@
 //                  Last Update at 23:59:58, 99999 day(s) after system boot.
 #define GMON_PRINT_STRING_SENSOR_RECORD \
     (const char *)&( \
-        "[Last Record]: Soil moisture: 1024, Air Temp: 134.5'C, Air Humidity: 101, Lightness: 1001." \
+        "[Last Record]: Soil moisture: 1024, Air Temp: 134.5'C, Air Humidity: 101.5, Lightness: 1001." \
     )
 #define GMON_PRINT_STRING_SENSOR_THRSHOLD \
     (const char *)&("[Thresold]: Soil moisture: 1001, Air Temp: 130.5'C, Lightness: 0085.")
@@ -82,7 +82,7 @@ static gMonStatus staUpdatePrintStrSensorData(gmonPrintInfo_t *content, void *ap
     uint8_t        num_chr = 0;
     // TODO, expand multi-sensor values in display
     const short fix_content_idx[] = {
-        30, 4, 12, 5, 18, 3, 13, 4, 1, 0,
+        30, 4, 12, 5, 18, 5, 13, 4, 1, 0,
     };
     unsigned char *var_content_ptr[4] = {0};
     staInitPrintTxtVarPtr(&content->str, &fix_content_idx[0], &var_content_ptr[0]);

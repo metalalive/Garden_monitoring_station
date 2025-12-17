@@ -47,7 +47,7 @@ TEST(RenderPrintText, InitOk) {
     TEST_ASSERT_EQUAL(GMON_BLOCK_SENSOR_RECORD, sensor_record_block->btype);
     TEST_ASSERT_NOT_NULL(sensor_record_block->render);
     // Expecting " 90" when formatted as 3-char float with 1 precision
-    gmonAirCond_t test_aircond = {.temporature = 23.5f, .humidity = 90.0f};
+    gmonAirCond_t test_aircond = {.temporature = 23.5f, .humidity = 90.5f};
     unsigned int  test_soil_moist = 789, test_lightness = 1234;
     gmonEvent_t   test_event = {0};
 
@@ -57,7 +57,7 @@ TEST(RenderPrintText, InitOk) {
     status = sensor_record_block->render(&sensor_record_block->content, &test_event);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     TEST_ASSERT_EQUAL_STRING_LEN(
-        "[Last Record]: Soil moisture: 789 , Air Temp: 134.5'C, Air Humidity: 101, Lightness: 1001.",
+        "[Last Record]: Soil moisture: 789 , Air Temp: 134.5'C, Air Humidity: 101.5, Lightness: 1001.",
         sensor_record_block->content.str.data, sensor_record_block->content.str.len
     );
     // Test 2: Update Air Temperature and Humidity
@@ -66,7 +66,7 @@ TEST(RenderPrintText, InitOk) {
     status = sensor_record_block->render(&sensor_record_block->content, &test_event);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     TEST_ASSERT_EQUAL_STRING_LEN(
-        "[Last Record]: Soil moisture: 789 , Air Temp: 23.5 'C, Air Humidity: 90 , Lightness: 1001.",
+        "[Last Record]: Soil moisture: 789 , Air Temp: 23.5 'C, Air Humidity: 90.5 , Lightness: 1001.",
         sensor_record_block->content.str.data, sensor_record_block->content.str.len
     );
     // Test 3: Update Lightness
@@ -75,7 +75,7 @@ TEST(RenderPrintText, InitOk) {
     status = sensor_record_block->render(&sensor_record_block->content, &test_event);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     TEST_ASSERT_EQUAL_STRING_LEN(
-        "[Last Record]: Soil moisture: 789 , Air Temp: 23.5 'C, Air Humidity: 90 , Lightness: 1234.",
+        "[Last Record]: Soil moisture: 789 , Air Temp: 23.5 'C, Air Humidity: 90.5 , Lightness: 1234.",
         sensor_record_block->content.str.data, sensor_record_block->content.str.len
     );
 } // end of TEST(RenderPrintText, InitOk)
