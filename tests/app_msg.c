@@ -46,7 +46,7 @@ TEST(DecodeMsgInflight, ValidIntervalSensor) {
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
-    TEST_ASSERT_EQUAL(10009, test_gmon.sensors.soil_moist.read_interval_ms);
+    TEST_ASSERT_EQUAL(10009, test_gmon.sensors.soil_moist.super.read_interval_ms);
     TEST_ASSERT_EQUAL(20008, test_gmon.sensors.air_temp.read_interval_ms);
     TEST_ASSERT_EQUAL(30007, test_gmon.sensors.light.read_interval_ms);
 }
@@ -76,7 +76,7 @@ TEST(DecodeMsgInflight, MixedValid) {
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
-    TEST_ASSERT_EQUAL(2100, test_gmon.sensors.soil_moist.read_interval_ms);
+    TEST_ASSERT_EQUAL(2100, test_gmon.sensors.soil_moist.super.read_interval_ms);
     TEST_ASSERT_EQUAL(7100, test_gmon.sensors.air_temp.read_interval_ms);
     TEST_ASSERT_EQUAL(11000, test_gmon.sensors.light.read_interval_ms);
     TEST_ASSERT_EQUAL(360095, test_gmon.netconn.interval_ms);
@@ -97,7 +97,7 @@ TEST(DecodeMsgInflight, MixedValidReordered) {
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     // Assert sensor read intervals
-    TEST_ASSERT_EQUAL(2100, test_gmon.sensors.soil_moist.read_interval_ms);
+    TEST_ASSERT_EQUAL(2100, test_gmon.sensors.soil_moist.super.read_interval_ms);
     TEST_ASSERT_EQUAL(7100, test_gmon.sensors.air_temp.read_interval_ms);
     TEST_ASSERT_EQUAL(11000, test_gmon.sensors.light.read_interval_ms);
     // Assert netconn interval
@@ -227,7 +227,7 @@ TEST(DecodeMsgInflight, ComprehensiveConfigWithActuators) {
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     // Sensor intervals
-    TEST_ASSERT_EQUAL(2100, test_gmon.sensors.soil_moist.read_interval_ms);
+    TEST_ASSERT_EQUAL(2100, test_gmon.sensors.soil_moist.super.read_interval_ms);
     TEST_ASSERT_EQUAL(7100, test_gmon.sensors.air_temp.read_interval_ms);
     TEST_ASSERT_EQUAL(11000, test_gmon.sensors.light.read_interval_ms);
     // Netconn interval

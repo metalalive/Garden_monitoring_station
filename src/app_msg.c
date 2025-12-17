@@ -417,7 +417,7 @@ static gMonStatus staDecodeSensorBlock(
             if (XSTRNCMP(GMON_APPMSG_DATA_NAME_SOILMOIST, child_key_name, child_key_len) == 0) {
                 int config_tokens_consumed = 0;
                 status = staDecodeSensorConfig(
-                    json_data, tokens, current_child_token_idx + 1, &gmon->sensors.soil_moist,
+                    json_data, tokens, current_child_token_idx + 1, &gmon->sensors.soil_moist.super,
                     &gmon->actuator.pump, staSetTrigThresholdPump,
                     &gmon->user_ctrl.status.threshold.soil_moist, &config_tokens_consumed
                 );

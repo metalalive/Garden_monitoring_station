@@ -10,7 +10,7 @@ extern "C" {
 // station)
 #define GMON_CFG_NUM_SENSOR_RECORDS_KEEP 5
 // Time interval (in milliseconds) to read all data from snesors.
-#define GMON_CFG_SENSOR_READ_INTERVAL_MS 2000
+#define GMON_CFG_SENSOR_READ_INTERVAL_MS 3000
 // Time interval (in milliseconds) to establish network connection for user/senser data exchange.
 #define GMON_CFG_NETCONN_START_INTERVAL_MS 60000 // 60 seconds
 

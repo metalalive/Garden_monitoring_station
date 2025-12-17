@@ -13,7 +13,7 @@ TEST_BUILD_DIR = $(BUILD_DIR_TOP)/utest
 
 TEST_SRC = tests/mocks.c tests/entry.c tests/app_msg.c tests/util_str_proc.c \
 		   tests/IO/actuator.c tests/IO/sensor_event.c tests/IO/display.c \
-		   tests/IO/sensor_sample.c tests/util_stats.c
+		   tests/IO/sensor_sample.c tests/IO/soilsensor.c tests/util_stats.c
 
 APP_SRC = src/util.c src/app_msg.c src/IO/sensor_event.c src/IO/actuator.c \
 		  src/IO/display.c src/IO/sensor_sample.c src/IO/soilsensor.c

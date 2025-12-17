@@ -117,13 +117,33 @@ typedef struct {
     float outlier_threshold;
     // saturate minimal MAD threshold (Median Absolute Deviation) for specific sensor,
     // this takes effect when estimated MAD function returns zero in z-score calculation.
-    float        mad_threshold;
+    float mad_threshold;
+    // TODO, change to interval in seconds , with shorter number size (short)
     unsigned int read_interval_ms;
     // number of sensors installed in one spot ,
     // note current appllication does not identify sensors in several different spots
     unsigned char num_items     : 4;
     unsigned char num_resamples : 4;
 } gMonSensorMeta_t;
+
+typedef struct {
+    gMonSensorMeta_t super;
+    struct {
+        // Bit flags indicating for which sensor IDs an associated pump is currently ON.
+        // This mask also determines if a specific sensor should be polled at a more
+        // frequent rate.
+        // - if all bits are zero, poll sensor data at default rate
+        // - otherwise, wake up task at faster rate, poll data from the sensors which
+        //   corresponding enabled bit is set
+        unsigned char enabled[1];
+        // Divisor for default sensor read interval when fast poll is enabled on sensors.
+        // - If == 1, reads at default rate.
+        // - If >  1, reads at (default_rate / divisor).
+        unsigned char divisor : 4;
+        // internal use for runtime polling ratio
+        unsigned char _div_cnt : 4;
+    } fast_poll;
+} gMonSoilSensorMeta_t;
 
 typedef struct {
     void *lowlvl;

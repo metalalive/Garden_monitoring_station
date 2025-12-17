@@ -43,9 +43,9 @@ void lightControllerTaskFn(void *params) {
         // TODO, redesign how to determine max work time of artifical light
         gmon->actuator.bulb.max_worktime = 1230;
         status = GMON_ACTUATOR_TRIG_FN_BULB(&gmon->actuator.bulb, event, &gmon->sensors.light);
+        // always pass event to message pipe regardless of actuator's return value
         event->curr_ticks = stationGetTicksPerDay(&gmon->tick);
         event->curr_days = stationGetDays(&gmon->tick);
-        // Pass the read data to message pipe
         staNotifyOthersWithEvent(gmon, event, block_time);
     }
 } // end of lightControllerTaskFn

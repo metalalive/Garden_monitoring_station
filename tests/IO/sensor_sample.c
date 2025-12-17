@@ -101,7 +101,7 @@ TEST(SensorSampleAlloc, initOk) {
 }
 
 TEST(SensorNoiseDetection, ErrMissingArgs) {
-    gMonSensorMeta_t *s = &gmon.sensors.soil_moist;
+    gMonSensorMeta_t *s = &gmon.sensors.soil_moist.super;
     s->num_items = 4;
     s->num_resamples = 3;
     s->outlier_threshold = 2.2f;
@@ -155,7 +155,7 @@ TEST(SensorNoiseDetection, ErrMissingArgs) {
 }
 
 TEST(SensorNoiseDetection, U32FewOutliers) {
-    gMonSensorMeta_t *s = &gmon.sensors.soil_moist;
+    gMonSensorMeta_t *s = &gmon.sensors.soil_moist.super;
     s->num_items = 4;
     s->num_resamples = 3;
     s->outlier_threshold = 2.2f;
@@ -237,7 +237,7 @@ TEST(SensorNoiseDetection, AirCondFewOutliers) {
 } // end of AirCondFewOutliers
 
 TEST(SensorNoiseDetection, U32HalfOutliers) {
-    gMonSensorMeta_t *s = &gmon.sensors.soil_moist;
+    gMonSensorMeta_t *s = &gmon.sensors.soil_moist.super;
     s->num_items = 3;
     s->num_resamples = 7;
     s->outlier_threshold = 2.9f;
@@ -286,7 +286,7 @@ TEST(SensorNoiseDetection, U32HalfOutliers) {
 } // end of U32HalfOutliers
 
 TEST(SensorNoiseDetection, U32zeroMAD) {
-    gMonSensorMeta_t *s = &gmon.sensors.soil_moist;
+    gMonSensorMeta_t *s = &gmon.sensors.soil_moist.super;
     s->num_items = 1;
     s->num_resamples = 5;
     s->outlier_threshold = 2.2f; // Standard modified Z-score threshold

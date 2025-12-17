@@ -61,7 +61,7 @@ done:
 
 gMonStatus staActuatorDeinitBulb(void) { return staActuatorDeinitGenericBulb(); }
 
-gMonStatus staActuatorTrigPump(gMonActuator_t *dev, gmonEvent_t *evt, gMonSensorMeta_t *sensor) {
+gMonStatus staActuatorTrigPump(gMonActuator_t *dev, gmonEvent_t *evt, gMonSoilSensorMeta_t *sensor) {
     gMonStatus status = GMON_RESP_OK;
     if (dev == NULL || evt == NULL || sensor == NULL) {
         return GMON_RESP_ERRARGS;
@@ -70,13 +70,15 @@ gMonStatus staActuatorTrigPump(gMonActuator_t *dev, gmonEvent_t *evt, gMonSensor
     }
     int soil_moist = 0;
     status = staActuatorAggregateU32(evt, dev, &soil_moist);
+    unsigned int read_period_ms = staSensorReadInterval(sensor);
     // output device starts working until either max working time reached or actual read
     // value lesser than threshold larger input value means dry soil
     gMonActuatorStatus dev_status = ((status == GMON_RESP_OK) && (dev->threshold < soil_moist))
-                                        ? staActuatorMeasureWorkingTime(dev, sensor->read_interval_ms)
+                                        ? staActuatorMeasureWorkingTime(dev, read_period_ms)
                                         : GMON_OUT_DEV_STATUS_OFF;
     if (dev->status != dev_status) {
         dev->status = dev_status;
+        staSensorFastPollToggle(sensor, dev);
         uint8_t pin_state =
             (dev_status == GMON_OUT_DEV_STATUS_ON ? GMON_PLATFORM_PIN_SET : GMON_PLATFORM_PIN_RESET);
         status = staPlatformWritePin(dev->lowlvl, pin_state);

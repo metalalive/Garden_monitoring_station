@@ -15,9 +15,9 @@ gMonStatus   staFreeSensorEvent(gMonEvtPool_t *, gmonEvent_t *);
 gMonStatus   staCpySensorEvent(gmonEvent_t *dst, gmonEvent_t *src);
 gMonStatus   staNotifyOthersWithEvent(gardenMonitor_t *, gmonEvent_t *, uint32_t block_time);
 
-gMonStatus staSensorInitSoilMoist(gMonSensorMeta_t *);
-gMonStatus staSensorDeInitSoilMoist(gMonSensorMeta_t *);
-gMonStatus staSensorReadSoilMoist(gMonSensorMeta_t *, gmonSensorSample_t *);
+gMonStatus staSensorInitSoilMoist(gMonSoilSensorMeta_t *);
+gMonStatus staSensorDeInitSoilMoist(gMonSoilSensorMeta_t *);
+gMonStatus staSensorReadSoilMoist(gMonSoilSensorMeta_t *, gmonSensorSample_t *);
 
 gMonStatus staSensorInitAirTemp(gMonSensorMeta_t *);
 gMonStatus staSensorDeInitAirTemp(gMonSensorMeta_t *);
@@ -27,13 +27,19 @@ gMonStatus staSensorInitLight(gMonSensorMeta_t *);
 gMonStatus staSensorDeInitLight(gMonSensorMeta_t *);
 gMonStatus staSensorReadLight(gMonSensorMeta_t *, gmonSensorSample_t *);
 
+// currently the 3 functions below are implemented only for soil sensor polling rate
+gMonStatus   staSensorFastPollToggle(gMonSoilSensorMeta_t *, gMonActuator_t *);
+gMonStatus   staSensorRefreshFastPollRatio(gMonSoilSensorMeta_t *);
+unsigned int staSensorReadInterval(gMonSoilSensorMeta_t *);
+char         staSensorPollEnabled(gMonSoilSensorMeta_t *, unsigned short idx);
+
 gMonStatus staSensorDetectNoise(gMonSensorMeta_t *, gmonSensorSample_t *);
 gMonStatus staSensorSampleToEvent(gmonEvent_t *, gmonSensorSample_t *);
 
 // device-specific functions
 gMonStatus staActuatorInitPump(gMonActuator_t *);
 gMonStatus staActuatorDeinitPump(void);
-gMonStatus staActuatorTrigPump(gMonActuator_t *, gmonEvent_t *, gMonSensorMeta_t *);
+gMonStatus staActuatorTrigPump(gMonActuator_t *, gmonEvent_t *, gMonSoilSensorMeta_t *);
 
 gMonStatus staActuatorInitFan(gMonActuator_t *);
 gMonStatus staActuatorDeinitFan(void);
