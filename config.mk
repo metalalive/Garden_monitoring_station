@@ -31,7 +31,8 @@ _COMMON_C_SOURCES_FUNC = \
     src/aircond_track.c \
     src/soilcond_track.c \
     src/netconn.c \
-    src/app_msg.c \
+    src/app_msg/inbound.c \
+    src/app_msg/outbound.c \
     src/network/mqtt_client.c \
     src/IO/sensor_event.c \
     src/IO/sensor_sample.c \
