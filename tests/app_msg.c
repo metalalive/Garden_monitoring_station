@@ -46,7 +46,7 @@ TEST(DecodeMsgInflight, ValidIntervalSensor) {
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
-    TEST_ASSERT_EQUAL(10009, test_gmon.sensors.soil_moist.read_interval_ms);
+    TEST_ASSERT_EQUAL(10009, test_gmon.sensors.soil_moist.super.read_interval_ms);
     TEST_ASSERT_EQUAL(20008, test_gmon.sensors.air_temp.read_interval_ms);
     TEST_ASSERT_EQUAL(30007, test_gmon.sensors.light.read_interval_ms);
 }
@@ -76,7 +76,7 @@ TEST(DecodeMsgInflight, MixedValid) {
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
-    TEST_ASSERT_EQUAL(2100, test_gmon.sensors.soil_moist.read_interval_ms);
+    TEST_ASSERT_EQUAL(2100, test_gmon.sensors.soil_moist.super.read_interval_ms);
     TEST_ASSERT_EQUAL(7100, test_gmon.sensors.air_temp.read_interval_ms);
     TEST_ASSERT_EQUAL(11000, test_gmon.sensors.light.read_interval_ms);
     TEST_ASSERT_EQUAL(360095, test_gmon.netconn.interval_ms);
@@ -97,7 +97,7 @@ TEST(DecodeMsgInflight, MixedValidReordered) {
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     // Assert sensor read intervals
-    TEST_ASSERT_EQUAL(2100, test_gmon.sensors.soil_moist.read_interval_ms);
+    TEST_ASSERT_EQUAL(2100, test_gmon.sensors.soil_moist.super.read_interval_ms);
     TEST_ASSERT_EQUAL(7100, test_gmon.sensors.air_temp.read_interval_ms);
     TEST_ASSERT_EQUAL(11000, test_gmon.sensors.light.read_interval_ms);
     // Assert netconn interval
@@ -227,7 +227,7 @@ TEST(DecodeMsgInflight, ComprehensiveConfigWithActuators) {
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     // Sensor intervals
-    TEST_ASSERT_EQUAL(2100, test_gmon.sensors.soil_moist.read_interval_ms);
+    TEST_ASSERT_EQUAL(2100, test_gmon.sensors.soil_moist.super.read_interval_ms);
     TEST_ASSERT_EQUAL(7100, test_gmon.sensors.air_temp.read_interval_ms);
     TEST_ASSERT_EQUAL(11000, test_gmon.sensors.light.read_interval_ms);
     // Netconn interval
@@ -353,25 +353,34 @@ TEST(GenerateMsgOutflight, RecordsWithExtremeValues) {
 // New test group for staUpdateLastRecord
 TEST_GROUP(UpdateLastRecord);
 
+static unsigned int  ut_mockmem_soilmoist[3];
+static unsigned int  ut_mockmem_lightness[3];
+static gmonAirCond_t ut_mockmem_aircond[3];
+static int           ut_mockidx_soilmoist;
+static int           ut_mockidx_lightness;
+static int           ut_mockidx_aircond;
+
 static gmonEvent_t create_test_event(
     gmonEventType_t type, unsigned int soil_moist, float air_temp, float air_humid, unsigned int lightness,
     unsigned int ticks, unsigned int days
 ) {
-    gmonEvent_t evt;
-    XMEMSET(&evt, 0, sizeof(gmonEvent_t));
-    evt.event_type = type;
-    evt.curr_ticks = ticks;
-    evt.curr_days = days;
+    gmonEvent_t evt = {
+        .event_type = type,
+        .curr_ticks = ticks,
+        .curr_days = days,
+    };
     switch (evt.event_type) {
     case GMON_EVENT_SOIL_MOISTURE_UPDATED:
-        evt.data.soil_moist = soil_moist;
+        ut_mockmem_soilmoist[ut_mockidx_soilmoist] = soil_moist;
+        evt.data = &ut_mockmem_soilmoist[ut_mockidx_soilmoist++];
         break;
     case GMON_EVENT_LIGHTNESS_UPDATED:
-        evt.data.lightness = lightness;
+        ut_mockmem_lightness[ut_mockidx_lightness] = lightness;
+        evt.data = &ut_mockmem_lightness[ut_mockidx_lightness++];
         break;
     case GMON_EVENT_AIR_TEMP_UPDATED:
-        evt.data.air_cond.temporature = air_temp;
-        evt.data.air_cond.humidity = air_humid;
+        ut_mockmem_aircond[ut_mockidx_aircond] = (gmonAirCond_t){air_temp, air_humid};
+        evt.data = &ut_mockmem_aircond[ut_mockidx_aircond++];
         break;
     default:
         break;
@@ -381,6 +390,9 @@ static gmonEvent_t create_test_event(
 
 TEST_SETUP(UpdateLastRecord) {
     XMEMSET(&test_gmon, 0, sizeof(gardenMonitor_t));
+    ut_mockidx_soilmoist = 0;
+    ut_mockidx_lightness = 0;
+    ut_mockidx_aircond = 0;
     staAppMsgInit(&test_gmon);
 }
 

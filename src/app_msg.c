@@ -344,9 +344,10 @@ static gMonStatus staDecodeActuatorsBlock(
 }
 
 static gMonStatus staDecodeSensorConfig(
-    const unsigned char *json_data, jsmntok_t *tokens, int start_object_token_idx, gMonSensor_t *sensor_cfg,
-    gMonActuator_t *actuator, gMonStatus (*set_threshold_fn)(gMonActuator_t *, unsigned int),
-    gMonStatus *threshold_status_field, int *tokens_consumed_out
+    const unsigned char *json_data, jsmntok_t *tokens, int start_object_token_idx,
+    gMonSensorMeta_t *sensor_cfg, gMonActuator_t                               *actuator,
+    gMonStatus (*set_threshold_fn)(gMonActuator_t *, unsigned int), gMonStatus *threshold_status_field,
+    int *tokens_consumed_out
 ) {
     gMonStatus status = GMON_RESP_OK;
     int        parsed_int = 0;
@@ -416,7 +417,7 @@ static gMonStatus staDecodeSensorBlock(
             if (XSTRNCMP(GMON_APPMSG_DATA_NAME_SOILMOIST, child_key_name, child_key_len) == 0) {
                 int config_tokens_consumed = 0;
                 status = staDecodeSensorConfig(
-                    json_data, tokens, current_child_token_idx + 1, &gmon->sensors.soil_moist,
+                    json_data, tokens, current_child_token_idx + 1, &gmon->sensors.soil_moist.super,
                     &gmon->actuator.pump, staSetTrigThresholdPump,
                     &gmon->user_ctrl.status.threshold.soil_moist, &config_tokens_consumed
                 );
@@ -632,7 +633,7 @@ gmonSensorRecord_t staUpdateLastRecord(gmonSensorRecord_t *records, gmonEvent_t 
         // from the new event.
         records[0].curr_ticks = evt->curr_ticks;
         records[0].curr_days = evt->curr_days;
-        records[0].soil_moist = evt->data.soil_moist;
+        records[0].soil_moist = ((unsigned int *)evt->data)[0]; // TODO
         records[0].flgs.soil_val_written = 1;
         break;
     case GMON_EVENT_LIGHTNESS_UPDATED:
@@ -641,7 +642,7 @@ gmonSensorRecord_t staUpdateLastRecord(gmonSensorRecord_t *records, gmonEvent_t 
         }
         records[0].curr_ticks = evt->curr_ticks;
         records[0].curr_days = evt->curr_days;
-        records[0].lightness = evt->data.lightness;
+        records[0].lightness = ((unsigned int *)evt->data)[0]; // TODO
         records[0].flgs.light_val_written = 1;
         break;
     case GMON_EVENT_AIR_TEMP_UPDATED:
@@ -650,7 +651,7 @@ gmonSensorRecord_t staUpdateLastRecord(gmonSensorRecord_t *records, gmonEvent_t 
         }
         records[0].curr_ticks = evt->curr_ticks;
         records[0].curr_days = evt->curr_days;
-        records[0].air_cond = evt->data.air_cond;
+        records[0].air_cond = ((gmonAirCond_t *)evt->data)[0]; // TODO
         records[0].flgs.air_val_written = 1;
         break;
     default:
@@ -669,7 +670,7 @@ void stationSensorDataAggregatorTaskFn(void *params) {
         if (new_evt != NULL) { // This must be inside the loop
             configASSERT(status == GMON_RESP_OK);
             staUpdateLastRecord(gmon->sensors.latest_records, new_evt);
-            staFreeSensorEvent(gmon, new_evt);
+            staFreeSensorEvent(&gmon->sensors.event, new_evt);
             new_evt = NULL;
         }
     }

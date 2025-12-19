@@ -19,9 +19,6 @@ static gMonStatus stationInit(gardenMonitor_t **gmon) {
     status = staDaylightTrackInit(*gmon);
     if (status < 0)
         goto done;
-    status = staAirCondTrackInit();
-    if (status < 0)
-        goto done;
     status = stationIOinit(*gmon);
     if (status < 0)
         goto done;

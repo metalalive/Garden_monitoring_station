@@ -13,6 +13,12 @@ extern "C" {
 #define GMON_MIN_NETCONN_START_INTERVAL_MS 60000 // TODO: should be about 10 minutes
 #define GMON_MAX_NETCONN_START_INTERVAL_MS (GMON_NUM_MILLISECONDS_PER_DAY >> 2)
 
+// max / min supproted temperature (celsius) and humidity (relative)
+#define GMON_MAX_AIR_TEMPERATURE        80
+#define GMON_MIN_AIR_TEMPERATURE        -5
+#define GMON_MAX_AIR_HUMIDITY_SUPPORTED 90
+#define GMON_MIN_AIR_HUMIDITY_SUPPORTED 20
+
 #ifndef GMON_CFG_SENSOR_READ_INTERVAL_MS
     #define GMON_CFG_SENSOR_READ_INTERVAL_MS 10000 // 10 * 1000 ms
 #elif (GMON_CFG_SENSOR_READ_INTERVAL_MS > GMON_MAX_SENSOR_READ_INTERVAL_MS)
@@ -30,75 +36,138 @@ extern "C" {
 #endif // end of GMON_CFG_NETCONN_START_INTERVAL_MS
 
 #ifdef GMON_CFG_ENABLE_SENSOR_SOIL_MOIST
-    #define GMON_SENSOR_INIT_FN_SOIL_MOIST()        staSensorInitSoilMoist()
-    #define GMON_SENSOR_DEINIT_FN_SOIL_MOIST()      staSensorDeInitSoilMoist()
-    #define GMON_SENSOR_READ_FN_SOIL_MOIST(readout) staSensorReadSoilMoist((readout))
+    #define GMON_SENSOR_INIT_FN_SOIL_MOIST(s)          staSensorInitSoilMoist(s)
+    #define GMON_SENSOR_DEINIT_FN_SOIL_MOIST(s)        staSensorDeInitSoilMoist(s)
+    #define GMON_SENSOR_READ_FN_SOIL_MOIST(s, readout) staSensorReadSoilMoist((s), (readout))
     #ifndef GMON_CFG_SENSOR_READ_INTERVAL_MS_SOIL_MOIST
         #define GMON_CFG_SENSOR_READ_INTERVAL_MS_SOIL_MOIST 2000
     #endif
+    #ifndef GMON_CFG_NUM_SOIL_SENSORS
+        #define GMON_CFG_NUM_SOIL_SENSORS 1
+    #endif
+    #ifndef GMON_CFG_SOIL_SENSOR_NUM_OVERSAMPLE
+        #define GMON_CFG_SOIL_SENSOR_NUM_OVERSAMPLE 1
+    #endif
 #else
-    #define GMON_SENSOR_INIT_FN_SOIL_MOIST()            GMON_RESP_OK
-    #define GMON_SENSOR_DEINIT_FN_SOIL_MOIST()          GMON_RESP_OK
-    #define GMON_SENSOR_READ_FN_SOIL_MOIST(readout)     GMON_RESP_OK
+    #define GMON_SENSOR_INIT_FN_SOIL_MOIST(s)           GMON_RESP_OK
+    #define GMON_SENSOR_DEINIT_FN_SOIL_MOIST(s)         GMON_RESP_OK
+    #define GMON_SENSOR_READ_FN_SOIL_MOIST(s, readout)  GMON_RESP_OK
     #define GMON_CFG_SENSOR_READ_INTERVAL_MS_SOIL_MOIST 0xffffffff
+    #define GMON_CFG_NUM_SOIL_SENSORS                   0
+    #define GMON_CFG_SOIL_SENSOR_NUM_OVERSAMPLE         0
 #endif // end of GMON_CFG_ENABLE_SENSOR_SOIL_MOIST
 
 #ifdef GMON_CFG_ENABLE_SENSOR_AIR_TEMP
-    #define GMON_SENSOR_INIT_FN_AIR_TEMP()                    staSensorInitAirTemp()
-    #define GMON_SENSOR_DEINIT_FN_AIR_TEMP()                  staSensorDeInitAirTemp()
-    #define GMON_SENSOR_READ_FN_AIR_TEMP(air_temp, air_humid) staSensorReadAirTemp((air_temp), (air_humid))
+    #define GMON_SENSOR_INIT_FN_AIR_TEMP(s)          staSensorInitAirTemp(s)
+    #define GMON_SENSOR_DEINIT_FN_AIR_TEMP(s)        staSensorDeInitAirTemp(s)
+    #define GMON_SENSOR_READ_FN_AIR_TEMP(s, readout) staSensorReadAirTemp((s), (readout))
     #ifndef GMON_CFG_SENSOR_READ_INTERVAL_MS_AIR_TEMP
         #define GMON_CFG_SENSOR_READ_INTERVAL_MS_AIR_TEMP 7000
     #endif
+    #ifndef GMON_CFG_NUM_AIR_SENSORS
+        #define GMON_CFG_NUM_AIR_SENSORS 1
+    #endif
+    #ifndef GMON_CFG_AIR_SENSOR_NUM_OVERSAMPLE
+        #define GMON_CFG_AIR_SENSOR_NUM_OVERSAMPLE 1
+    #endif
 #else
-    #define GMON_SENSOR_INIT_FN_AIR_TEMP()                    GMON_RESP_OK
-    #define GMON_SENSOR_DEINIT_FN_AIR_TEMP()                  GMON_RESP_OK
-    #define GMON_SENSOR_READ_FN_AIR_TEMP(air_temp, air_humid) GMON_RESP_OK
-    #define GMON_CFG_SENSOR_READ_INTERVAL_MS_AIR_TEMP         0xffffffff
+    #define GMON_SENSOR_INIT_FN_AIR_TEMP(s)           GMON_RESP_OK
+    #define GMON_SENSOR_DEINIT_FN_AIR_TEMP(s)         GMON_RESP_OK
+    #define GMON_SENSOR_READ_FN_AIR_TEMP(s, readout)  GMON_RESP_OK
+    #define GMON_CFG_SENSOR_READ_INTERVAL_MS_AIR_TEMP 0xffffffff
+    #define GMON_CFG_NUM_AIR_SENSORS                  0
+    #define GMON_CFG_AIR_SENSOR_NUM_OVERSAMPLE        0
 #endif // end of GMON_CFG_ENABLE_SENSOR_AIR_TEMP
 
 #ifdef GMON_CFG_ENABLE_LIGHT_SENSOR
-    #define GMON_SENSOR_INIT_FN_LIGHT()          staSensorInitLight()
-    #define GMON_SENSOR_DEINIT_FN_LIGHT()        staSensorDeInitLight()
-    #define GMON_SENSOR_READ_FN_LIGHT(lightness) staSensorReadLight((lightness))
+    #define GMON_SENSOR_INIT_FN_LIGHT(s)          staSensorInitLight(s)
+    #define GMON_SENSOR_DEINIT_FN_LIGHT(s)        staSensorDeInitLight(s)
+    #define GMON_SENSOR_READ_FN_LIGHT(s, readout) staSensorReadLight((s), (readout))
     #ifndef GMON_CFG_SENSOR_READ_INTERVAL_MS_LIGHT
         #define GMON_CFG_SENSOR_READ_INTERVAL_MS_LIGHT 10000
     #endif
+    #ifndef GMON_CFG_NUM_LIGHT_SENSORS
+        #define GMON_CFG_NUM_LIGHT_SENSORS 1
+    #endif
+    #ifndef GMON_CFG_LIGHT_SENSOR_NUM_OVERSAMPLE
+        #define GMON_CFG_LIGHT_SENSOR_NUM_OVERSAMPLE 1
+    #endif
 #else
-    #define GMON_SENSOR_INIT_FN_LIGHT()            GMON_RESP_OK
-    #define GMON_SENSOR_DEINIT_FN_LIGHT()          GMON_RESP_OK
-    #define GMON_SENSOR_READ_FN_LIGHT(lightness)   GMON_RESP_OK
+    #define GMON_SENSOR_INIT_FN_LIGHT(s)           GMON_RESP_OK
+    #define GMON_SENSOR_DEINIT_FN_LIGHT(s)         GMON_RESP_OK
+    #define GMON_SENSOR_READ_FN_LIGHT(s, readout)  GMON_RESP_OK
     #define GMON_CFG_SENSOR_READ_INTERVAL_MS_LIGHT 0xffffffff
+    #define GMON_CFG_NUM_LIGHT_SENSORS             0
+    #define GMON_CFG_LIGHT_SENSOR_NUM_OVERSAMPLE   0
 #endif // end of GMON_CFG_ENABLE_LIGHT_SENSOR
 
+#define GMON_MAXNUM_SOIL_SENSORS           7
+#define GMON_MAXNUM_LIGHT_SENSORS          7
+#define GMON_MAXNUM_AIR_SENSORS            7
+#define GMON_MAX_OVERSAMPLES_SOIL_SENSORS  6
+#define GMON_MAX_OVERSAMPLES_LIGHT_SENSORS 6
+#define GMON_MAX_OVERSAMPLES_AIR_SENSORS   6
+
+#if (GMON_CFG_NUM_SOIL_SENSORS > GMON_MAXNUM_SOIL_SENSORS)
+    #error "GMON_CFG_NUM_SOIL_SENSORS must NOT be greater than GMON_MAXNUM_SOIL_SENSORS."
+#elif (GMON_CFG_NUM_LIGHT_SENSORS > GMON_MAXNUM_LIGHT_SENSORS)
+    #error "GMON_CFG_NUM_LIGHT_SENSORS must NOT be greater than GMON_MAXNUM_LIGHT_SENSORS."
+#elif (GMON_CFG_NUM_AIR_SENSORS > GMON_MAXNUM_AIR_SENSORS)
+    #error "GMON_CFG_NUM_AIR_SENSORS must NOT be greater than GMON_MAXNUM_AIR_SENSORS."
+#endif
+
+#if (GMON_CFG_SOIL_SENSOR_NUM_OVERSAMPLE > GMON_MAX_OVERSAMPLES_SOIL_SENSORS)
+    #error "GMON_CFG_SOIL_SENSOR_NUM_OVERSAMPLE must NOT be greater than GMON_MAX_OVERSAMPLES_SOIL_SENSORS."
+#elif (GMON_CFG_LIGHT_SENSOR_NUM_OVERSAMPLE > GMON_MAX_OVERSAMPLES_LIGHT_SENSORS)
+    #error "GMON_CFG_LIGHT_SENSOR_NUM_OVERSAMPLE must NOT be greater than GMON_MAX_OVERSAMPLES_LIGHT_SENSORS."
+#elif (GMON_CFG_AIR_SENSOR_NUM_OVERSAMPLE > GMON_MAX_OVERSAMPLES_AIR_SENSORS)
+    #error "GMON_CFG_AIR_SENSOR_NUM_OVERSAMPLE must NOT be greater than GMON_MAX_OVERSAMPLES_AIR_SENSORS."
+#endif
+
+#ifndef GMON_CFG_SENSOR_FASTPOLL_DIVISOR
+    #define GMON_CFG_SENSOR_FASTPOLL_DIVISOR 3
+#endif
+#if (GMON_CFG_SENSOR_FASTPOLL_DIVISOR <= 0 || GMON_CFG_SENSOR_FASTPOLL_DIVISOR > 15)
+    #error "GMON_CFG_SENSOR_FASTPOLL_DIVISOR must range from 1 to 15."
+#endif
+
+// TODO, runtime configurable
+#define GMON_SOIL_SENSOR_OUTLIER_THRESHOLD  2.8f
+#define GMON_AIR_SENSOR_OUTLIER_THRESHOLD   3.6f
+#define GMON_LIGHT_SENSOR_OUTLIER_THRESHOLD 3.5f
+
+#define GMON_SOIL_SENSOR_MAD_THRESHOLD  1.5f
+#define GMON_AIR_SENSOR_MAD_THRESHOLD   0.55f
+#define GMON_LIGHT_SENSOR_MAD_THRESHOLD 1.8f
+
 #ifdef GMON_CFG_ENABLE_ACTUATOR_PUMP
-    #define GMON_ACTUATOR_INIT_FN_PUMP(dev)                   staActuatorInitPump((dev))
-    #define GMON_ACTUATOR_DEINIT_FN_PUMP()                    staActuatorDeinitPump()
-    #define GMON_ACTUATOR_TRIG_FN_PUMP(dev, moistval, sensor) staActuatorTrigPump((dev), (moistval), (sensor))
+    #define GMON_ACTUATOR_INIT_FN_PUMP(dev)              staActuatorInitPump((dev))
+    #define GMON_ACTUATOR_DEINIT_FN_PUMP()               staActuatorDeinitPump()
+    #define GMON_ACTUATOR_TRIG_FN_PUMP(dev, evt, sensor) staActuatorTrigPump((dev), (evt), (sensor))
 #else
-    #define GMON_ACTUATOR_INIT_FN_PUMP(dev)                   GMON_RESP_OK
-    #define GMON_ACTUATOR_DEINIT_FN_PUMP()                    GMON_RESP_OK
-    #define GMON_ACTUATOR_TRIG_FN_PUMP(dev, moistval, sensor) GMON_RESP_OK
+    #define GMON_ACTUATOR_INIT_FN_PUMP(dev)              GMON_RESP_OK
+    #define GMON_ACTUATOR_DEINIT_FN_PUMP()               GMON_RESP_OK
+    #define GMON_ACTUATOR_TRIG_FN_PUMP(dev, evt, sensor) GMON_RESP_OK
 #endif
 
 #ifdef GMON_CFG_ENABLE_ACTUATOR_FAN
-    #define GMON_ACTUATOR_INIT_FN_FAN(dev)                  staActuatorInitFan((dev))
-    #define GMON_ACTUATOR_DEINIT_FN_FAN()                   staActuatorDeinitFan()
-    #define GMON_ACTUATOR_TRIG_FN_FAN(dev, airtemp, sensor) staActuatorTrigFan((dev), (airtemp), (sensor))
+    #define GMON_ACTUATOR_INIT_FN_FAN(dev)              staActuatorInitFan((dev))
+    #define GMON_ACTUATOR_DEINIT_FN_FAN()               staActuatorDeinitFan()
+    #define GMON_ACTUATOR_TRIG_FN_FAN(dev, evt, sensor) staActuatorTrigFan((dev), (evt), (sensor))
 #else
-    #define GMON_ACTUATOR_INIT_FN_FAN(dev)                  GMON_RESP_OK
-    #define GMON_ACTUATOR_DEINIT_FN_FAN()                   GMON_RESP_OK
-    #define GMON_ACTUATOR_TRIG_FN_FAN(dev, airtemp, sensor) GMON_RESP_OK
+    #define GMON_ACTUATOR_INIT_FN_FAN(dev)              GMON_RESP_OK
+    #define GMON_ACTUATOR_DEINIT_FN_FAN()               GMON_RESP_OK
+    #define GMON_ACTUATOR_TRIG_FN_FAN(dev, evt, sensor) GMON_RESP_OK
 #endif
 
 #ifdef GMON_CFG_ENABLE_ACTUATOR_BULB
-    #define GMON_ACTUATOR_INIT_FN_BULB(dev)                   staActuatorInitBulb((dev))
-    #define GMON_ACTUATOR_DEINIT_FN_BULB()                    staActuatorDeinitBulb()
-    #define GMON_ACTUATOR_TRIG_FN_BULB(dev, lightval, sensor) staActuatorTrigBulb((dev), (lightval), (sensor))
+    #define GMON_ACTUATOR_INIT_FN_BULB(dev)              staActuatorInitBulb((dev))
+    #define GMON_ACTUATOR_DEINIT_FN_BULB()               staActuatorDeinitBulb()
+    #define GMON_ACTUATOR_TRIG_FN_BULB(dev, evt, sensor) staActuatorTrigBulb((dev), (evt), (sensor))
 #else
-    #define GMON_ACTUATOR_INIT_FN_BULB(dev)                   GMON_RESP_OK
-    #define GMON_ACTUATOR_DEINIT_FN_BULB()                    GMON_RESP_OK
-    #define GMON_ACTUATOR_TRIG_FN_BULB(dev, lightval, sensor) GMON_RESP_OK
+    #define GMON_ACTUATOR_INIT_FN_BULB(dev)              GMON_RESP_OK
+    #define GMON_ACTUATOR_DEINIT_FN_BULB()               GMON_RESP_OK
+    #define GMON_ACTUATOR_TRIG_FN_BULB(dev, evt, sensor) GMON_RESP_OK
 #endif
 
 #ifdef GMON_CFG_ENABLE_DISPLAY
@@ -116,6 +185,9 @@ extern "C" {
     #define GMON_DISPLAY_DEV_REFRESH_SCREEN_FN()        GMON_RESP_OK
     #define GMON_DISPLAY_DEV_PRINT_STRING_FN(printinfo) GMON_RESP_OK
 #endif // end of GMON_CFG_ENABLE_DISPLAY
+
+#define GMON_MAX_ACTUATOR_EMA_LAMBDA 99
+#define GMON_MIN_ACTUATOR_EMA_LAMBDA 1
 
 #define GMON_MIN_ACTUATOR_TRIG_THRESHOLD_BULB 20
 #define GMON_MAX_ACTUATOR_TRIG_THRESHOLD_BULB 830
@@ -141,13 +213,28 @@ extern "C" {
     #define GMON_CFG_ACTUATOR_MAX_WORKTIME_BULB 36000000 // 10 * 60 * 60 * 1000 ms
 #elif (GMON_CFG_ACTUATOR_MAX_WORKTIME_BULB > GMON_ACTUATOR_MAX_WORKTIME_PER_DAY)
     #error "GMON_CFG_ACTUATOR_MAX_WORKTIME_BULB must NOT be greater than 1000 * 60 * 60 * 24 milliseconds."
-#endif // end of GMON_CFG_ACTUATOR_MAX_WORKTIME_BULB
+#endif
 
 #ifndef GMON_CFG_ACTUATOR_MIN_RESTTIME_BULB
     #define GMON_CFG_ACTUATOR_MIN_RESTTIME_BULB GMON_ACTUATOR_MAX_RESTTIME_PER_DAY
 #elif (GMON_CFG_ACTUATOR_MIN_RESTTIME_BULB > GMON_ACTUATOR_MAX_RESTTIME_PER_DAY)
     #error "GMON_CFG_ACTUATOR_MIN_RESTTIME_BULB must NOT be greater than 1000 * 60 * 60 * 24 milliseconds."
-#endif // end of GMON_CFG_ACTUATOR_MIN_RESTTIME_BULB
+#endif
+
+#ifndef GMON_CFG_ACTUATOR_SENSOR_MASK_BULB
+    #define GMON_CFG_ACTUATOR_SENSOR_MASK_BULB 0x0
+#endif
+#if (GMON_CFG_ACTUATOR_SENSOR_MASK_BULB == 0x0)
+    #error "GMON_CFG_ACTUATOR_SENSOR_MASK_BULB should be ranging from 0x1 to 0xff"
+#endif
+
+#ifndef GMON_CFG_ACTUATOR_EMA_LAMBDA_BULB
+    #define GMON_CFG_ACTUATOR_EMA_LAMBDA_BULB 55
+#endif
+#if ((GMON_MIN_ACTUATOR_EMA_LAMBDA > GMON_CFG_ACTUATOR_EMA_LAMBDA_BULB) || \
+     (GMON_CFG_ACTUATOR_EMA_LAMBDA_BULB > GMON_MAX_ACTUATOR_EMA_LAMBDA))
+    #error "GMON_CFG_ACTUATOR_EMA_LAMBDA_BULB should be ranging from 1 to 99"
+#endif
 
 #ifndef GMON_CFG_ACTUATOR_TRIG_THRESHOLD_PUMP
     #define GMON_CFG_ACTUATOR_TRIG_THRESHOLD_PUMP 950
@@ -163,13 +250,28 @@ extern "C" {
     #define GMON_CFG_ACTUATOR_MAX_WORKTIME_PUMP (4000)
 #elif (GMON_CFG_ACTUATOR_MAX_WORKTIME_PUMP > GMON_ACTUATOR_MAX_WORKTIME_PER_DAY)
     #error "GMON_CFG_ACTUATOR_MAX_WORKTIME_PUMP must NOT be greater than 1000 * 60 * 60 * 24 milliseconds."
-#endif // end if GMON_CFG_ACTUATOR_MAX_WORKTIME_PUMP
+#endif
 
 #ifndef GMON_CFG_ACTUATOR_MIN_RESTTIME_PUMP
     #define GMON_CFG_ACTUATOR_MIN_RESTTIME_PUMP (1500)
 #elif (GMON_CFG_ACTUATOR_MIN_RESTTIME_PUMP > GMON_ACTUATOR_MAX_RESTTIME_PER_DAY)
     #error "GMON_CFG_ACTUATOR_MIN_RESTTIME_PUMP must NOT be greater than 1000 * 60 * 60 * 24 milliseconds."
-#endif // end of GMON_CFG_ACTUATOR_MIN_RESTTIME_PUMP
+#endif
+
+#ifndef GMON_CFG_ACTUATOR_SENSOR_MASK_PUMP
+    #define GMON_CFG_ACTUATOR_SENSOR_MASK_PUMP 0x0
+#endif
+#if (GMON_CFG_ACTUATOR_SENSOR_MASK_PUMP == 0x0)
+    #error "GMON_CFG_ACTUATOR_SENSOR_MASK_PUMP should be ranging from 0x1 to 0xff"
+#endif
+
+#ifndef GMON_CFG_ACTUATOR_EMA_LAMBDA_PUMP
+    #define GMON_CFG_ACTUATOR_EMA_LAMBDA_PUMP 80
+#endif
+#if ((GMON_MIN_ACTUATOR_EMA_LAMBDA > GMON_CFG_ACTUATOR_EMA_LAMBDA_PUMP) || \
+     (GMON_CFG_ACTUATOR_EMA_LAMBDA_PUMP > GMON_MAX_ACTUATOR_EMA_LAMBDA))
+    #error "GMON_CFG_ACTUATOR_EMA_LAMBDA_PUMP should be ranging from 1 to 99"
+#endif
 
 #ifndef GMON_CFG_ACTUATOR_TRIG_THRESHOLD_FAN
     #define GMON_CFG_ACTUATOR_TRIG_THRESHOLD_FAN 28
@@ -185,13 +287,28 @@ extern "C" {
     #define GMON_CFG_ACTUATOR_MAX_WORKTIME_FAN (11 * 1000)
 #elif (GMON_CFG_ACTUATOR_MAX_WORKTIME_FAN > GMON_ACTUATOR_MAX_WORKTIME_PER_DAY)
     #error "GMON_CFG_ACTUATOR_MAX_WORKTIME_FAN must NOT be greater than 1000 * 60 * 60 * 24 milliseconds."
-#endif // end if GMON_CFG_ACTUATOR_MAX_WORKTIME_FAN
+#endif
 
 #ifndef GMON_CFG_ACTUATOR_MIN_RESTTIME_FAN
     #define GMON_CFG_ACTUATOR_MIN_RESTTIME_FAN (6 * 1000)
 #elif (GMON_CFG_ACTUATOR_MIN_RESTTIME_FAN > GMON_ACTUATOR_MAX_RESTTIME_PER_DAY)
     #error "GMON_CFG_ACTUATOR_MIN_RESTTIME_FAN must NOT be greater than 1000 * 60 * 60 * 24 milliseconds."
-#endif // end of GMON_CFG_ACTUATOR_MIN_RESTTIME_FAN
+#endif
+
+#ifndef GMON_CFG_ACTUATOR_SENSOR_MASK_FAN
+    #define GMON_CFG_ACTUATOR_SENSOR_MASK_FAN 0x0
+#endif
+#if (GMON_CFG_ACTUATOR_SENSOR_MASK_FAN == 0x0)
+    #error "GMON_CFG_ACTUATOR_SENSOR_MASK_FAN should be ranging from 0x1 to 0xff"
+#endif
+
+#ifndef GMON_CFG_ACTUATOR_EMA_LAMBDA_FAN
+    #define GMON_CFG_ACTUATOR_EMA_LAMBDA_FAN 10
+#endif
+#if ((GMON_MIN_ACTUATOR_EMA_LAMBDA > GMON_CFG_ACTUATOR_EMA_LAMBDA_FAN) || \
+     (GMON_CFG_ACTUATOR_EMA_LAMBDA_FAN > GMON_MAX_ACTUATOR_EMA_LAMBDA))
+    #error "GMON_CFG_ACTUATOR_EMA_LAMBDA_FAN should be ranging from 1 to 99"
+#endif
 
 #define GMON_MAX_REQUIRED_LIGHT_LENGTH_TICKS GMON_NUM_MILLISECONDS_PER_DAY
 
@@ -200,11 +317,11 @@ extern "C" {
 #elif (GMON_CFG_DEFAULT_REQUIRED_LIGHT_LENGTH_TICKS > GMON_MAX_REQUIRED_LIGHT_LENGTH_TICKS)
     #error \
         "GMON_CFG_DEFAULT_REQUIRED_LIGHT_LENGTH_TICKS must NOT be greater than GMON_MAX_REQUIRED_LIGHT_LENGTH_TICKS."
-#endif // end of GMON_CFG_DEFAULT_REQUIRED_LIGHT_LENGTH_TICKS
+#endif
 
 #ifndef GMON_CFG_NETCONN_CLIENT_ID
     #define GMON_CFG_NETCONN_CLIENT_ID "MyGardenStation"
-#endif // end of GMON_CFG_NETCONN_CLIENT_ID
+#endif
 
 #define GMON_CFG_MIN_NUM_SENSOR_RECORDS_KEEP 2
 #define GMON_CFG_MAX_NUM_SENSOR_RECORDS_KEEP 8

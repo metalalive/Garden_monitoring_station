@@ -1,66 +1,81 @@
 #include "station_include.h"
 
-gmonEvent_t *staAllocSensorEvent(gardenMonitor_t *gmon) {
+gmonEvent_t *staAllocSensorEvent(gMonEvtPool_t *epool, gmonEventType_t etyp, unsigned char num_sensors) {
     gmonEvent_t *out = NULL;
     uint16_t     idx = 0;
+    unsigned int nbytes_per_sensor = 0;
+    if (epool == NULL || num_sensors == 0)
+        return NULL;
+    switch (etyp) {
+    case GMON_EVENT_SOIL_MOISTURE_UPDATED:
+    case GMON_EVENT_LIGHTNESS_UPDATED:
+        nbytes_per_sensor = sizeof(unsigned int);
+        break;
+    case GMON_EVENT_AIR_TEMP_UPDATED:
+        nbytes_per_sensor = sizeof(gmonAirCond_t);
+        break;
+    default:
+        return NULL;
+    }
     stationSysEnterCritical();
-    for (idx = 0; idx < gmon->sensors.event.len; idx++) {
-        if (gmon->sensors.event.pool[idx].flgs.alloc == 0) {
-            out = &gmon->sensors.event.pool[idx];
+    for (idx = 0; idx < epool->len; idx++) {
+        if (epool->pool[idx].flgs.alloc == 0) {
+            out = &epool->pool[idx];
             XMEMSET(out, 0x00, sizeof(gmonEvent_t));
             out->flgs.alloc = 1;
             break;
         }
     }
     stationSysExitCritical();
+    if (out) {
+        out->data = XCALLOC(num_sensors, nbytes_per_sensor);
+        out->event_type = etyp;
+        out->num_active_sensors = num_sensors;
+    }
     return out;
 }
 
-gMonStatus staFreeSensorEvent(gardenMonitor_t *gmon, gmonEvent_t *record) {
+gMonStatus staFreeSensorEvent(gMonEvtPool_t *epool, gmonEvent_t *record) {
     gmonEvent_t *addr_start = NULL, *addr_end = NULL;
     gMonStatus   status = GMON_RESP_OK;
     uint16_t     idx = 0;
     stationSysEnterCritical();
-    addr_start = &gmon->sensors.event.pool[0];
-    addr_end = &gmon->sensors.event.pool[gmon->sensors.event.len];
+    addr_start = &epool->pool[0];
+    addr_end = &epool->pool[epool->len];
     if ((record < addr_start) || (addr_end <= record)) {
         status = GMON_RESP_ERRMEM;
         goto done;
     }
-    for (idx = 0; idx < gmon->sensors.event.len; idx++) {
-        addr_start = &gmon->sensors.event.pool[idx];
-        addr_end = &gmon->sensors.event.pool[idx + 1];
+    for (idx = 0; idx < epool->len; idx++) {
+        addr_start = &epool->pool[idx];
+        addr_end = &epool->pool[idx + 1];
         if ((record > addr_start) && (record < addr_end)) {
             status = GMON_RESP_ERRMEM; // memory not aligned
             break;
         } else if (record == addr_start) {
-            if (addr_start->flgs.alloc != 0) {
-                addr_start->flgs.alloc = 0;
-            }
+            if (record->flgs.alloc != 0)
+                record->flgs.alloc = 0;
             break;
         }
     }
 done:
     stationSysExitCritical();
-    return status;
-}
-
-gMonStatus staCpySensorEvent(gmonEvent_t *dst, gmonEvent_t *src, size_t sz) {
-    unsigned int idx = 0;
-    gMonStatus   status = GMON_RESP_OK;
-    if (dst == NULL || src == NULL || sz == 0) {
-        return GMON_RESP_ERRARGS;
-    }
-    for (idx = 0; idx < sz; idx++) {
-        if (dst[idx].flgs.alloc == 0 || src[idx].flgs.alloc == 0) {
-            status = GMON_RESP_ERRMEM;
-            break;
-        }
-    }
     if (status == GMON_RESP_OK) {
-        XMEMCPY(dst, src, sizeof(gmonEvent_t) * sz);
+        XMEMFREE(record->data);
+        record->data = NULL;
     }
     return status;
+} // end of staFreeSensorEvent
+
+gMonStatus staCpySensorEvent(gmonEvent_t *dst, gmonEvent_t *src) {
+    if (dst == NULL || src == NULL)
+        return GMON_RESP_ERRARGS;
+    if (dst->flgs.alloc == 0 || src->flgs.alloc == 0)
+        return GMON_RESP_ERRMEM;
+    void *databak = dst->data;
+    XMEMCPY(dst, src, sizeof(gmonEvent_t) * 0x1);
+    dst->data = databak;
+    return GMON_RESP_OK;
 }
 
 static gMonStatus staAddEventToMsgPipe(
@@ -74,7 +89,7 @@ static gMonStatus staAddEventToMsgPipe(
         // Use 0 for block_time to immediately get
         status = staSysMsgBoxGet(msgbuf, (void **)&oldest_record, 0);
         XASSERT((status == GMON_RESP_OK) && (oldest_record != NULL));
-        staFreeSensorEvent(gmon, oldest_record);
+        staFreeSensorEvent(&gmon->sensors.event, oldest_record);
         // try adding new record again
         status = staSysMsgBoxPut(msgbuf, (void *)msg, block_time);
         XASSERT(status == GMON_RESP_OK);
@@ -82,11 +97,12 @@ static gMonStatus staAddEventToMsgPipe(
     return status;
 }
 
-gMonStatus staNotifyOthersWithEvent(gardenMonitor_t *gmon, gmonEvent_t *event, uint32_t block_time) {
-    gmonEvent_t *event_copy = staAllocSensorEvent(gmon);
-    gMonStatus   status = staCpySensorEvent(event_copy, event, (size_t)0x1);
-    staAddEventToMsgPipe(gmon, gmon->msgpipe.sensor2display, event, block_time);
-    staAddEventToMsgPipe(gmon, gmon->msgpipe.sensor2net, event_copy, block_time);
+gMonStatus staNotifyOthersWithEvent(gardenMonitor_t *gmon, gmonEvent_t *evt, uint32_t block_time) {
+    gMonEvtPool_t *epool = &gmon->sensors.event;
+    gmonEvent_t   *evt_copy = staAllocSensorEvent(epool, evt->event_type, evt->num_active_sensors);
+    gMonStatus     status = staCpySensorEvent(evt_copy, evt);
+    staAddEventToMsgPipe(gmon, gmon->msgpipe.sensor2display, evt, block_time);
+    staAddEventToMsgPipe(gmon, gmon->msgpipe.sensor2net, evt_copy, block_time);
     return status;
 }
 
@@ -105,18 +121,13 @@ gMonStatus stationIOinit(gardenMonitor_t *gmon) {
     gmon->sensors.event.len = GMON_NUM_SENSOR_EVENTS;
     XMEMSET(gmon->sensors.event.pool, 0x00, sizeof(gmonEvent_t) * GMON_NUM_SENSOR_EVENTS);
 
-    gmon->sensors.soil_moist.read_interval_ms = GMON_CFG_SENSOR_READ_INTERVAL_MS;
-    gmon->sensors.air_temp.read_interval_ms = GMON_CFG_SENSOR_READ_INTERVAL_MS;
-    gmon->sensors.light.read_interval_ms = GMON_CFG_SENSOR_READ_INTERVAL_MS;
+    status = GMON_SENSOR_INIT_FN_SOIL_MOIST(&gmon->sensors.soil_moist);
     if (status < 0)
         goto done;
-    status = GMON_SENSOR_INIT_FN_SOIL_MOIST();
+    status = GMON_SENSOR_INIT_FN_LIGHT(&gmon->sensors.light);
     if (status < 0)
         goto done;
-    status = GMON_SENSOR_INIT_FN_LIGHT();
-    if (status < 0)
-        goto done;
-    status = GMON_SENSOR_INIT_FN_AIR_TEMP();
+    status = GMON_SENSOR_INIT_FN_AIR_TEMP(&gmon->sensors.air_temp);
     if (status < 0)
         goto done;
     status = GMON_ACTUATOR_INIT_FN_PUMP(&gmon->actuator.pump);
@@ -147,11 +158,11 @@ gMonStatus stationIOdeinit(gardenMonitor_t *gmon) {
 
     // Free any remaining events in the message queues
     while (staSysMsgBoxGet(gmon->msgpipe.sensor2display, (void **)&event_to_free, 0) == GMON_RESP_OK) {
-        staFreeSensorEvent(gmon, event_to_free);
+        staFreeSensorEvent(&gmon->sensors.event, event_to_free);
         event_to_free = NULL;
     }
     while (staSysMsgBoxGet(gmon->msgpipe.sensor2net, (void **)&event_to_free, 0) == GMON_RESP_OK) {
-        staFreeSensorEvent(gmon, event_to_free);
+        staFreeSensorEvent(&gmon->sensors.event, event_to_free);
         event_to_free = NULL;
     }
 
@@ -170,13 +181,13 @@ gMonStatus stationIOdeinit(gardenMonitor_t *gmon) {
     status = GMON_ACTUATOR_DEINIT_FN_PUMP();
     if (status < 0)
         goto done;
-    status = GMON_SENSOR_DEINIT_FN_SOIL_MOIST();
+    status = GMON_SENSOR_DEINIT_FN_SOIL_MOIST(&gmon->sensors.soil_moist);
     if (status < 0)
         goto done;
-    status = GMON_SENSOR_DEINIT_FN_LIGHT();
+    status = GMON_SENSOR_DEINIT_FN_LIGHT(&gmon->sensors.light);
     if (status < 0)
         goto done;
-    status = GMON_SENSOR_DEINIT_FN_AIR_TEMP();
+    status = GMON_SENSOR_DEINIT_FN_AIR_TEMP(&gmon->sensors.air_temp);
 done:
     if (gmon != NULL && gmon->sensors.event.pool != NULL) {
         XMEMFREE(gmon->sensors.event.pool);
