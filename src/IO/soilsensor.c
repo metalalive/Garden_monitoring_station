@@ -2,10 +2,39 @@
 // current implementation can fit with following sensors :
 // e.g. YL69, Capactive Soil Moisture Sensor v1.2
 
+gMonStatus staSetNumSoilSensor(gMonSensorMeta_t *s, unsigned char new_val) {
+    if (s == NULL)
+        return GMON_RESP_ERRARGS;
+    unsigned int temp_num_items = 0;
+    gMonStatus   status =
+        staSetUintInRange(&temp_num_items, (unsigned int)new_val, (unsigned int)GMON_MAXNUM_SOIL_SENSORS, 1U);
+    if (status == GMON_RESP_OK)
+        s->num_items = (unsigned char)temp_num_items;
+    return status;
+}
+
+gMonStatus staSetNumResamplesSoilSensor(gMonSensorMeta_t *s, unsigned char new_val) {
+    if (s == NULL)
+        return GMON_RESP_ERRARGS;
+    unsigned int temp_num_resamples = 0;
+    gMonStatus   status = staSetUintInRange(
+        &temp_num_resamples, (unsigned int)new_val, (unsigned int)GMON_MAX_OVERSAMPLES_SOIL_SENSORS, 1U
+    );
+    if (status == GMON_RESP_OK)
+        s->num_resamples = (unsigned char)temp_num_resamples;
+    return status;
+}
+
 gMonStatus staSensorInitSoilMoist(gMonSoilSensorMeta_t *s) {
-    s->super.read_interval_ms = GMON_CFG_SENSOR_READ_INTERVAL_MS;
-    s->super.num_items = GMON_CFG_NUM_SOIL_SENSORS;
-    s->super.num_resamples = GMON_CFG_SOIL_SENSOR_NUM_OVERSAMPLE;
+    gMonStatus status = staSensorSetReadInterval(&s->super, GMON_CFG_SENSOR_READ_INTERVAL_MS);
+    if (status != GMON_RESP_OK)
+        return status;
+    status = staSetNumSoilSensor(&s->super, GMON_CFG_NUM_SOIL_SENSORS);
+    if (status != GMON_RESP_OK)
+        return status;
+    status = staSetNumResamplesSoilSensor(&s->super, GMON_CFG_SOIL_SENSOR_NUM_OVERSAMPLE);
+    if (status != GMON_RESP_OK)
+        return status;
     s->super.outlier_threshold = GMON_SOIL_SENSOR_OUTLIER_THRESHOLD;
     s->super.mad_threshold = GMON_SOIL_SENSOR_MAD_THRESHOLD;
     XMEMSET(s->fast_poll.enabled, 0x0, sizeof(unsigned char) * 1);

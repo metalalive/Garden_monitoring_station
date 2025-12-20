@@ -119,6 +119,20 @@ int staExpMovingAvg(int new, int old, unsigned char lambda) {
     return out / 100;
 }
 
+gMonStatus staSetUintInRange(unsigned int *target, unsigned int new_val, unsigned int max, unsigned int min) {
+    gMonStatus status = GMON_RESP_OK;
+    if (target != NULL) {
+        if (new_val >= min && new_val <= max) {
+            *target = new_val;
+        } else {
+            status = GMON_RESP_INVALID_REQ;
+        }
+    } else {
+        status = GMON_RESP_ERRARGS;
+    }
+    return status;
+}
+
 void staReverseString(unsigned char *str, unsigned int sz) {
     unsigned int idx = 0, jdx = 0;
     if (str != NULL && sz > 0) {
