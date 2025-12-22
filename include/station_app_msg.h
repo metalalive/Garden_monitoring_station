@@ -9,11 +9,11 @@ extern "C" {
 #define GMON_APPMSG_DATA_NAME_AIRTEMP   "airtemp"
 #define GMON_APPMSG_DATA_NAME_LIGHT     "light"
 
-#define GMON_NUM_JSON_TOKEN_DECODE 59
+#define GMON_NUM_JSON_TOKEN_DECODE 84
 
 // Using a sufficiently large fixed buffer for incoming control JSON messages.
 // 384 bytes should be ample to accommodate various configuration updates.
-#define staAppMsgInflightCalcRequiredBufSz() (unsigned short)438
+#define staAppMsgInflightCalcRequiredBufSz() (unsigned short)520
 
 gMonStatus staAppMsgInit(gardenMonitor_t *);
 gMonStatus staAppMsgDeinit(gardenMonitor_t *);

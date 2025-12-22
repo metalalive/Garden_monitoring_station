@@ -32,8 +32,12 @@ gMonStatus staSensorInitAirTemp(gMonSensorMeta_t *s) {
     status = staSetNumResamplesAirSensor(s, GMON_CFG_AIR_SENSOR_NUM_OVERSAMPLE);
     if (status != GMON_RESP_OK)
         return status;
-    s->outlier_threshold = GMON_AIR_SENSOR_OUTLIER_THRESHOLD;
-    s->mad_threshold = GMON_AIR_SENSOR_MAD_THRESHOLD;
+    status = staSensorSetOutlierThreshold(s, GMON_AIR_SENSOR_OUTLIER_THRESHOLD);
+    if (status != GMON_RESP_OK)
+        return status;
+    status = staSensorSetMinMAD(s, GMON_AIR_SENSOR_MAD_THRESHOLD);
+    if (status != GMON_RESP_OK)
+        return status;
     return staSensorPlatformInitAirTemp(s);
 }
 

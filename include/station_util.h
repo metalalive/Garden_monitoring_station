@@ -44,6 +44,7 @@ unsigned int staMedianAbsDeviation(unsigned int median, unsigned int *list, unsi
 int staExpMovingAvg(int new, int old, unsigned char lambda);
 
 gMonStatus staSetUintInRange(unsigned int *target, unsigned int new_val, unsigned int max, unsigned int min);
+gMonStatus staSetFloatInRange(float *target, float new_val, float max, float min);
 
 #ifdef __cplusplus
 }

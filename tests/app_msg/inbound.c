@@ -40,7 +40,7 @@ TEST(DecodeMsgInflight, ValidIntervalNetconn) {
 TEST(DecodeMsgInflight, ValidSpareSensor) {
     const unsigned char *json_data =
         (const unsigned char
-             *)"{\"sensor\":{\"soilmoist\":{\"interval\":10009},\"airtemp\":{"
+             *)"{\"sensor\":{\"soilmoist\":{\"interval\":10009,\"mad\":[8,3]},\"airtemp\":{"
                "\"interval\":20008,\"resample\":2},\"light\":{\"interval\":30007,\"qty\":5}}}";
     uint16_t testdata_sz = strlen((const char *)json_data);
     TEST_ASSERT_LESS_THAN_UINT16(test_gmon.rawmsg.inflight.len, testdata_sz);
@@ -52,6 +52,7 @@ TEST(DecodeMsgInflight, ValidSpareSensor) {
     TEST_ASSERT_EQUAL(30007, test_gmon.sensors.light.read_interval_ms);
     TEST_ASSERT_EQUAL(2, test_gmon.sensors.air_temp.num_resamples);
     TEST_ASSERT_EQUAL(5, test_gmon.sensors.light.num_items);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 2.666f, test_gmon.sensors.soil_moist.super.mad_threshold);
 }
 
 TEST(DecodeMsgInflight, ValidQtySensor) {
@@ -112,8 +113,9 @@ TEST(DecodeMsgInflight, ValidThresholds) {
 TEST(DecodeMsgInflight, MixedValid) {
     const unsigned char *json_data =
         (const unsigned char
-             *)"{\"sensor\":{\"soilmoist\":{\"interval\":2100,\"qty\":3},\"airtemp\":"
-               "{\"interval\":7100,\"qty\":2},\"light\":{\"interval\":11000,\"resample\":5}}"
+             *)"{\"sensor\":{\"soilmoist\":{\"interval\":2100,\"qty\":3,\"outlier\":[32,11]},"
+               "\"airtemp\":{\"interval\":7100,\"qty\":2,\"outlier\":[33,12]},"
+               "\"light\":{\"interval\":11000,\"resample\":5,\"mad\":[38,13]}}"
                ",\"actuators\":{\"pump\":{\"threshold\":934},\"fan\":{\"threshold\":31},\"bulb\":"
                "{\"threshold\":609}},\"netconn\":{\"interval\":360095},\"daylength\":7200012}";
     uint16_t testdata_sz = strlen((const char *)json_data);
@@ -127,6 +129,9 @@ TEST(DecodeMsgInflight, MixedValid) {
     TEST_ASSERT_EQUAL(3, test_gmon.sensors.soil_moist.super.num_items);
     TEST_ASSERT_EQUAL(2, test_gmon.sensors.air_temp.num_items);
     TEST_ASSERT_EQUAL(5, test_gmon.sensors.light.num_resamples);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 2.90909f, test_gmon.sensors.soil_moist.super.outlier_threshold);
+    TEST_ASSERT_FLOAT_WITHIN(0.002f, 2.75f, test_gmon.sensors.air_temp.outlier_threshold);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 2.923f, test_gmon.sensors.light.mad_threshold);
     TEST_ASSERT_EQUAL(360095, test_gmon.netconn.interval_ms);
     TEST_ASSERT_EQUAL(934, test_gmon.actuator.pump.threshold);
     TEST_ASSERT_EQUAL(31, test_gmon.actuator.fan.threshold);
@@ -272,15 +277,16 @@ TEST(DecodeMsgInflight, ValidActuatorConfigUnknownKey) {
 }
 
 TEST(DecodeMsgInflight, ComprehensiveConfigWithActuators) {
-    const unsigned char *json_data =
-        (const unsigned char *)"{\"sensor\":{\"soilmoist\":{\"interval\":2100,\"qty\":3,\"resample\":5},"
-                               "\"airtemp\":{\"interval\":7100,\"qty\":4,\"resample\":2},"
-                               "\"light\":{\"interval\":11000,\"qty\":6,\"resample\":3}},"
-                               "\"netconn\":{\"interval\":360095},\"daylength\":7200012,\"actuators\":{"
-                               "\"pump\":{\"max_worktime\":50000,\"min_resttime\":5000,\"threshold\":934},"
-                               "\"fan\":{\"max_worktime\":60000,\"min_resttime\":6000,\"threshold\":31},"
-                               "\"bulb\":{\"max_worktime\":70000,\"min_resttime\":7000,\"threshold\":189}}}";
-    uint16_t testdata_sz = strlen((const char *)json_data);
+    const char *json_data =
+        "{\"sensor\":{"
+        "\"soilmoist\":{\"interval\":2100,\"qty\":3,\"resample\":5,\"outlier\":[35,13],\"mad\":[40,17]},"
+        "\"airtemp\":{\"interval\":7100,\"qty\":4,\"resample\":2,\"outlier\":[35,14],\"mad\":[42,19]},"
+        "\"light\":{\"interval\":11000,\"qty\":6,\"resample\":3,\"outlier\":[36,13],\"mad\":[43,23]}},"
+        "\"netconn\":{\"interval\":360095},\"daylength\":7200012,\"actuators\":{"
+        "\"pump\":{\"max_worktime\":50000,\"min_resttime\":5000,\"threshold\":934},"
+        "\"fan\":{\"max_worktime\":60000,\"min_resttime\":6000,\"threshold\":31},"
+        "\"bulb\":{\"max_worktime\":70000,\"min_resttime\":7000,\"threshold\":189}}}";
+    uint16_t testdata_sz = strlen(json_data);
     TEST_ASSERT_LESS_THAN_UINT16(test_gmon.rawmsg.inflight.len, testdata_sz);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
@@ -295,6 +301,12 @@ TEST(DecodeMsgInflight, ComprehensiveConfigWithActuators) {
     TEST_ASSERT_EQUAL(5, test_gmon.sensors.soil_moist.super.num_resamples);
     TEST_ASSERT_EQUAL(2, test_gmon.sensors.air_temp.num_resamples);
     TEST_ASSERT_EQUAL(3, test_gmon.sensors.light.num_resamples);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 2.6923f, test_gmon.sensors.soil_moist.super.outlier_threshold);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 2.3529f, test_gmon.sensors.soil_moist.super.mad_threshold);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 2.5f, test_gmon.sensors.air_temp.outlier_threshold);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 2.2105f, test_gmon.sensors.air_temp.mad_threshold);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 2.7692f, test_gmon.sensors.light.outlier_threshold);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 1.8695f, test_gmon.sensors.light.mad_threshold);
     // Netconn interval
     TEST_ASSERT_EQUAL(360095, test_gmon.netconn.interval_ms);
     // Output device thresholds
@@ -310,6 +322,37 @@ TEST(DecodeMsgInflight, ComprehensiveConfigWithActuators) {
     TEST_ASSERT_EQUAL(6000, test_gmon.actuator.fan.min_resttime);
     TEST_ASSERT_EQUAL(70000, test_gmon.actuator.bulb.max_worktime);
     TEST_ASSERT_EQUAL(7000, test_gmon.actuator.bulb.min_resttime);
+}
+
+TEST(DecodeMsgInflight, SensorOutlierDenominatorZero) {
+    const unsigned char *json_data =
+        (const unsigned char
+             *)"{\"sensor\":{\"soilmoist\":{\"outlier\":[4,1]},\"airtemp\":{\"outlier\":[4,0]},"
+               "\"light\":{\"outlier\":[10,4]}}}";
+    uint16_t testdata_sz = strlen((const char *)json_data);
+    XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
+    gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
+    TEST_ASSERT_EQUAL(GMON_RESP_INVALID_REQ, status);
+    // If the denominator is zero, the outlier_threshold should not be updated from its initial value.
+    // Also, subsequent sensor configurations should not be applied if the request is invalid.
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 4.0f, test_gmon.sensors.soil_moist.super.outlier_threshold);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.0f, test_gmon.sensors.air_temp.outlier_threshold);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.0f, test_gmon.sensors.light.outlier_threshold);
+}
+
+TEST(DecodeMsgInflight, SensorMADdenominatorZero) {
+    const unsigned char *json_data =
+        (const unsigned char *)"{\"sensor\":{\"soilmoist\":{\"mad\":[6,1]},\"airtemp\":{\"mad\":[6,0]},"
+                               "\"light\":{\"mad\":[7,4]}}}";
+    uint16_t testdata_sz = strlen((const char *)json_data);
+    XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
+    gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
+    TEST_ASSERT_EQUAL(GMON_RESP_INVALID_REQ, status);
+    // If the denominator is zero, the outlier_threshold should not be updated from its initial value.
+    // Also, subsequent sensor configurations should not be applied if the request is invalid.
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 6.0f, test_gmon.sensors.soil_moist.super.mad_threshold);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.0f, test_gmon.sensors.air_temp.mad_threshold);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.0f, test_gmon.sensors.light.mad_threshold);
 }
 
 TEST_GROUP_RUNNER(gMonAppMsgInbound) {
@@ -332,4 +375,6 @@ TEST_GROUP_RUNNER(gMonAppMsgInbound) {
     RUN_TEST_CASE(DecodeMsgInflight, ValidActuatorConfigPartial);
     RUN_TEST_CASE(DecodeMsgInflight, ValidActuatorConfigUnknownKey);
     RUN_TEST_CASE(DecodeMsgInflight, ComprehensiveConfigWithActuators);
+    RUN_TEST_CASE(DecodeMsgInflight, SensorOutlierDenominatorZero);
+    RUN_TEST_CASE(DecodeMsgInflight, SensorMADdenominatorZero);
 }

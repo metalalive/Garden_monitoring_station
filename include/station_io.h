@@ -34,6 +34,8 @@ gMonStatus staSetNumLightSensor(gMonSensorMeta_t *, unsigned char new_val);
 gMonStatus staSetNumResamplesLightSensor(gMonSensorMeta_t *, unsigned char new_val);
 
 gMonStatus staSensorSetReadInterval(gMonSensorMeta_t *, unsigned int new_val);
+gMonStatus staSensorSetOutlierThreshold(gMonSensorMeta_t *, float new_val);
+gMonStatus staSensorSetMinMAD(gMonSensorMeta_t *, float new_val);
 
 // currently the 3 functions below are implemented only for soil sensor polling rate
 gMonStatus   staSensorFastPollToggle(gMonSoilSensorMeta_t *, gMonActuator_t *);

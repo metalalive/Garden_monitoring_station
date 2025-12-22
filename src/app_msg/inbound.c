@@ -6,9 +6,9 @@
 // message :
 // {
 //     "sensor": {
-//         "soilmoist": {"interval": 2100, "qty": 4, "resample": 6},
-//         "airtemp": {"interval": 7100, "qty": 2, "resample": 5},
-//         "light": {"interval": 11000, "qty": 5, "resample": 4}
+//         "soilmoist": {"interval": 2100, "qty": 4, "resample": 6, "outlier": [27,10], "mad": [29,13]},
+//         "airtemp": {"interval": 7100, "qty": 2, "resample": 5, "outlier": [28,11], "mad": [30,17]},
+//         "light": {"interval": 11000, "qty": 5, "resample": 4, "outlier": [31,12], "mad": [59,17]}
 //     },
 //     "netconn":  {"interval": 360000},
 //     "daylength":7200012,
@@ -32,7 +32,9 @@
 #define GMON_APPMSG_DATA_NAME_QTY          "qty"
 #define GMON_APPMSG_DATA_NAME_DAYLENGTH    "daylength"
 #define GMON_APPMSG_DATA_NAME_RESAMPLE     "resample"
+#define GMON_APPMSG_DATA_NAME_OUTLIER      "outlier"
 #define GMON_APPMSG_DATA_NAME_THRESHOLD    "threshold"
+#define GMON_APPMSG_DATA_NAME_MAD          "mad"
 
 static gMonStatus staDecodeMsgCvtStrToInt(const unsigned char *json_data, jsmntok_t *tokn, int *out) {
     unsigned char *user_var_name = NULL;
@@ -56,6 +58,51 @@ static int staCalcTokensToSkip(jsmntok_t *token) {
         tokens_to_skip += token->size * 2; // Each pair is key + value
     }
     return tokens_to_skip;
+}
+
+// Helper function to decode a [a1, a2] array and apply the ratio to a sensor meta field
+static gMonStatus staDecodeRatioAndSetSensorMeta(
+    const unsigned char *json_data, jsmntok_t *tokens, int array_value_token_idx, gMonSensorMeta_t *s_meta,
+    gMonStatus (*setter_fn)(gMonSensorMeta_t *, float), int *tokens_consumed_out
+) {
+    gMonStatus status = GMON_RESP_OK;
+    jsmntok_t *array_token = &tokens[array_value_token_idx];
+    *tokens_consumed_out = 1; // For the array token itself
+
+    // Expect an array of two primitive integers [a1, a2]
+    if (array_token->type == JSMN_ARRAY && array_token->size == 2) {
+        jsmntok_t *a1_token = &tokens[array_value_token_idx + 1];
+        jsmntok_t *a2_token = &tokens[array_value_token_idx + 2];
+        int        a1, a2;
+
+        // Ensure both array elements are primitives before attempting conversion
+        if (a1_token->type != JSMN_PRIMITIVE || a2_token->type != JSMN_PRIMITIVE) {
+            status = GMON_RESP_ERR_MSG_DECODE;
+        } else {
+            status = staDecodeMsgCvtStrToInt(json_data, a1_token, &a1);
+            if (status == GMON_RESP_OK)
+                status = staDecodeMsgCvtStrToInt(json_data, a2_token, &a2);
+            if (status == GMON_RESP_OK) {
+                if (a2 == 0) {
+                    status = GMON_RESP_INVALID_REQ; // Cannot divide by zero
+                } else {
+                    float calculated_value = (float)a1 / (float)a2;
+                    status = setter_fn(s_meta, calculated_value);
+                }
+            }
+        }
+        // If array structure is valid, consume the two primitive tokens inside
+        if (status == GMON_RESP_OK) {
+            *tokens_consumed_out += 2;
+        } else {
+            // If decoding failed for a1 or a2, still consume tokens to advance parser
+            *tokens_consumed_out += staCalcTokensToSkip(array_token) - 1; // -1 for array token itself
+        }
+    } else {
+        status = GMON_RESP_ERR_MSG_DECODE;
+        // If not an array of 2, just consume the token itself (value_tokens_consumed remains 1)
+    }
+    return status;
 }
 
 static gMonStatus staDecodeActuatorConfig(
@@ -203,6 +250,24 @@ static gMonStatus staDecodeSensorConfig(
                 if (status == GMON_RESP_OK && set_num_resamples_fn != NULL) {
                     status = set_num_resamples_fn(s_meta, (unsigned char)parsed_int);
                 }
+            } else if (XSTRNCMP(GMON_APPMSG_DATA_NAME_OUTLIER, child_key_name, child_key_len) == 0) {
+                int value_tokens_consumed = 0;
+                status = staDecodeRatioAndSetSensorMeta(
+                    json_data, tokens, curr_child_tok_idx + 1, s_meta, staSensorSetOutlierThreshold,
+                    &value_tokens_consumed
+                );
+                curr_child_tok_idx += (1 /*key token*/ + value_tokens_consumed);
+                *tokens_consumed_out += (1 /*key token*/ + value_tokens_consumed);
+                continue; // Skip the common advancement at the end of the loop
+            } else if (XSTRNCMP(GMON_APPMSG_DATA_NAME_MAD, child_key_name, child_key_len) == 0) {
+                int value_tokens_consumed = 0;
+                status = staDecodeRatioAndSetSensorMeta(
+                    json_data, tokens, curr_child_tok_idx + 1, s_meta, staSensorSetMinMAD,
+                    &value_tokens_consumed
+                );
+                curr_child_tok_idx += (1 /*key token*/ + value_tokens_consumed);
+                *tokens_consumed_out += (1 /*key token*/ + value_tokens_consumed);
+                continue; // Skip the common advancement at the end of the loop
             } else {
                 // Unknown key in sensor config, skip its value (which could be an object)
                 int skip_tokens_for_value = staCalcTokensToSkip(child_value_token);

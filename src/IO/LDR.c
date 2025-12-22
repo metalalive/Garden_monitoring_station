@@ -33,6 +33,18 @@ gMonStatus staSetNumResamplesLightSensor(gMonSensorMeta_t *s, unsigned char new_
     return status;
 }
 
+gMonStatus staSensorSetOutlierThreshold(gMonSensorMeta_t *s, float new_val) {
+    return staSetFloatInRange(
+        &s->outlier_threshold, new_val, GMON_MAX_SENSOR_OUTLIER_THRESHOLD, GMON_MIN_SENSOR_OUTLIER_THRESHOLD
+    );
+}
+
+gMonStatus staSensorSetMinMAD(gMonSensorMeta_t *s, float new_val) {
+    return staSetFloatInRange(
+        &s->mad_threshold, new_val, GMON_MAX_SENSOR_MAD_THRESHOLD, GMON_MIN_SENSOR_MAD_THRESHOLD
+    );
+}
+
 gMonStatus staSensorInitLight(gMonSensorMeta_t *s) {
     gMonStatus status = staSensorSetReadInterval(s, GMON_CFG_SENSOR_READ_INTERVAL_MS);
     if (status != GMON_RESP_OK)
@@ -43,8 +55,12 @@ gMonStatus staSensorInitLight(gMonSensorMeta_t *s) {
     status = staSetNumResamplesLightSensor(s, GMON_CFG_LIGHT_SENSOR_NUM_OVERSAMPLE);
     if (status != GMON_RESP_OK)
         return status;
-    s->outlier_threshold = GMON_LIGHT_SENSOR_OUTLIER_THRESHOLD;
-    s->mad_threshold = GMON_LIGHT_SENSOR_MAD_THRESHOLD;
+    status = staSensorSetOutlierThreshold(s, GMON_LIGHT_SENSOR_OUTLIER_THRESHOLD);
+    if (status != GMON_RESP_OK)
+        return status;
+    status = staSensorSetMinMAD(s, GMON_LIGHT_SENSOR_MAD_THRESHOLD);
+    if (status != GMON_RESP_OK)
+        return status;
     return staSensorPlatformInitLight(s);
 }
 

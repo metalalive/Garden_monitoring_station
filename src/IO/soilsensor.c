@@ -35,8 +35,12 @@ gMonStatus staSensorInitSoilMoist(gMonSoilSensorMeta_t *s) {
     status = staSetNumResamplesSoilSensor(&s->super, GMON_CFG_SOIL_SENSOR_NUM_OVERSAMPLE);
     if (status != GMON_RESP_OK)
         return status;
-    s->super.outlier_threshold = GMON_SOIL_SENSOR_OUTLIER_THRESHOLD;
-    s->super.mad_threshold = GMON_SOIL_SENSOR_MAD_THRESHOLD;
+    status = staSensorSetOutlierThreshold(&s->super, GMON_SOIL_SENSOR_OUTLIER_THRESHOLD);
+    if (status != GMON_RESP_OK)
+        return status;
+    status = staSensorSetMinMAD(&s->super, GMON_SOIL_SENSOR_MAD_THRESHOLD);
+    if (status != GMON_RESP_OK)
+        return status;
     XMEMSET(s->fast_poll.enabled, 0x0, sizeof(unsigned char) * 1);
     s->fast_poll.divisor = GMON_CFG_SENSOR_FASTPOLL_DIVISOR;
     s->fast_poll._div_cnt = 0;
