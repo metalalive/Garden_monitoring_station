@@ -5,7 +5,9 @@
 extern "C" {
 #endif
 
-#define GMON_NUM_SENSOR_EVENTS (GMON_CFG_NUM_SENSOR_RECORDS_KEEP * 3)
+#define GMON_NUM_SENSOR_EVENTS \
+    (GMON_CFG_NUM_SOIL_SENSOR_RECORDS_KEEP + GMON_CFG_NUM_AIR_SENSOR_RECORDS_KEEP + \
+     GMON_CFG_NUM_LIGHT_SENSOR_RECORDS_KEEP)
 
 gMonStatus stationIOinit(gardenMonitor_t *);
 gMonStatus stationIOdeinit(gardenMonitor_t *);

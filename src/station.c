@@ -78,8 +78,8 @@ static void stationInitTaskFn(void *param) {
     task_ptr = NULL;
     task_stack_size = 0x38;
     stationSysCreateTask(
-        "DataAggregator", (stationSysTaskFn_t)stationSensorDataAggregatorTaskFn, (void *)gmon,
-        task_stack_size, GMON_TASKS_PRIO_MIN, isPrivileged, &task_ptr
+        "DataLogger", (stationSysTaskFn_t)stationSensorDataLogTaskFn, (void *)gmon, task_stack_size,
+        GMON_TASKS_PRIO_MIN, isPrivileged, &task_ptr
     );
     gmon->tasks.sensor_data_aggregator_net = (void *)task_ptr;
 

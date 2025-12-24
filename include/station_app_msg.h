@@ -23,14 +23,9 @@ gmonStr_t *staGetAppMsgInflight(gardenMonitor_t *);
 
 gMonStatus staDecodeAppMsgInflight(gardenMonitor_t *);
 
-gmonSensorRecord_t staUpdateLastRecord(gmonSensorRecord_t *, gmonEvent_t *);
+gmonEvent_t *staUpdateLastRecord(gmonSensorRecord_t *, gmonEvent_t *);
 
-void stationSensorDataAggregatorTaskFn(void *params);
-
-unsigned short staAppMsgOutflightCalcRequiredBufSz(void);
-
-void staParseFixedPartsOutAppMsg(gmonStr_t *outmsg);
-void staAppMsgOutResetAllRecords(gardenMonitor_t *);
+void stationSensorDataLogTaskFn(void *params);
 
 #ifdef __cplusplus
 }

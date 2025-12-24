@@ -74,7 +74,7 @@ gMonStatus staCpySensorEvent(gmonEvent_t *dst, gmonEvent_t *src) {
         return GMON_RESP_ERRMEM;
     void *databak = dst->data;
     XMEMCPY(dst, src, sizeof(gmonEvent_t) * 0x1);
-    dst->data = databak;
+    dst->data = databak; // FIXME, copy detail event data
     return GMON_RESP_OK;
 }
 
@@ -101,6 +101,9 @@ gMonStatus staNotifyOthersWithEvent(gardenMonitor_t *gmon, gmonEvent_t *evt, uin
     gMonEvtPool_t *epool = &gmon->sensors.event;
     gmonEvent_t   *evt_copy = staAllocSensorEvent(epool, evt->event_type, evt->num_active_sensors);
     gMonStatus     status = staCpySensorEvent(evt_copy, evt);
+    XASSERT(status == GMON_RESP_OK);
+    XASSERT(evt->data != NULL);
+    XASSERT(evt_copy->data != NULL);
     staAddEventToMsgPipe(gmon, gmon->msgpipe.sensor2display, evt, block_time);
     staAddEventToMsgPipe(gmon, gmon->msgpipe.sensor2net, evt_copy, block_time);
     return status;
@@ -139,10 +142,12 @@ gMonStatus stationIOinit(gardenMonitor_t *gmon) {
     status = GMON_ACTUATOR_INIT_FN_BULB(&gmon->actuator.bulb);
     if (status < 0)
         goto done;
-    gmon->msgpipe.sensor2display = staSysMsgBoxCreate(GMON_CFG_NUM_SENSOR_RECORDS_KEEP);
+#define NUM_EVTS_PIPE (GMON_NUM_SENSOR_EVENTS + 3)
+    gmon->msgpipe.sensor2display = staSysMsgBoxCreate(NUM_EVTS_PIPE);
     XASSERT(gmon->msgpipe.sensor2display != NULL);
-    gmon->msgpipe.sensor2net = staSysMsgBoxCreate(GMON_CFG_NUM_SENSOR_RECORDS_KEEP);
+    gmon->msgpipe.sensor2net = staSysMsgBoxCreate(NUM_EVTS_PIPE);
     XASSERT(gmon->msgpipe.sensor2net != NULL);
+#undef NUM_EVTS_PIPE
 done:
     if (status != GMON_RESP_OK && gmon != NULL && gmon->sensors.event.pool != NULL) {
         XMEMFREE(gmon->sensors.event.pool);
