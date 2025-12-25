@@ -11,6 +11,12 @@ extern "C" {
 
 #define GMON_NUM_JSON_TOKEN_DECODE 84
 
+typedef struct {
+    gmonStr_t     *msg;
+    gMonStatus     status;
+    unsigned short nbytes_written;
+} gmonAppMsgOutflightResult_t;
+
 // Using a sufficiently large fixed buffer for incoming control JSON messages.
 // 384 bytes should be ample to accommodate various configuration updates.
 #define staAppMsgInflightCalcRequiredBufSz() (unsigned short)520
@@ -18,7 +24,21 @@ extern "C" {
 gMonStatus staAppMsgInit(gardenMonitor_t *);
 gMonStatus staAppMsgDeinit(gardenMonitor_t *);
 
-gmonStr_t *staGetAppMsgOutflight(gardenMonitor_t *);
+gMonStatus staAppMsgOutResetAllRecords(gardenMonitor_t *);
+gMonStatus staAppMsgReallocBuffer(gardenMonitor_t *);
+
+gMonStatus
+staAppMsgSerializeAppendStr(unsigned char **buf_ptr, unsigned short *remaining_len, const char *str);
+gMonStatus staAppMsgSerializeUInt(
+    unsigned char **buf_ptr, unsigned short *remaining_len, unsigned int val, unsigned int max_nbytes_used
+);
+gMonStatus staAppMsgSerializeFloat(
+    unsigned char **buf_ptr, unsigned short *remaining_len, float val, unsigned short precision,
+    unsigned int max_nbytes_used
+);
+
+gmonAppMsgOutflightResult_t staGetAppMsgOutflight(gardenMonitor_t *);
+
 gmonStr_t *staGetAppMsgInflight(gardenMonitor_t *);
 
 gMonStatus staDecodeAppMsgInflight(gardenMonitor_t *);

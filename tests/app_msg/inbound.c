@@ -12,6 +12,8 @@ TEST_SETUP(DecodeMsgInflight) {
     // Reset test_gmon and mock statuses before each test
     XMEMSET(&test_gmon, 0, sizeof(gardenMonitor_t));
     staAppMsgInit(&test_gmon);
+    gMonStatus status = staAppMsgReallocBuffer(&test_gmon);
+    XASSERT(GMON_RESP_OK == status);
     // ensure in-flight message reset, avoid uninitialized value
     (void)staGetAppMsgInflight(&test_gmon);
 }

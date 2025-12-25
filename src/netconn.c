@@ -38,6 +38,32 @@ gMonStatus staSetNetConnTaskInterval(gMonNet_t *net_handle, unsigned int new_int
     return status;
 }
 
+static void serialize_err_outmsg(gmonAppMsgOutflightResult_t *res, gmonTick_t *tickhandle) {
+    gMonStatus   status = GMON_RESP_OK;
+    int          errcode = res->status;
+    unsigned int ticks = (tickhandle != NULL) ? stationGetTicksPerDay(tickhandle) : 0;
+    unsigned int days = (tickhandle != NULL) ? stationGetDays(tickhandle) : 0;
+
+    gmonStr_t     *outflight_msg = res->msg;
+    unsigned char *buf_ptr = outflight_msg->data;
+    unsigned short remaining_len = outflight_msg->len;
+    status = staAppMsgSerializeAppendStr(&buf_ptr, &remaining_len, "{\"error\":true,\"code\":");
+    XASSERT(status == GMON_RESP_OK);
+    status = staAppMsgSerializeFloat(&buf_ptr, &remaining_len, errcode, 0, 4);
+    XASSERT(status == GMON_RESP_OK);
+    status = staAppMsgSerializeAppendStr(&buf_ptr, &remaining_len, ",\"ticks\":");
+    XASSERT(status == GMON_RESP_OK);
+    status = staAppMsgSerializeUInt(&buf_ptr, &remaining_len, ticks, 10);
+    XASSERT(status == GMON_RESP_OK);
+    status = staAppMsgSerializeAppendStr(&buf_ptr, &remaining_len, ",\"days\":");
+    XASSERT(status == GMON_RESP_OK);
+    status = staAppMsgSerializeUInt(&buf_ptr, &remaining_len, days, 4);
+    XASSERT(status == GMON_RESP_OK);
+    status = staAppMsgSerializeAppendStr(&buf_ptr, &remaining_len, "}\x00");
+    XASSERT(status == GMON_RESP_OK);
+    res->nbytes_written = outflight_msg->len - remaining_len;
+}
+
 static struct gMonNetStatus staNetConnIteration(
     gMonNet_t *net_handle, gmonStr_t *app_msg_recv, gmonStr_t *app_msg_send, uint8_t num_reconn
 ) {
@@ -67,12 +93,22 @@ void stationNetConnHandlerTaskFn(void *params) {
     gardenMonitor_t    *gmon = (gardenMonitor_t *)params;
     while (1) {
         stationSysDelayMs(gmon->netconn.interval_ms);
+        XASSERT(staAppMsgReallocBuffer(gmon) == GMON_RESP_OK);
+        stationSysEnterCritical();
         gmonStr_t *app_msg_recv = staGetAppMsgInflight(gmon);
-        gmonStr_t *app_msg_send = staGetAppMsgOutflight(gmon);
+        // serialize logged events to network payload,
+        // `app_send_result.status` is for debugging purpose
+        gmonAppMsgOutflightResult_t app_send_result = staGetAppMsgOutflight(gmon);
+        if (app_send_result.status != GMON_RESP_OK)
+            serialize_err_outmsg(&app_send_result, &gmon->tick);
+        // Reset records AFTER serialization for the next cycle
+        staAppMsgOutResetAllRecords(gmon);
+        stationSysExitCritical();
         // pause the working output device(s) that requires to rapidly frequently refresh
         // sensor data due to the network latency.
         staPauseWorkingActuators(gmon);
-        struct gMonNetStatus status = staNetConnIteration(&gmon->netconn, app_msg_recv, app_msg_send, 3);
+        struct gMonNetStatus status =
+            staNetConnIteration(&gmon->netconn, app_msg_recv, app_send_result.msg, 3);
         // decode received JSON data (as user update)
         if (status.recv == GMON_RESP_OK) {
             gMonStatus decode_status = staDecodeAppMsgInflight(gmon);
