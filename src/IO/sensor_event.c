@@ -72,9 +72,25 @@ gMonStatus staCpySensorEvent(gmonEvent_t *dst, gmonEvent_t *src) {
         return GMON_RESP_ERRARGS;
     if (dst->flgs.alloc == 0 || src->flgs.alloc == 0)
         return GMON_RESP_ERRMEM;
-    void *databak = dst->data;
-    XMEMCPY(dst, src, sizeof(gmonEvent_t) * 0x1);
-    dst->data = databak; // FIXME, copy detail event data
+    void *dst_data_buffer = dst->data;
+    XMEMCPY(dst, src, sizeof(gmonEvent_t));
+    dst->data = dst_data_buffer;
+
+    if (src->data != NULL && dst->data != NULL && src->num_active_sensors > 0) {
+        size_t nbytes_per_sensor = 0;
+        switch (src->event_type) {
+        case GMON_EVENT_SOIL_MOISTURE_UPDATED:
+        case GMON_EVENT_LIGHTNESS_UPDATED:
+            nbytes_per_sensor = sizeof(unsigned int);
+            break;
+        case GMON_EVENT_AIR_TEMP_UPDATED:
+            nbytes_per_sensor = sizeof(gmonAirCond_t);
+            break;
+        default:
+            return GMON_RESP_MALFORMED_DATA;
+        }
+        XMEMCPY(dst->data, src->data, src->num_active_sensors * nbytes_per_sensor);
+    }
     return GMON_RESP_OK;
 }
 

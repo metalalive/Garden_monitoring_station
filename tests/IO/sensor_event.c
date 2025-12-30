@@ -180,34 +180,40 @@ TEST(cpySensorEvent, ReturnsErrorForNullSrc) {
     staFreeSensorEvent(epool, dst_event);
 }
 
-TEST(cpySensorEvent, CopiesSingleEventSuccessfully) {
+TEST(cpySensorEvent, CopySingleEventOk) {
     gMonEvtPool_t *epool = &gmon.sensors.event;
-    gmonEvent_t   *src_event = staAllocSensorEvent(epool, GMON_EVENT_AIR_TEMP_UPDATED, 1);
+    unsigned char  num_sensors = 3;
+    gmonEvent_t   *src_event = staAllocSensorEvent(epool, GMON_EVENT_AIR_TEMP_UPDATED, num_sensors);
     TEST_ASSERT_NOT_NULL(src_event);
     // Populate source event with test data
     src_event->event_type = GMON_EVENT_AIR_TEMP_UPDATED;
-    // Access data through the void* and cast for population
-    ((gmonAirCond_t *)src_event->data)[0].temporature = 25.5f;
-    ((gmonAirCond_t *)src_event->data)[0].humidity = 60.0f;
+    gmonAirCond_t *src_aircond_data = (gmonAirCond_t *)src_event->data;
+    src_aircond_data[0] = (gmonAirCond_t){.temporature = 25.5f, .humidity = 60.0f};
+    src_aircond_data[1] = (gmonAirCond_t){.temporature = 26.0f, .humidity = 62.5f};
+    src_aircond_data[2] = (gmonAirCond_t){.temporature = 24.8f, .humidity = 58.2f};
     src_event->curr_ticks = 1000;
     src_event->curr_days = 5;
     // flgs.alloc is already 1 due to staAllocSensorEvent
-    gmonEvent_t *dst_event = staAllocSensorEvent(epool, GMON_EVENT_AIR_TEMP_UPDATED, 1);
+    gmonEvent_t *dst_event = staAllocSensorEvent(epool, GMON_EVENT_AIR_TEMP_UPDATED, num_sensors);
     TEST_ASSERT_NOT_NULL(dst_event);
     gMonStatus status = staCpySensorEvent(dst_event, src_event);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     // Verify destination event content
     TEST_ASSERT_EQUAL(src_event->event_type, dst_event->event_type);
     TEST_ASSERT_EQUAL(src_event->num_active_sensors, dst_event->num_active_sensors);
+    TEST_ASSERT_EQUAL(num_sensors, dst_event->num_active_sensors);
     TEST_ASSERT_EQUAL(src_event->curr_ticks, dst_event->curr_ticks);
     TEST_ASSERT_EQUAL(src_event->curr_days, dst_event->curr_days);
     // Alloc flag should also be copied (value 1)
     TEST_ASSERT_EQUAL(src_event->flgs.alloc, dst_event->flgs.alloc);
     // The data pointer itself is not copied, nor its content
     TEST_ASSERT_NOT_EQUAL(src_event->data, dst_event->data);
-    // Verify dst_event's data buffer remains zeroed (as it was by its own allocation)
-    TEST_ASSERT_EQUAL_FLOAT(0.0f, ((gmonAirCond_t *)dst_event->data)[0].temporature);
-    TEST_ASSERT_EQUAL_FLOAT(0.0f, ((gmonAirCond_t *)dst_event->data)[0].humidity);
+    // Verify dst_event's data buffer content is copied
+    gmonAirCond_t *dst_aircond_data = (gmonAirCond_t *)dst_event->data;
+    for (unsigned char i = 0; i < num_sensors; i++) {
+        TEST_ASSERT_EQUAL_FLOAT(src_aircond_data[i].temporature, dst_aircond_data[i].temporature);
+        TEST_ASSERT_EQUAL_FLOAT(src_aircond_data[i].humidity, dst_aircond_data[i].humidity);
+    }
     staFreeSensorEvent(epool, src_event);
     staFreeSensorEvent(epool, dst_event);
 }
@@ -252,7 +258,7 @@ TEST_GROUP_RUNNER(gMonSensorEvt) {
     RUN_TEST_CASE(SensorEvtPool, ReturnsErrorForMisalignedRecord);
     RUN_TEST_CASE(cpySensorEvent, ReturnsErrorForNullDst);
     RUN_TEST_CASE(cpySensorEvent, ReturnsErrorForNullSrc);
-    RUN_TEST_CASE(cpySensorEvent, CopiesSingleEventSuccessfully);
+    RUN_TEST_CASE(cpySensorEvent, CopySingleEventOk);
     RUN_TEST_CASE(cpySensorEvent, ReturnsErrorIfDstNotAllocated);
     RUN_TEST_CASE(cpySensorEvent, ReturnsErrorIfSrcNotAllocated);
 }
