@@ -61,7 +61,7 @@ static void serialize_err_outmsg(gmonAppMsgOutflightResult_t *res, gmonTick_t *t
     XASSERT(status == GMON_RESP_OK);
     status = staAppMsgSerializeAppendStr(&buf_ptr, &remaining_len, "}\x00");
     XASSERT(status == GMON_RESP_OK);
-    res->nbytes_written = outflight_msg->len - remaining_len;
+    outflight_msg->nbytes_written = outflight_msg->len - remaining_len;
 }
 
 static struct gMonNetStatus staNetConnIteration(

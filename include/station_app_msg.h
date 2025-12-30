@@ -12,9 +12,8 @@ extern "C" {
 #define GMON_NUM_JSON_TOKEN_DECODE 84
 
 typedef struct {
-    gmonStr_t     *msg;
-    gMonStatus     status;
-    unsigned short nbytes_written;
+    gmonStr_t *msg;
+    gMonStatus status;
 } gmonAppMsgOutflightResult_t;
 
 // Using a sufficiently large fixed buffer for incoming control JSON messages.

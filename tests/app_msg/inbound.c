@@ -23,6 +23,7 @@ TEST_TEAR_DOWN(DecodeMsgInflight) { staAppMsgDeinit(&test_gmon); }
 TEST(DecodeMsgInflight, EmptyJson) {
     const unsigned char *json_data = (const unsigned char *)"{}";
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, 2);
+    test_gmon.rawmsg.inflight.nbytes_written = 2;
     TEST_ASSERT_LESS_THAN_UINT16(test_gmon.rawmsg.inflight.len, 2);
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
@@ -34,6 +35,7 @@ TEST(DecodeMsgInflight, ValidIntervalNetconn) {
     uint16_t             testdata_sz = strlen((const char *)json_data);
     TEST_ASSERT_LESS_THAN_UINT16(test_gmon.rawmsg.inflight.len, testdata_sz);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
+    test_gmon.rawmsg.inflight.nbytes_written = testdata_sz;
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     TEST_ASSERT_EQUAL(3600000, test_gmon.netconn.interval_ms);
@@ -47,6 +49,7 @@ TEST(DecodeMsgInflight, ValidSpareSensor) {
     uint16_t testdata_sz = strlen((const char *)json_data);
     TEST_ASSERT_LESS_THAN_UINT16(test_gmon.rawmsg.inflight.len, testdata_sz);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
+    test_gmon.rawmsg.inflight.nbytes_written = testdata_sz;
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     TEST_ASSERT_EQUAL(10009, test_gmon.sensors.soil_moist.super.read_interval_ms);
@@ -64,6 +67,7 @@ TEST(DecodeMsgInflight, ValidQtySensor) {
              *)"{\"sensor\":{\"soilmoist\":{\"qty\":5},\"airtemp\":{\"qty\":3},\"light\":{\"qty\":2}}}";
     uint16_t testdata_sz = strlen((const char *)json_data);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
+    test_gmon.rawmsg.inflight.nbytes_written = testdata_sz;
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     TEST_ASSERT_EQUAL(5, test_gmon.sensors.soil_moist.super.num_items);
@@ -77,6 +81,7 @@ TEST(DecodeMsgInflight, SensorQtyExceed) {
                                "\"light\":{\"qty\":6}}}";
     uint16_t testdata_sz = strlen((const char *)json_data);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
+    test_gmon.rawmsg.inflight.nbytes_written = testdata_sz;
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_INVALID_REQ, status);
     TEST_ASSERT_EQUAL(7, test_gmon.sensors.soil_moist.super.num_items);
@@ -90,6 +95,7 @@ TEST(DecodeMsgInflight, SensorResampleExceed) {
                                "\"airtemp\":{\"resample\":5},\"light\":{\"resample\":7}}}";
     uint16_t testdata_sz = strlen((const char *)json_data);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
+    test_gmon.rawmsg.inflight.nbytes_written = testdata_sz;
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_INVALID_REQ, status);
     TEST_ASSERT_EQUAL(6, test_gmon.sensors.soil_moist.super.num_resamples);
@@ -104,6 +110,7 @@ TEST(DecodeMsgInflight, ValidThresholds) {
     uint16_t testdata_sz = strlen((const char *)json_data);
     TEST_ASSERT_LESS_THAN_UINT16(test_gmon.rawmsg.inflight.len, testdata_sz);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
+    test_gmon.rawmsg.inflight.nbytes_written = testdata_sz;
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     TEST_ASSERT_EQUAL(1019, test_gmon.actuator.pump.threshold);
@@ -123,6 +130,7 @@ TEST(DecodeMsgInflight, MixedValid) {
     uint16_t testdata_sz = strlen((const char *)json_data);
     TEST_ASSERT_LESS_THAN_UINT16(test_gmon.rawmsg.inflight.len, testdata_sz);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
+    test_gmon.rawmsg.inflight.nbytes_written = testdata_sz;
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     TEST_ASSERT_EQUAL(2100, test_gmon.sensors.soil_moist.super.read_interval_ms);
@@ -152,6 +160,7 @@ TEST(DecodeMsgInflight, MixedValidReordered) {
     uint16_t testdata_sz = strlen((const char *)json_data);
     TEST_ASSERT_LESS_THAN_UINT16(test_gmon.rawmsg.inflight.len, testdata_sz);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
+    test_gmon.rawmsg.inflight.nbytes_written = testdata_sz;
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     // Assert sensor read intervals
@@ -206,6 +215,7 @@ TEST(DecodeMsgInflight, MalformedThresholdObject) {
     uint16_t testdata_sz = strlen((const char *)json_data);
     TEST_ASSERT_LESS_THAN_UINT16(test_gmon.rawmsg.inflight.len, testdata_sz);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
+    test_gmon.rawmsg.inflight.nbytes_written = testdata_sz;
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_MALFORMED_DATA, status);
 }
@@ -216,6 +226,7 @@ TEST(DecodeMsgInflight, UnknownTopLevelKey) {
     uint16_t testdata_sz = strlen((const char *)json_data);
     TEST_ASSERT_LESS_THAN_UINT16(test_gmon.rawmsg.inflight.len, testdata_sz);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
+    test_gmon.rawmsg.inflight.nbytes_written = testdata_sz;
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status); // Should skip unknown key and continue parsing
     TEST_ASSERT_EQUAL(100, test_gmon.netconn.interval_ms);
@@ -228,6 +239,7 @@ TEST(DecodeMsgInflight, NestedUnknownKeys) {
     uint16_t testdata_sz = strlen((const char *)json_data);
     TEST_ASSERT_LESS_THAN_UINT16(test_gmon.rawmsg.inflight.len, testdata_sz);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
+    test_gmon.rawmsg.inflight.nbytes_written = testdata_sz;
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     TEST_ASSERT_EQUAL(146, test_gmon.netconn.interval_ms);
@@ -242,6 +254,7 @@ TEST(DecodeMsgInflight, ValidActuatorConfig) {
     uint16_t testdata_sz = strlen((const char *)json_data);
     TEST_ASSERT_LESS_THAN_UINT16(test_gmon.rawmsg.inflight.len, testdata_sz);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
+    test_gmon.rawmsg.inflight.nbytes_written = testdata_sz;
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     TEST_ASSERT_EQUAL(10000, test_gmon.actuator.pump.max_worktime);
@@ -258,6 +271,7 @@ TEST(DecodeMsgInflight, ValidActuatorConfigPartial) {
     uint16_t testdata_sz = strlen((const char *)json_data);
     TEST_ASSERT_LESS_THAN_UINT16(test_gmon.rawmsg.inflight.len, testdata_sz);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
+    test_gmon.rawmsg.inflight.nbytes_written = testdata_sz;
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     TEST_ASSERT_EQUAL(15000, test_gmon.actuator.pump.max_worktime);
@@ -272,6 +286,7 @@ TEST(DecodeMsgInflight, ValidActuatorConfigUnknownKey) {
     uint16_t testdata_sz = strlen((const char *)json_data);
     TEST_ASSERT_LESS_THAN_UINT16(test_gmon.rawmsg.inflight.len, testdata_sz);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
+    test_gmon.rawmsg.inflight.nbytes_written = testdata_sz;
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status); // Should skip unknown key and continue parsing
     TEST_ASSERT_EQUAL(11000, test_gmon.actuator.pump.max_worktime);
@@ -291,6 +306,7 @@ TEST(DecodeMsgInflight, ComprehensiveConfigWithActuators) {
     uint16_t testdata_sz = strlen(json_data);
     TEST_ASSERT_LESS_THAN_UINT16(test_gmon.rawmsg.inflight.len, testdata_sz);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
+    test_gmon.rawmsg.inflight.nbytes_written = testdata_sz;
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     // Sensor atttributes
@@ -333,6 +349,7 @@ TEST(DecodeMsgInflight, SensorOutlierDenominatorZero) {
                "\"light\":{\"outlier\":[10,4]}}}";
     uint16_t testdata_sz = strlen((const char *)json_data);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
+    test_gmon.rawmsg.inflight.nbytes_written = testdata_sz;
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_INVALID_REQ, status);
     // If the denominator is zero, the outlier_threshold should not be updated from its initial value.
@@ -348,6 +365,7 @@ TEST(DecodeMsgInflight, SensorMADdenominatorZero) {
                                "\"light\":{\"mad\":[7,4]}}}";
     uint16_t testdata_sz = strlen((const char *)json_data);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
+    test_gmon.rawmsg.inflight.nbytes_written = testdata_sz;
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_INVALID_REQ, status);
     // If the denominator is zero, the outlier_threshold should not be updated from its initial value.

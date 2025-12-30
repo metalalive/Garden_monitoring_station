@@ -36,6 +36,7 @@ typedef enum {
 
 typedef struct {
     unsigned short len;
+    unsigned short nbytes_written;
     unsigned char *data;
 } gmonStr_t;
 

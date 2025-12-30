@@ -425,7 +425,7 @@ TEST(GenerateMsgOutflight, LogEvtInterleavedNullRef) {
         "\"light\":{\"ticks\":0,\"days\":0,\"qty\":0,\"corruption\":[],\"values\":[]}}";
 
     unsigned int expected_json_sz = strlen(expected_json);
-    TEST_ASSERT_GREATER_OR_EQUAL(expected_json_sz, of_res.nbytes_written);
+    TEST_ASSERT_GREATER_OR_EQUAL(expected_json_sz, out_msg->nbytes_written);
     TEST_ASSERT_EQUAL_STRING_LEN(expected_json, (const char *)out_msg->data, expected_json_sz);
     // Verify records are NOT reset after retrieval, staGetAppMsgOutflight only serializes.
 }
@@ -546,7 +546,7 @@ TEST(GenerateMsgOutflight, InsufficientMemory) {
     //   successfully. `buf_ptr` advances, remaining_len = 3.
     // - The next string `soilmoist` (9 bytes) is too large for remaining_len (3 bytes).
     //   `serialize_append_str` returns GMON_RESP_ERRMEM without writing more bytes.
-    TEST_ASSERT_EQUAL(2, of_res.nbytes_written);
+    TEST_ASSERT_EQUAL(2, of_res.msg->nbytes_written);
     TEST_ASSERT_EQUAL_STRING_LEN(UT_EXPECTED_JSON, (const char *)of_res.msg->data, 2);
     // ---------- subcase 2 ----------
     // expect to report memory errors when serializing different items
@@ -557,7 +557,7 @@ TEST(GenerateMsgOutflight, InsufficientMemory) {
         test_gmon.rawmsg.outflight.len = insufficient_sizes[idx];
         of_res = staGetAppMsgOutflight(&test_gmon);
         TEST_ASSERT_EQUAL(GMON_RESP_ERRMEM, of_res.status);
-        TEST_ASSERT_EQUAL(expect_nb_written[idx], of_res.nbytes_written);
+        TEST_ASSERT_EQUAL(expect_nb_written[idx], of_res.msg->nbytes_written);
         TEST_ASSERT_EQUAL_STRING_LEN(
             UT_EXPECTED_JSON, (const char *)of_res.msg->data, expect_nb_written[idx]
         );
@@ -593,19 +593,19 @@ TEST(GenerateMsgOutflight, NumDigitExceedLimit) {
     unsigned short expect_data_sz = sizeof(UT_EXPECTED_JSON) - 1, actual_data_sz = 0;
 
     gmonAppMsgOutflightResult_t of_res = staGetAppMsgOutflight(&test_gmon);
-    actual_data_sz = of_res.nbytes_written;
+    actual_data_sz = of_res.msg->nbytes_written;
     TEST_ASSERT_EQUAL(GMON_RESP_ERR_MSG_ENCODE, of_res.status);
     TEST_ASSERT_LESS_THAN(expect_data_sz, actual_data_sz);
     TEST_ASSERT_EQUAL_STRING_LEN(UT_EXPECTED_JSON, (const char *)of_res.msg->data, actual_data_sz);
     ((unsigned int *)s1.data)[0] = 9998;
     of_res = staGetAppMsgOutflight(&test_gmon);
-    actual_data_sz = of_res.nbytes_written;
+    actual_data_sz = of_res.msg->nbytes_written;
     TEST_ASSERT_EQUAL(GMON_RESP_ERR_MSG_ENCODE, of_res.status);
     TEST_ASSERT_LESS_THAN(expect_data_sz, actual_data_sz);
     TEST_ASSERT_EQUAL_STRING_LEN(UT_EXPECTED_JSON, (const char *)of_res.msg->data, actual_data_sz);
     ((gmonAirCond_t *)a1.data)[0].temporature = 9999.5;
     of_res = staGetAppMsgOutflight(&test_gmon);
-    actual_data_sz = of_res.nbytes_written;
+    actual_data_sz = of_res.msg->nbytes_written;
     TEST_ASSERT_EQUAL(GMON_RESP_OK, of_res.status);
     TEST_ASSERT_EQUAL(expect_data_sz, actual_data_sz);
     TEST_ASSERT_EQUAL_STRING_LEN(UT_EXPECTED_JSON, (const char *)of_res.msg->data, actual_data_sz);

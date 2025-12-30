@@ -515,8 +515,8 @@ gmonAppMsgOutflightResult_t staGetAppMsgOutflight(gardenMonitor_t *gmon) {
         goto done;
     status = staAppMsgSerializeAppendStr(&buf_ptr, &remaining_len, "}\x00");
 done:
-    return (gmonAppMsgOutflightResult_t
-    ){.msg = outflight_msg, .status = status, .nbytes_written = outflight_msg->len - remaining_len};
+    outflight_msg->nbytes_written = outflight_msg->len - remaining_len;
+    return (gmonAppMsgOutflightResult_t){.msg = outflight_msg, .status = status};
 }
 
 gMonStatus staAppMsgInit(gardenMonitor_t *gmon) {

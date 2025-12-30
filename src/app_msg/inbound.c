@@ -451,7 +451,8 @@ gMonStatus staDecodeAppMsgInflight(gardenMonitor_t *gmon) {
 
     jsmn_init(decoder_ptr);
     short r = (short)jsmn_parse(
-        decoder_ptr, (const char *)rawdata->data, rawdata->len, tokens_ptr, GMON_NUM_JSON_TOKEN_DECODE
+        decoder_ptr, (const char *)rawdata->data, rawdata->nbytes_written, tokens_ptr,
+        GMON_NUM_JSON_TOKEN_DECODE
     );
     if (r <= 0) { // If parse failed or no tokens
         status = GMON_RESP_ERR_MSG_DECODE;
