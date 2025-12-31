@@ -60,7 +60,7 @@ gMonStatus staFreeSensorEvent(gMonEvtPool_t *epool, gmonEvent_t *record) {
     }
 done:
     stationSysExitCritical();
-    if (status == GMON_RESP_OK) {
+    if (status == GMON_RESP_OK && record->data) {
         XMEMFREE(record->data);
         record->data = NULL;
     }

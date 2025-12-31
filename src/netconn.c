@@ -114,7 +114,7 @@ void stationNetConnHandlerTaskFn(void *params) {
             gMonStatus decode_status = staDecodeAppMsgInflight(gmon);
             if (decode_status == GMON_RESP_OK) {
                 // update threshold to display device
-                dblk = &gmon->display.blocks[GMON_BLOCK_SENSOR_THRESHOLD];
+                dblk = &gmon->display.blocks[GMON_BLOCK_ACTUATOR_THRESHOLD];
                 dblk->render(&dblk->content, gmon);
             }
         }
