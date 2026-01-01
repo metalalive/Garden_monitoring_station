@@ -783,6 +783,86 @@ TEST(UpdateLastRecord, AddNullEventToFullRecord) {
     TEST_ASSERT_EQUAL(0, soil_record->inner_wr_ptr);
 }
 
+// New test group for staAppMsgReallocBuffer
+TEST_GROUP(ReallocBuffer);
+
+TEST_SETUP(ReallocBuffer) {
+    XMEMSET(&test_gmon, 0, sizeof(gardenMonitor_t));
+    staAppMsgInit(&test_gmon);
+}
+
+TEST_TEAR_DOWN(ReallocBuffer) { staAppMsgDeinit(&test_gmon); }
+
+TEST(ReallocBuffer, SameSize_ReuseBuffer) {
+    gMonStatus status = staAppMsgReallocBuffer(NULL);
+    TEST_ASSERT_EQUAL(GMON_RESP_ERRARGS, status);
+    // 1. Initial allocation with a specific configuration
+    test_gmon.sensors.soil_moist.super.num_items = 1;
+    test_gmon.sensors.air_temp.num_items = 1;
+    test_gmon.sensors.light.num_items = 1;
+    status = staAppMsgReallocBuffer(&test_gmon);
+    TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
+    void          *first_alloc_ptr = test_gmon.rawmsg.outflight.data;
+    unsigned short first_alloc_len = test_gmon.rawmsg.outflight.len;
+    TEST_ASSERT_NOT_NULL(first_alloc_ptr);
+    TEST_ASSERT_TRUE(first_alloc_len > 0);
+
+    // 2. Call again with the exact same sensor configuration.
+    // staAppMsgReallocBuffer internally calls staEnsureStrBufferSize,
+    // which should reuse the existing buffer if its allocated size matches the new required size.
+    status = staAppMsgReallocBuffer(&test_gmon);
+    TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
+    void          *second_alloc_ptr = test_gmon.rawmsg.outflight.data;
+    unsigned short second_alloc_len = test_gmon.rawmsg.outflight.len;
+    TEST_ASSERT_NOT_NULL(second_alloc_ptr);
+    TEST_ASSERT_EQUAL_PTR(second_alloc_ptr, test_gmon.rawmsg.inflight.data);
+    TEST_ASSERT_EQUAL(first_alloc_len, second_alloc_len);
+    // Expect pointer to be the same (buffer reused)
+    TEST_ASSERT_EQUAL_PTR(first_alloc_ptr, second_alloc_ptr);
+}
+
+TEST(ReallocBuffer, GrowShrinkBuffer) {
+    // 1. Initial allocation with a smaller configuration
+    test_gmon.sensors.soil_moist.super.num_items = 1;
+    test_gmon.sensors.air_temp.num_items = 1;
+    test_gmon.sensors.light.num_items = 1;
+    gMonStatus status = staAppMsgReallocBuffer(&test_gmon);
+    TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
+    void          *first_alloc_ptr = test_gmon.rawmsg.outflight.data;
+    unsigned short first_alloc_len = test_gmon.rawmsg.outflight.len;
+    TEST_ASSERT_NOT_NULL(first_alloc_ptr);
+    TEST_ASSERT_GREATER_THAN(0, first_alloc_len);
+
+    // 2. Modify sensor counts to require a larger buffer
+    test_gmon.sensors.soil_moist.super.num_items = 2;
+    test_gmon.sensors.air_temp.num_items = 2;
+    test_gmon.sensors.light.num_items = 3;
+    status = staAppMsgReallocBuffer(&test_gmon);
+    TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
+    void          *second_alloc_ptr = test_gmon.rawmsg.outflight.data;
+    unsigned short second_alloc_len = test_gmon.rawmsg.outflight.len;
+    TEST_ASSERT_NOT_NULL(second_alloc_ptr);
+    TEST_ASSERT_EQUAL_PTR(second_alloc_ptr, test_gmon.rawmsg.inflight.data);
+    TEST_ASSERT_GREATER_THAN(first_alloc_len, second_alloc_len);
+    TEST_ASSERT_NOT_EQUAL(first_alloc_ptr, second_alloc_ptr);
+
+    // 3. Modify sensor counts to require a smaller buffer
+    test_gmon.sensors.soil_moist.super.num_items = 2;
+    test_gmon.sensors.air_temp.num_items = 2;
+    test_gmon.sensors.light.num_items = 2;
+    status = staAppMsgReallocBuffer(&test_gmon);
+    TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
+    void          *third_alloc_ptr = test_gmon.rawmsg.outflight.data;
+    unsigned short third_alloc_len = test_gmon.rawmsg.outflight.len;
+    TEST_ASSERT_NOT_NULL(third_alloc_ptr);
+    TEST_ASSERT_EQUAL_PTR(third_alloc_ptr, test_gmon.rawmsg.inflight.data);
+    TEST_ASSERT_NOT_EQUAL(first_alloc_ptr, third_alloc_ptr);
+    TEST_ASSERT_NOT_EQUAL(second_alloc_ptr, third_alloc_ptr);
+    TEST_ASSERT_GREATER_THAN(first_alloc_len, second_alloc_len);
+    TEST_ASSERT_GREATER_THAN(third_alloc_len, second_alloc_len);
+    TEST_ASSERT_GREATER_THAN(first_alloc_len, third_alloc_len);
+}
+
 TEST_GROUP_RUNNER(gMonAppMsgOutbound) {
     RUN_TEST_CASE(GenerateMsgOutflight, EmptyLogEvt);
     RUN_TEST_CASE(GenerateMsgOutflight, SingleLogEvtPerSensor);
@@ -799,4 +879,6 @@ TEST_GROUP_RUNNER(gMonAppMsgOutbound) {
     RUN_TEST_CASE(UpdateLastRecord, AddNullEventToEmptyRecord);
     RUN_TEST_CASE(UpdateLastRecord, AddNullEventToPartiallyFilledRecord);
     RUN_TEST_CASE(UpdateLastRecord, AddNullEventToFullRecord);
+    RUN_TEST_CASE(ReallocBuffer, SameSize_ReuseBuffer);
+    RUN_TEST_CASE(ReallocBuffer, GrowShrinkBuffer);
 }

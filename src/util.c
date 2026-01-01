@@ -119,6 +119,26 @@ int staExpMovingAvg(int new, int old, unsigned char lambda) {
     return out / 100;
 }
 
+gMonStatus staEnsureStrBufferSize(gmonStr_t *str_info, unsigned short new_required_len) {
+    if (str_info == NULL || new_required_len == 0)
+        return GMON_RESP_ERRARGS;
+    // Reuse existing buffer if its allocated size matches the new required size
+    if (str_info->data != NULL && str_info->len == new_required_len)
+        return GMON_RESP_OK;
+    // Free old buffer if it exists (and size is different or no buffer previously)
+    if (str_info->data != NULL) {
+        XMEMFREE(str_info->data);
+        *str_info = (gmonStr_t){0};
+    }
+    str_info->data = XMALLOC(new_required_len);
+    if (str_info->data == NULL) {
+        *str_info = (gmonStr_t){0};
+        return GMON_RESP_ERRMEM;
+    }
+    str_info->len = new_required_len; // Store the newly allocated size
+    return GMON_RESP_OK;
+}
+
 #define CODE_GEN_SET_IN_RANGE(fname, dtype) \
     gMonStatus fname(dtype *target, dtype new_val, dtype max, dtype min) { \
         gMonStatus status = GMON_RESP_OK; \

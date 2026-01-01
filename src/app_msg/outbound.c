@@ -154,20 +154,25 @@ gMonStatus staAppMsgReallocBuffer(gardenMonitor_t *gmon) {
     unsigned char num_air_sensors = gmon->sensors.air_temp.num_items;
     unsigned char num_light_sensors = gmon->sensors.light.num_items;
     gMonRawMsg_t *rmsg = &gmon->rawmsg;
-    FREE_IF_EXIST(rmsg->outflight.data);
-    rmsg->inflight.data = NULL;
-    rmsg->outflight.len = staAppMsgOutflightRequiredBufSz(
+
+    unsigned short new_outflight_required_len = staAppMsgOutflightRequiredBufSz(
         num_soil_sensors, num_air_sensors, num_light_sensors, GMON_CFG_NUM_SOIL_SENSOR_RECORDS_KEEP,
         GMON_CFG_NUM_AIR_SENSOR_RECORDS_KEEP, GMON_CFG_NUM_LIGHT_SENSOR_RECORDS_KEEP
     );
-    unsigned short o_sz = rmsg->outflight.len, i_sz = rmsg->inflight.len;
-    unsigned short buf_sz = (o_sz > i_sz) ? o_sz : i_sz;
-    // shared buffer between inflight / outflight messages
-    rmsg->outflight.data = XMALLOC(sizeof(unsigned char) * buf_sz);
-    if (rmsg->outflight.data == NULL)
-        return GMON_RESP_ERRMEM;
-    rmsg->inflight.data = rmsg->outflight.data;
-    return GMON_RESP_OK;
+    unsigned short inflight_required_len = rmsg->inflight.len;
+    unsigned short overall_required_buf_sz = (new_outflight_required_len > inflight_required_len)
+                                                 ? new_outflight_required_len
+                                                 : inflight_required_len;
+    // Use staEnsureStrBufferSize to manage the outflight buffer.
+    // This function handles freeing old buffer, allocating new one if size differs,
+    // and setting str_info->data and str_info->len.
+    gMonStatus status = staEnsureStrBufferSize(&rmsg->outflight, overall_required_buf_sz);
+    if (status == GMON_RESP_OK) {
+        rmsg->inflight.data = rmsg->outflight.data;
+    } else {
+        rmsg->inflight.data = NULL;
+    }
+    return status;
 }
 
 // --- Helper functions for JSON serialization ---
