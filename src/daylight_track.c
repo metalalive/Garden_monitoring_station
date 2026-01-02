@@ -27,18 +27,22 @@ void lightControllerTaskFn(void *params) {
 
     gardenMonitor_t    *gmon = (gardenMonitor_t *)params;
     gMonSensorMeta_t   *sensor = &gmon->sensors.light;
-    gmonSensorSample_t *read_vals = staAllocSensorSampleBuffer(sensor, GMON_SENSOR_DATA_TYPE_U32);
+    gmonSensorSamples_t read_vals =
+        staAllocSensorSampleBuffer((gmonSensorSamples_t){0}, sensor, GMON_SENSOR_DATA_TYPE_U32);
     while (1) {
         // The interval for bulb will be updated by network handling task during runtime
         stationSysDelayMs(gmon->sensors.light.read_interval_ms);
+        read_vals = staAllocSensorSampleBuffer(read_vals, sensor, GMON_SENSOR_DATA_TYPE_U32);
+        if (read_vals.entries == NULL)
+            continue;
         // Interactively read from light-relevant sensors
-        status = GMON_SENSOR_READ_FN_LIGHT(sensor, read_vals);
+        status = GMON_SENSOR_READ_FN_LIGHT(sensor, read_vals.entries);
         if (status != GMON_RESP_OK)
             continue;
         event = staAllocSensorEvent(&gmon->sensors.event, GMON_EVENT_LIGHTNESS_UPDATED, sensor->num_items);
         if (event == NULL)
             continue;
-        status = staSensorSampleToEvent(event, read_vals);
+        status = staSensorSampleToEvent(event, read_vals.entries);
         XASSERT(status == GMON_RESP_OK);
         // TODO, redesign how to determine max work time of artifical light
         gmon->actuator.bulb.max_worktime = 1230;

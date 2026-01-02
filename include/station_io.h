@@ -10,8 +10,15 @@ extern "C" {
       GMON_CFG_NUM_LIGHT_SENSOR_RECORDS_KEEP) \
      << 1)
 
+typedef struct {
+    gmonSensorSample_t *entries;
+    unsigned short      total_nbytes;
+} gmonSensorSamples_t;
+
 gMonStatus stationIOinit(gardenMonitor_t *);
 gMonStatus stationIOdeinit(gardenMonitor_t *);
+
+gmonSensorSamples_t staAllocSensorSampleBuffer(gmonSensorSamples_t, gMonSensorMeta_t *, gmonSensorDataType_t);
 
 gmonEvent_t *staAllocSensorEvent(gMonEvtPool_t *, gmonEventType_t, unsigned char num_sensors);
 gMonStatus   staFreeSensorEvent(gMonEvtPool_t *, gmonEvent_t *);
