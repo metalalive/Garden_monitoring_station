@@ -61,23 +61,6 @@ gMonStatus UTestSysMsgBoxPut(stationSysMsgbox_t msgbuf, void *msg, uint32_t bloc
     return GMON_RESP_OK;
 }
 
-gMonStatus staSensorInitLight(gMonSensorMeta_t *s) {
-    (void)s;
-    return GMON_RESP_OK;
-}
-gMonStatus staSensorDeInitLight(gMonSensorMeta_t *s) {
-    (void)s;
-    return GMON_RESP_OK;
-}
-gMonStatus staSensorInitAirTemp(gMonSensorMeta_t *s) {
-    (void)s;
-    return GMON_RESP_OK;
-}
-gMonStatus staSensorDeInitAirTemp(gMonSensorMeta_t *s) {
-    (void)s;
-    return GMON_RESP_OK;
-}
-
 gMonStatus staActuatorInitPump(gMonActuator_t *dev) {
     (void)dev;
     return GMON_RESP_OK;
@@ -130,5 +113,46 @@ gMonStatus staSensorPlatformDeInitSoilMoist(gMonSensorMeta_t *s) {
 gMonStatus staPlatformReadSoilMoistSensor(gMonSensorMeta_t *meta, gmonSensorSample_t *sample) {
     (void)meta;
     (void)sample;
+    return GMON_RESP_OK;
+}
+gMonStatus staSensorPlatformInitLight(gMonSensorMeta_t *s) {
+    (void)s;
+    return GMON_RESP_OK;
+}
+gMonStatus staSensorPlatformDeInitLight(gMonSensorMeta_t *s) {
+    (void)s;
+    return GMON_RESP_OK;
+}
+gMonStatus staPlatformReadLightSensor(gMonSensorMeta_t *s, gmonSensorSample_t *out) {
+    (void)s;
+    (void)out;
+    return GMON_RESP_OK;
+}
+gMonStatus staSensorPlatformInitAirTemp(gMonSensorMeta_t *s) {
+    (void)s;
+    return GMON_RESP_OK;
+}
+gMonStatus staSensorPlatformDeInitAirTemp(gMonSensorMeta_t *s) {
+    (void)s;
+    return GMON_RESP_OK;
+}
+gMonStatus staPlatformMeasurePulse(void *pinstruct, uint8_t *direction, uint16_t *us) {
+    (void)pinstruct;
+    (void)direction;
+    (void)us;
+    return GMON_RESP_OK;
+}
+gMonStatus staPlatformPinSetDirection(void *pinstruct, uint8_t direction) {
+    (void)pinstruct;
+    (void)direction;
+    return GMON_RESP_OK;
+}
+gMonStatus staPlatformWritePin(void *pinstruct, uint8_t new_state) {
+    (void)pinstruct;
+    (void)new_state;
+    return GMON_RESP_OK;
+}
+gMonStatus stationSysDelayUs(unsigned short time_us) {
+    (void)time_us;
     return GMON_RESP_OK;
 }

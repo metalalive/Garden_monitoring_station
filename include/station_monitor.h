@@ -38,8 +38,12 @@ typedef struct gardenMonitor_s {
         gMonSensorMeta_t     air_temp;
         gMonSensorMeta_t     light;
         gMonEvtPool_t        event;
-        gmonSensorRecord_t   latest_records[GMON_CFG_NUM_SENSOR_RECORDS_KEEP];
     } sensors;
+    struct {
+        gmonSensorRecord_t soilmoist;
+        gmonSensorRecord_t aircond;
+        gmonSensorRecord_t light;
+    } latest_logs;
     struct {
         struct {
             struct {

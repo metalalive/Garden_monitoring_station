@@ -36,6 +36,7 @@ typedef enum {
 
 typedef struct {
     unsigned short len;
+    unsigned short nbytes_written;
     unsigned char *data;
 } gmonStr_t;
 
@@ -93,16 +94,12 @@ typedef struct {
 // for memory efficiency
 
 typedef struct {
-    gmonAirCond_t air_cond;
-    unsigned int  soil_moist;
-    unsigned int  lightness;
-    unsigned int  curr_ticks;
-    unsigned int  curr_days;
-    struct {
-        unsigned char air_val_written   : 1;
-        unsigned char soil_val_written  : 1;
-        unsigned char light_val_written : 1;
-    } flgs;
+    // a circular buffer which keeps references of logged events,
+    // it will be serialized to outflight message in network task.
+    gmonEvent_t **events;
+    unsigned char num_refs : 4;
+    // wraparound counter which pointers to event references (shown as the field above)
+    unsigned char inner_wr_ptr : 4;
 } gmonSensorRecord_t;
 
 typedef struct {

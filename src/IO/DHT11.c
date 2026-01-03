@@ -1,12 +1,43 @@
-#include <assert.h>
 #include "station_include.h"
 
+gMonStatus staSetNumAirSensor(gMonSensorMeta_t *s, unsigned char new_val) {
+    if (s == NULL)
+        return GMON_RESP_ERRARGS;
+    unsigned int temp_num_items = 0;
+    gMonStatus   status =
+        staSetUintInRange(&temp_num_items, (unsigned int)new_val, (unsigned int)GMON_MAXNUM_AIR_SENSORS, 0U);
+    if (status == GMON_RESP_OK)
+        s->num_items = (unsigned char)temp_num_items;
+    return status;
+}
+gMonStatus staSetNumResamplesAirSensor(gMonSensorMeta_t *s, unsigned char new_val) {
+    if (s == NULL)
+        return GMON_RESP_ERRARGS;
+    unsigned int temp_num_resamples = 0;
+    gMonStatus   status = staSetUintInRange(
+        &temp_num_resamples, (unsigned int)new_val, (unsigned int)GMON_MAX_OVERSAMPLES_AIR_SENSORS, 1U
+    );
+    if (status == GMON_RESP_OK)
+        s->num_resamples = (unsigned char)temp_num_resamples;
+    return status;
+}
+
 gMonStatus staSensorInitAirTemp(gMonSensorMeta_t *s) {
-    s->read_interval_ms = GMON_CFG_SENSOR_READ_INTERVAL_MS;
-    s->num_items = GMON_CFG_NUM_AIR_SENSORS;
-    s->num_resamples = GMON_CFG_AIR_SENSOR_NUM_OVERSAMPLE;
-    s->outlier_threshold = GMON_AIR_SENSOR_OUTLIER_THRESHOLD;
-    s->mad_threshold = GMON_AIR_SENSOR_MAD_THRESHOLD;
+    gMonStatus status = staSensorSetReadInterval(s, GMON_CFG_SENSOR_READ_INTERVAL_MS);
+    if (status != GMON_RESP_OK)
+        return status;
+    status = staSetNumAirSensor(s, GMON_CFG_NUM_AIR_SENSORS);
+    if (status != GMON_RESP_OK)
+        return status;
+    status = staSetNumResamplesAirSensor(s, GMON_CFG_AIR_SENSOR_NUM_OVERSAMPLE);
+    if (status != GMON_RESP_OK)
+        return status;
+    status = staSensorSetOutlierThreshold(s, GMON_AIR_SENSOR_OUTLIER_THRESHOLD);
+    if (status != GMON_RESP_OK)
+        return status;
+    status = staSensorSetMinMAD(s, GMON_AIR_SENSOR_MAD_THRESHOLD);
+    if (status != GMON_RESP_OK)
+        return status;
     return staSensorPlatformInitAirTemp(s);
 }
 
@@ -19,7 +50,7 @@ static gMonStatus measureVerifyPulse(
 ) {
     uint16_t pulse_us_read = 0;
     uint8_t  state_low2high = 0, state_expected = 0, pulse_range_fit = 0;
-    assert(refpoint_pulse_us > deviation_us);
+    XASSERT(refpoint_pulse_us > deviation_us);
     gMonStatus status = staPlatformMeasurePulse(signal_pin, &state_low2high, &pulse_us_read);
     if (status == GMON_RESP_OK) {
         uint16_t maxlimit = refpoint_pulse_us + deviation_us;

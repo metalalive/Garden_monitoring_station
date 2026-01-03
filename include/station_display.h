@@ -21,8 +21,10 @@ typedef struct {
 typedef gMonStatus (*gMonRenderFn_t)(gmonPrintInfo_t *content, void *app_ctx);
 
 typedef enum {
-    GMON_BLOCK_SENSOR_RECORD = 0,
-    GMON_BLOCK_SENSOR_THRESHOLD,
+    GMON_BLOCK_SENSOR_SOIL_RECORD = 0,
+    GMON_BLOCK_SENSOR_AIR_RECORD,
+    GMON_BLOCK_SENSOR_LIGHT_RECORD,
+    GMON_BLOCK_ACTUATOR_THRESHOLD,
     GMON_BLOCK_ACTUATOR_STATUS,
     GMON_BLOCK_NETCONN_STATUS,
 } gMonBlockType_t;

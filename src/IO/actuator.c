@@ -56,39 +56,29 @@ gMonStatus staActuatorInitGenericBulb(gMonActuator_t *dev) {
 
 gMonStatus staActuatorDeinitGenericBulb(void) { return GMON_RESP_OK; }
 
-static gMonStatus staSetTrigThresholdGenericActuator(
-    gMonActuator_t *dev, unsigned int new_val, unsigned int max_thre, unsigned int min_thre
-) {
-    gMonStatus status = GMON_RESP_OK;
-    if (dev != NULL) {
-        if (new_val >= min_thre && new_val <= max_thre) {
-            dev->threshold = new_val;
-        } else {
-            status = GMON_RESP_INVALID_REQ;
-        }
-    } else {
-        status = GMON_RESP_ERRARGS;
-    }
-    return status;
-}
-
 gMonStatus staSetTrigThresholdPump(gMonActuator_t *dev, unsigned int new_val) {
-    return staSetTrigThresholdGenericActuator(
-        dev, new_val, (unsigned int)GMON_MAX_ACTUATOR_TRIG_THRESHOLD_PUMP,
+    if (dev == NULL)
+        return GMON_RESP_ERRARGS;
+    return staSetUintInRange(
+        (unsigned int *)&dev->threshold, new_val, (unsigned int)GMON_MAX_ACTUATOR_TRIG_THRESHOLD_PUMP,
         (unsigned int)GMON_MIN_ACTUATOR_TRIG_THRESHOLD_PUMP
     );
 }
 
 gMonStatus staSetTrigThresholdFan(gMonActuator_t *dev, unsigned int new_val) {
-    return staSetTrigThresholdGenericActuator(
-        dev, new_val, (unsigned int)GMON_MAX_ACTUATOR_TRIG_THRESHOLD_FAN,
+    if (dev == NULL)
+        return GMON_RESP_ERRARGS;
+    return staSetUintInRange(
+        (unsigned int *)&dev->threshold, new_val, (unsigned int)GMON_MAX_ACTUATOR_TRIG_THRESHOLD_FAN,
         (unsigned int)GMON_MIN_ACTUATOR_TRIG_THRESHOLD_FAN
     );
 }
 
 gMonStatus staSetTrigThresholdBulb(gMonActuator_t *dev, unsigned int new_val) {
-    return staSetTrigThresholdGenericActuator(
-        dev, new_val, (unsigned int)GMON_MAX_ACTUATOR_TRIG_THRESHOLD_BULB,
+    if (dev == NULL)
+        return GMON_RESP_ERRARGS;
+    return staSetUintInRange(
+        (unsigned int *)&dev->threshold, new_val, (unsigned int)GMON_MAX_ACTUATOR_TRIG_THRESHOLD_BULB,
         (unsigned int)GMON_MIN_ACTUATOR_TRIG_THRESHOLD_BULB
     );
 }

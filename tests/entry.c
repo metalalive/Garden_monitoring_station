@@ -3,7 +3,8 @@
 static void RunAllTests(void) {
     RUN_TEST_GROUP(gMonUtilityStrProcess);
     RUN_TEST_GROUP(gMonUtilityStatistical);
-    RUN_TEST_GROUP(gMonAppMsg);
+    RUN_TEST_GROUP(gMonAppMsgInbound);
+    RUN_TEST_GROUP(gMonAppMsgOutbound);
     RUN_TEST_GROUP(gMonSensorEvt);
     RUN_TEST_GROUP(gMonSensorSample);
     RUN_TEST_GROUP(gMonActuator);

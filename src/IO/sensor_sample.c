@@ -1,15 +1,20 @@
 #include "station_include.h"
 
-gmonSensorSample_t *staAllocSensorSampleBuffer(gMonSensorMeta_t *sensor, gmonSensorDataType_t dtype) {
-    gmonSensorSample_t *out = NULL;
-    if (sensor == NULL || sensor->num_items == 0)
-        return NULL;
+gmonSensorSamples_t
+staAllocSensorSampleBuffer(gmonSensorSamples_t old, gMonSensorMeta_t *sensor, gmonSensorDataType_t dtype) {
+    gmonSensorSamples_t out = {0};
+    void               *original_old_entries = old.entries;
+    if (sensor == NULL || sensor->num_items == 0 || sensor->num_resamples == 0)
+        goto err_return;
 
     unsigned char num_items = sensor->num_items;
     unsigned char num_resamples = sensor->num_resamples;
-
-    size_t data_element_size = 0; // Size of a single data element (e.g., unsigned int, gmonAirCond_t)
-    size_t outlier_flgs_per_sample_bytes = 0; // Bytes needed for corruption flags for one sample item
+    // Size of a single data element (e.g., unsigned int, gmonAirCond_t)
+    unsigned short data_element_size = 0;
+    // Check for potential overflow before multiplication, if num_items, num_resamples
+    // or data_element_size are very large, they might exceed unsigned short or unsigned int.
+    // However, the current sizes are small enough for typical embedded contexts.
+    // This comment is for self-reflection and not part of the requested change.
 
     switch (dtype) {
     case GMON_SENSOR_DATA_TYPE_U32:
@@ -20,41 +25,65 @@ gmonSensorSample_t *staAllocSensorSampleBuffer(gMonSensorMeta_t *sensor, gmonSen
         break;
     case GMON_SENSOR_DATA_TYPE_UNKNOWN:
     default:
-        return NULL; // Invalid or unsupported data type
+        goto err_return; // Invalid or unsupported data type
     }
+
+    unsigned short outlier_flgs_per_sample_bytes = 0;
     // Calculate bytes for num_resamples bits
     if (num_resamples > 0)
         outlier_flgs_per_sample_bytes = (num_resamples + 7) >> 3;
 
-    size_t structs_size = num_items * sizeof(gmonSensorSample_t);
-    size_t data_pool_size = num_items * num_resamples * data_element_size;
-    size_t total_outlier_pool_size = num_items * outlier_flgs_per_sample_bytes;
-    size_t total_size = structs_size + data_pool_size + total_outlier_pool_size;
+    unsigned short structs_size = num_items * sizeof(gmonSensorSample_t);
+    unsigned short data_pool_size = num_items * num_resamples * data_element_size;
+    // This can be 0 if num_resamples is 0
+    unsigned short total_outlier_pool_size = num_items * outlier_flgs_per_sample_bytes;
+    unsigned short total_size = structs_size + data_pool_size + total_outlier_pool_size;
 
-    void *mem_block = XCALLOC(1, total_size);
-    if (mem_block == NULL)
-        return NULL; // Memory allocation failed
+    if (total_size == 0) // No memory needed if num_items or num_resamples is 0
+        goto err_return; // Return {0} as no allocation is necessary, but free old if it existed
 
+    // Use staEnsureStrBufferSize for (re)allocation
+    gmonStr_t tmpbuf_mgr = {
+        .data = (unsigned char *)old.entries,
+        .len = old.total_nbytes,
+        .nbytes_written = 0,
+    };
+    gMonStatus status = staEnsureStrBufferSize(&tmpbuf_mgr, total_size);
+    if (status != GMON_RESP_OK)
+        goto err_return;
+    // Zero-initialize the allocated memory block
+    XMEMSET(tmpbuf_mgr.data, 0, tmpbuf_mgr.len);
+    void *mem_block = tmpbuf_mgr.data;
     // The array of gmonSensorSample_t structs starts at the beginning of the block
-    out = (gmonSensorSample_t *)mem_block;
+    out.entries = (gmonSensorSample_t *)mem_block;
+    out.total_nbytes = total_size;
     // The data pool starts immediately after the structs; use void* for generic pointer arithmetic
     void *curr_data_ptr = (void *)((unsigned char *)mem_block + structs_size);
     // The corrupted flags pool starts immediately after the data pool
     void *curr_outlier_ptr = (void *)((unsigned char *)curr_data_ptr + data_pool_size);
 
     for (unsigned char i = 0; i < num_items; ++i) {
-        out[i].id = i + 1; // ID starts from 1
-        out[i].len = num_resamples;
-        out[i].dtype = dtype;
-        out[i].data = (num_resamples > 0) ? curr_data_ptr : NULL;
-        out[i].outlier = (num_resamples > 0) ? (unsigned char *)curr_outlier_ptr : NULL;
+        out.entries[i].id = i + 1; // ID starts from 1
+        out.entries[i].len = num_resamples;
+        out.entries[i].dtype = dtype;
+        out.entries[i].data = (num_resamples > 0) ? curr_data_ptr : NULL;
+        out.entries[i].outlier = (num_resamples > 0) ? (unsigned char *)curr_outlier_ptr : NULL;
         if (num_resamples > 0) {
             // Advance the pointer by the calculated size for the current block of samples
             curr_data_ptr = (void *)((unsigned char *)curr_data_ptr + num_resamples * data_element_size);
             curr_outlier_ptr = (void *)((unsigned char *)curr_outlier_ptr + outlier_flgs_per_sample_bytes);
         }
     }
+    // staEnsureStrBufferSize managed the `old.entries` memory.
+    // If it reused `old.entries`, then `tmpbuf_mgr.data` is `original_old_entries`.
+    // If it reallocated, it freed `original_old_entries` and allocated new memory.
+    // So, no explicit freeing of `original_old_entries` is needed here.
     return out;
+
+err_return:
+    if (original_old_entries != NULL)
+        XMEMFREE(original_old_entries);
+    return (gmonSensorSamples_t){0};
 } // end of staAllocSensorSampleBuffer
 
 static void staSensorU32DetectNoise(

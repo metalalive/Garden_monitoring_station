@@ -5,10 +5,20 @@
 extern "C" {
 #endif
 
-#define GMON_NUM_SENSOR_EVENTS (GMON_CFG_NUM_SENSOR_RECORDS_KEEP * 3)
+#define GMON_NUM_SENSOR_EVENTS \
+    ((GMON_CFG_NUM_SOIL_SENSOR_RECORDS_KEEP + GMON_CFG_NUM_AIR_SENSOR_RECORDS_KEEP + \
+      GMON_CFG_NUM_LIGHT_SENSOR_RECORDS_KEEP) \
+     << 1)
+
+typedef struct {
+    gmonSensorSample_t *entries;
+    unsigned short      total_nbytes;
+} gmonSensorSamples_t;
 
 gMonStatus stationIOinit(gardenMonitor_t *);
 gMonStatus stationIOdeinit(gardenMonitor_t *);
+
+gmonSensorSamples_t staAllocSensorSampleBuffer(gmonSensorSamples_t, gMonSensorMeta_t *, gmonSensorDataType_t);
 
 gmonEvent_t *staAllocSensorEvent(gMonEvtPool_t *, gmonEventType_t, unsigned char num_sensors);
 gMonStatus   staFreeSensorEvent(gMonEvtPool_t *, gmonEvent_t *);
@@ -18,14 +28,24 @@ gMonStatus   staNotifyOthersWithEvent(gardenMonitor_t *, gmonEvent_t *, uint32_t
 gMonStatus staSensorInitSoilMoist(gMonSoilSensorMeta_t *);
 gMonStatus staSensorDeInitSoilMoist(gMonSoilSensorMeta_t *);
 gMonStatus staSensorReadSoilMoist(gMonSoilSensorMeta_t *, gmonSensorSample_t *);
+gMonStatus staSetNumSoilSensor(gMonSensorMeta_t *, unsigned char new_val);
+gMonStatus staSetNumResamplesSoilSensor(gMonSensorMeta_t *, unsigned char new_val);
 
 gMonStatus staSensorInitAirTemp(gMonSensorMeta_t *);
 gMonStatus staSensorDeInitAirTemp(gMonSensorMeta_t *);
 gMonStatus staSensorReadAirTemp(gMonSensorMeta_t *, gmonSensorSample_t *);
+gMonStatus staSetNumAirSensor(gMonSensorMeta_t *, unsigned char new_val);
+gMonStatus staSetNumResamplesAirSensor(gMonSensorMeta_t *, unsigned char new_val);
 
 gMonStatus staSensorInitLight(gMonSensorMeta_t *);
 gMonStatus staSensorDeInitLight(gMonSensorMeta_t *);
 gMonStatus staSensorReadLight(gMonSensorMeta_t *, gmonSensorSample_t *);
+gMonStatus staSetNumLightSensor(gMonSensorMeta_t *, unsigned char new_val);
+gMonStatus staSetNumResamplesLightSensor(gMonSensorMeta_t *, unsigned char new_val);
+
+gMonStatus staSensorSetReadInterval(gMonSensorMeta_t *, unsigned int new_val);
+gMonStatus staSensorSetOutlierThreshold(gMonSensorMeta_t *, float new_val);
+gMonStatus staSensorSetMinMAD(gMonSensorMeta_t *, float new_val);
 
 // currently the 3 functions below are implemented only for soil sensor polling rate
 gMonStatus   staSensorFastPollToggle(gMonSoilSensorMeta_t *, gMonActuator_t *);
@@ -36,7 +56,7 @@ char         staSensorPollEnabled(gMonSoilSensorMeta_t *, unsigned short idx);
 gMonStatus staSensorDetectNoise(gMonSensorMeta_t *, gmonSensorSample_t *);
 gMonStatus staSensorSampleToEvent(gmonEvent_t *, gmonSensorSample_t *);
 
-// device-specific functions
+// ------ actuators ------
 gMonStatus staActuatorInitPump(gMonActuator_t *);
 gMonStatus staActuatorDeinitPump(void);
 gMonStatus staActuatorTrigPump(gMonActuator_t *, gmonEvent_t *, gMonSoilSensorMeta_t *);

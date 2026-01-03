@@ -98,7 +98,7 @@ static void mqttSetupCmdPublish(mqttMsg_t *pubmsg, gmonStr_t *payld, unsigned in
     curr_prop->body.u16 = GMON_MQTT_TOPIC_ALIAS_GARDEN_LOG;
     pubmsg->topic.len = sizeof(GMON_MQTT_TOPIC_LOG) - 1;
     pubmsg->topic.data = (byte *)GMON_MQTT_TOPIC_LOG;
-    pubmsg->app_data_len = payld->len;
+    pubmsg->app_data_len = payld->nbytes_written;
     pubmsg->buff = payld->data;
 }
 
@@ -281,6 +281,7 @@ gMonStatus stationNetConnRecv(gMonNet_t *net_handle, gmonStr_t *app_msg) {
     if (status == MQTT_RESP_OK && pubmsg_recv != NULL) {
         cpy_sz = XMIN(pubmsg_recv->app_data_len, app_msg->len);
         XMEMCPY(app_msg->data, pubmsg_recv->buff, cpy_sz); // copy payload
+        app_msg->nbytes_written = cpy_sz;
     } else {
         mctx->err_info.reason_code = MQTT_REASON_UNSPECIFIED_ERR;
     }

@@ -8,7 +8,9 @@ extern "C" {
 // number of records read from sensors temporarily kept in the platform before they're sent out through
 // internet (e.g. might be remote MQTT broker & another backend server waiting for these data from this
 // station)
-#define GMON_CFG_NUM_SENSOR_RECORDS_KEEP 5
+#define GMON_CFG_NUM_SOIL_SENSOR_RECORDS_KEEP  6
+#define GMON_CFG_NUM_AIR_SENSOR_RECORDS_KEEP   5
+#define GMON_CFG_NUM_LIGHT_SENSOR_RECORDS_KEEP 4
 // Time interval (in milliseconds) to read all data from snesors.
 #define GMON_CFG_SENSOR_READ_INTERVAL_MS 3000
 // Time interval (in milliseconds) to establish network connection for user/senser data exchange.

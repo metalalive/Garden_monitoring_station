@@ -9,9 +9,14 @@ static gmonEvent_t        *mock_event = NULL;
 TEST_GROUP(SensorSampleAlloc);
 TEST_GROUP(SensorNoiseDetection);
 
-TEST_SETUP(SensorSampleAlloc) {}
+TEST_SETUP(SensorSampleAlloc) { mock_samples = NULL; }
 
-TEST_TEAR_DOWN(SensorSampleAlloc) {}
+TEST_TEAR_DOWN(SensorSampleAlloc) {
+    if (mock_samples) {
+        XMEMFREE(mock_samples);
+        mock_samples = NULL;
+    }
+}
 
 TEST_SETUP(SensorNoiseDetection) {
     XMEMFREE(mock_event); // Ensure clean slate if previous test failed to clean up
@@ -70,34 +75,138 @@ createAndInitEvent(gmonEventType_t event_type, unsigned char num_active_sensors,
 
 TEST(SensorSampleAlloc, initOk) {
     gMonSensorMeta_t sensor = {
-        .lowlvl = (void *)0xDEADBEEF, // Dummy pointer, not used by staAllocSensorSampleBuffer
+        .lowlvl = (void *)0xDEADBEEF, // Dummy pointer
         .read_interval_ms = 1000,
         .num_items = 2,     // Allocate for two sensor items
         .num_resamples = 3, // Each item has three resamples
     };
     gmonSensorDataType_t dtype = GMON_SENSOR_DATA_TYPE_U32;
-    gmonSensorSample_t  *samples = staAllocSensorSampleBuffer(&sensor, dtype);
-
+    gmonSensorSamples_t  result = staAllocSensorSampleBuffer((gmonSensorSamples_t){0}, &sensor, dtype);
+    mock_samples = result.entries;
     // 1. Assert that memory was successfully allocated
-    TEST_ASSERT_NOT_NULL(samples);
-
+    TEST_ASSERT_NOT_NULL(mock_samples);
     // 2. Verify properties of the first sensor sample struct
-    TEST_ASSERT_EQUAL(1, samples[0].id);
-    TEST_ASSERT_EQUAL(sensor.num_resamples, samples[0].len);
-    TEST_ASSERT_EQUAL(dtype, samples[0].dtype);
-    TEST_ASSERT_NOT_NULL(samples[0].data);
+    TEST_ASSERT_EQUAL(1, mock_samples[0].id);
+    TEST_ASSERT_EQUAL(sensor.num_resamples, mock_samples[0].len);
+    TEST_ASSERT_EQUAL(dtype, mock_samples[0].dtype);
+    TEST_ASSERT_NOT_NULL(mock_samples[0].data);
     // 3. Verify properties of the second sensor sample struct
-    TEST_ASSERT_EQUAL(2, samples[1].id);
-    TEST_ASSERT_EQUAL(sensor.num_resamples, samples[1].len);
-    TEST_ASSERT_EQUAL(dtype, samples[1].dtype);
-    TEST_ASSERT_NOT_NULL(samples[1].data);
+    TEST_ASSERT_EQUAL(2, mock_samples[1].id);
+    TEST_ASSERT_EQUAL(sensor.num_resamples, mock_samples[1].len);
+    TEST_ASSERT_EQUAL(dtype, mock_samples[1].dtype);
+    TEST_ASSERT_NOT_NULL(mock_samples[1].data);
     // 4. Verify that the data pointer for the second sample is correctly offset from the first
     // The offset should be 'num_resamples' times the size of a single data element (unsigned int)
     size_t expected_offset = sensor.num_resamples * sizeof(unsigned int);
-    TEST_ASSERT_EQUAL_PTR((void *)((unsigned char *)samples[0].data + expected_offset), samples[1].data);
+    TEST_ASSERT_EQUAL_PTR(
+        (void *)((unsigned char *)mock_samples[0].data + expected_offset), mock_samples[1].data
+    );
+}
 
-    // 5. Free the allocated memory to prevent leaks
-    XMEMFREE(samples);
+TEST(SensorSampleAlloc, reallocToDifferentSize) {
+    gMonSensorMeta_t sensors[3] = {
+        {.num_items = 1, .num_resamples = 2, .outlier_threshold = 0},
+        {.num_items = 3, .num_resamples = 4, .outlier_threshold = 0},
+        {.num_items = 2, .num_resamples = 3, .outlier_threshold = 0},
+    };
+    gmonSensorSamples_t samples1 =
+        staAllocSensorSampleBuffer((gmonSensorSamples_t){0}, &sensors[0], GMON_SENSOR_DATA_TYPE_U32);
+    TEST_ASSERT_NOT_NULL(samples1.entries);
+    void *ptr1 = samples1.entries;
+    // Now reallocate to a larger size
+    gmonSensorSamples_t samples2 =
+        staAllocSensorSampleBuffer(samples1, &sensors[1], GMON_SENSOR_DATA_TYPE_U32);
+    void *ptr2 = samples2.entries;
+    TEST_ASSERT_NOT_NULL(samples2.entries);
+    TEST_ASSERT_NOT_EQUAL(ptr1, samples2.entries); // Should be a new memory block
+    TEST_ASSERT_LESS_THAN(samples2.total_nbytes, samples1.total_nbytes);
+    // Verify properties of the new allocation
+    TEST_ASSERT_EQUAL(1, samples2.entries[0].id);
+    TEST_ASSERT_EQUAL(4, samples2.entries[0].len);
+    TEST_ASSERT_EQUAL(GMON_SENSOR_DATA_TYPE_U32, samples2.entries[0].dtype);
+    TEST_ASSERT_NOT_NULL(samples2.entries[0].data);
+    TEST_ASSERT_EQUAL(2, samples2.entries[1].id);
+    TEST_ASSERT_EQUAL(4, samples2.entries[1].len);
+    TEST_ASSERT_EQUAL(GMON_SENSOR_DATA_TYPE_U32, samples2.entries[1].dtype);
+    TEST_ASSERT_NOT_NULL(samples2.entries[1].data);
+    // Now reallocate to a smaller size
+    gmonSensorSamples_t samples3 =
+        staAllocSensorSampleBuffer(samples2, &sensors[2], GMON_SENSOR_DATA_TYPE_U32);
+    TEST_ASSERT_NOT_NULL(samples3.entries);
+    // Should be a new memory block
+    TEST_ASSERT_NOT_EQUAL(ptr1, samples3.entries);
+    TEST_ASSERT_NOT_EQUAL(ptr2, samples3.entries);
+    TEST_ASSERT_LESS_THAN(samples3.total_nbytes, samples1.total_nbytes);
+    TEST_ASSERT_GREATER_THAN(samples3.total_nbytes, samples2.total_nbytes);
+    // Verify properties of the new allocation
+    TEST_ASSERT_EQUAL(1, samples3.entries[0].id);
+    TEST_ASSERT_EQUAL(3, samples3.entries[0].len);
+    TEST_ASSERT_EQUAL(2, samples3.entries[1].id);
+    TEST_ASSERT_EQUAL(3, samples3.entries[1].len);
+    TEST_ASSERT_EQUAL(GMON_SENSOR_DATA_TYPE_U32, samples3.entries[0].dtype);
+    TEST_ASSERT_NOT_NULL(samples3.entries[0].data);
+    XMEMFREE(samples3.entries);
+}
+
+TEST(SensorSampleAlloc, reuseSameSize) {
+    gMonSensorMeta_t    sensor1 = {.num_items = 2, .num_resamples = 3, .outlier_threshold = 0};
+    gmonSensorSamples_t samples1 =
+        staAllocSensorSampleBuffer((gmonSensorSamples_t){0}, &sensor1, GMON_SENSOR_DATA_TYPE_U32);
+    TEST_ASSERT_NOT_NULL(samples1.entries);
+    void          *ptr1 = samples1.entries;
+    unsigned short size1 = samples1.total_nbytes;
+    // Now try to allocate with the exact same size, passing the existing buffer
+    gmonSensorSamples_t samples2 = staAllocSensorSampleBuffer(samples1, &sensor1, GMON_SENSOR_DATA_TYPE_U32);
+    TEST_ASSERT_NOT_NULL(samples2.entries);
+    TEST_ASSERT_EQUAL_PTR(ptr1, samples2.entries);   // Should be the SAME memory block (reuse)
+    TEST_ASSERT_EQUAL(size1, samples2.total_nbytes); // Size should be the same
+    // Verify properties (should be unchanged and correctly configured)
+    TEST_ASSERT_EQUAL(1, samples2.entries[0].id);
+    TEST_ASSERT_EQUAL(3, samples2.entries[0].len);
+    TEST_ASSERT_EQUAL(GMON_SENSOR_DATA_TYPE_U32, samples2.entries[0].dtype);
+    TEST_ASSERT_NOT_NULL(samples2.entries[0].data);
+    XMEMFREE(samples2.entries); // Free the shared memory block
+}
+
+TEST(SensorSampleAlloc, ErrorsFreeOld) {
+    gMonSensorMeta_t sensor_cfg = {.num_items = 1, .num_resamples = 1, .outlier_threshold = 0};
+
+    // --- sub case 1 , zero number of items ---
+    gmonSensorSamples_t samples_initial =
+        staAllocSensorSampleBuffer((gmonSensorSamples_t){0}, &sensor_cfg, GMON_SENSOR_DATA_TYPE_U32);
+    TEST_ASSERT_NOT_NULL(samples_initial.entries);
+    gMonSensorMeta_t    sensor_zero_items = {.num_items = 0, .num_resamples = 1, .outlier_threshold = 0};
+    gmonSensorSamples_t result =
+        staAllocSensorSampleBuffer(samples_initial, &sensor_zero_items, GMON_SENSOR_DATA_TYPE_U32);
+    TEST_ASSERT_NULL(result.entries);
+    TEST_ASSERT_EQUAL(0, result.total_nbytes);
+    // samples_initial.entries is implicitly freed by staAllocSensorSampleBuffer on error.
+
+    // --- sub case 2 , zero number of resamples ---
+    samples_initial =
+        staAllocSensorSampleBuffer((gmonSensorSamples_t){0}, &sensor_cfg, GMON_SENSOR_DATA_TYPE_U32);
+    TEST_ASSERT_NOT_NULL(samples_initial.entries);
+    sensor_zero_items.num_items = 1;
+    sensor_zero_items.num_resamples = 0;
+    result = staAllocSensorSampleBuffer(samples_initial, &sensor_zero_items, GMON_SENSOR_DATA_TYPE_U32);
+    TEST_ASSERT_NULL(result.entries);
+    TEST_ASSERT_EQUAL(0, result.total_nbytes);
+
+    // --- sub case 3 , NULL sensor metadata ---
+    samples_initial =
+        staAllocSensorSampleBuffer((gmonSensorSamples_t){0}, &sensor_cfg, GMON_SENSOR_DATA_TYPE_U32);
+    TEST_ASSERT_NOT_NULL(samples_initial.entries);
+    result = staAllocSensorSampleBuffer(samples_initial, NULL, GMON_SENSOR_DATA_TYPE_U32);
+    TEST_ASSERT_NULL(result.entries);
+    TEST_ASSERT_EQUAL(0, result.total_nbytes);
+
+    // --- sub case 4 , invalid sample data type ---
+    samples_initial =
+        staAllocSensorSampleBuffer((gmonSensorSamples_t){0}, &sensor_cfg, GMON_SENSOR_DATA_TYPE_U32);
+    TEST_ASSERT_NOT_NULL(samples_initial.entries);
+    result = staAllocSensorSampleBuffer(samples_initial, &sensor_cfg, GMON_SENSOR_DATA_TYPE_UNKNOWN);
+    TEST_ASSERT_NULL(result.entries);
+    TEST_ASSERT_EQUAL(0, result.total_nbytes);
 }
 
 TEST(SensorNoiseDetection, ErrMissingArgs) {
@@ -106,7 +215,9 @@ TEST(SensorNoiseDetection, ErrMissingArgs) {
     s->num_resamples = 3;
     s->outlier_threshold = 2.2f;
     s->mad_threshold = 0.1f; // Ensure this is above 0.01 for other tests
-    mock_samples = staAllocSensorSampleBuffer(s, GMON_SENSOR_DATA_TYPE_U32);
+    gmonSensorSamples_t result =
+        staAllocSensorSampleBuffer((gmonSensorSamples_t){0}, s, GMON_SENSOR_DATA_TYPE_U32);
+    mock_samples = result.entries;
     TEST_ASSERT_NOT_NULL(mock_samples);
     gMonStatus status;
 
@@ -159,7 +270,9 @@ TEST(SensorNoiseDetection, U32FewOutliers) {
     s->num_items = 4;
     s->num_resamples = 3;
     s->outlier_threshold = 2.2f;
-    mock_samples = staAllocSensorSampleBuffer(s, GMON_SENSOR_DATA_TYPE_U32);
+    gmonSensorSamples_t result =
+        staAllocSensorSampleBuffer((gmonSensorSamples_t){0}, s, GMON_SENSOR_DATA_TYPE_U32);
+    mock_samples = result.entries;
     TEST_ASSERT_NOT_NULL(mock_samples);
     unsigned int   expectlist[] = {10, 11, 12, 98, 1, 9, 11, 11, 57, 12, 9, 11};
     unsigned short data_len = s->num_items * s->num_resamples;
@@ -185,7 +298,9 @@ TEST(SensorNoiseDetection, AirCondFewOutliers) {
     s->num_resamples = 5;
     s->outlier_threshold = 2.7f;
     s->mad_threshold = 0.65f;
-    mock_samples = staAllocSensorSampleBuffer(s, GMON_SENSOR_DATA_TYPE_AIRCOND);
+    gmonSensorSamples_t result =
+        staAllocSensorSampleBuffer((gmonSensorSamples_t){0}, s, GMON_SENSOR_DATA_TYPE_AIRCOND);
+    mock_samples = result.entries;
     TEST_ASSERT_NOT_NULL(mock_samples);
     // clang-format off
     // Prepare test data (4 sensors, 5 resamples each)
@@ -242,7 +357,9 @@ TEST(SensorNoiseDetection, U32HalfOutliers) {
     s->num_resamples = 7;
     s->outlier_threshold = 2.9f;
     s->mad_threshold = 1.4f;
-    mock_samples = staAllocSensorSampleBuffer(s, GMON_SENSOR_DATA_TYPE_U32);
+    gmonSensorSamples_t result =
+        staAllocSensorSampleBuffer((gmonSensorSamples_t){0}, s, GMON_SENSOR_DATA_TYPE_U32);
+    mock_samples = result.entries;
     TEST_ASSERT_NOT_NULL(mock_samples);
     unsigned int expectlist[] = {
         11, 12, 11,  12,  11,  12,  11, // First sensor's 7 samples
@@ -291,7 +408,9 @@ TEST(SensorNoiseDetection, U32zeroMAD) {
     s->num_resamples = 5;
     s->outlier_threshold = 2.2f; // Standard modified Z-score threshold
     s->mad_threshold = 0.1f;     // Small but non-zero MAD floor
-    mock_samples = staAllocSensorSampleBuffer(s, GMON_SENSOR_DATA_TYPE_U32);
+    gmonSensorSamples_t result =
+        staAllocSensorSampleBuffer((gmonSensorSamples_t){0}, s, GMON_SENSOR_DATA_TYPE_U32);
+    mock_samples = result.entries;
     TEST_ASSERT_NOT_NULL(mock_samples);
 
     // Data where the true MAD would be zero (e.g., all identical except one outlier)
@@ -319,7 +438,9 @@ TEST(SensorNoiseDetection, AirCondzeroMAD) {
     s->num_resamples = 6;
     s->outlier_threshold = 2.7f;
     s->mad_threshold = 0.35f; // Very small MAD floor to ensure it's hit when natural MAD is zero
-    mock_samples = staAllocSensorSampleBuffer(s, GMON_SENSOR_DATA_TYPE_AIRCOND);
+    gmonSensorSamples_t result =
+        staAllocSensorSampleBuffer((gmonSensorSamples_t){0}, s, GMON_SENSOR_DATA_TYPE_AIRCOND);
+    mock_samples = result.entries;
     TEST_ASSERT_NOT_NULL(mock_samples);
 
     // Data where true MAD for both temp and humidity would be zero (all identical except one outlier)
@@ -348,8 +469,10 @@ TEST(SensorNoiseDetection, AirCondzeroMAD) {
 }
 
 TEST(SensorSampleToEvent, ErrArgsNullZero) {
-    gMonSensorMeta_t sensor_cfg = {.num_items = 1, .num_resamples = 3};
-    mock_samples = staAllocSensorSampleBuffer(&sensor_cfg, GMON_SENSOR_DATA_TYPE_U32);
+    gMonSensorMeta_t    sensor_cfg = {.num_items = 1, .num_resamples = 3};
+    gmonSensorSamples_t result =
+        staAllocSensorSampleBuffer((gmonSensorSamples_t){0}, &sensor_cfg, GMON_SENSOR_DATA_TYPE_U32);
+    mock_samples = result.entries;
     // Zero active sensors
     mock_event = createAndInitEvent(GMON_EVENT_SOIL_MOISTURE_UPDATED, 0, sizeof(unsigned int));
     TEST_ASSERT_NOT_NULL(mock_samples);
@@ -363,8 +486,10 @@ TEST(SensorSampleToEvent, ErrArgsNullZero) {
 }
 
 TEST(SensorSampleToEvent, U32HappyPathNoOutliers) {
-    gMonSensorMeta_t sensor_cfg = {.num_items = 2, .num_resamples = 3};
-    mock_samples = staAllocSensorSampleBuffer(&sensor_cfg, GMON_SENSOR_DATA_TYPE_U32);
+    gMonSensorMeta_t    sensor_cfg = {.num_items = 2, .num_resamples = 3};
+    gmonSensorSamples_t result =
+        staAllocSensorSampleBuffer((gmonSensorSamples_t){0}, &sensor_cfg, GMON_SENSOR_DATA_TYPE_U32);
+    mock_samples = result.entries;
     TEST_ASSERT_NOT_NULL(mock_samples);
     mock_event =
         createAndInitEvent(GMON_EVENT_SOIL_MOISTURE_UPDATED, sensor_cfg.num_items, sizeof(unsigned int));
@@ -384,8 +509,10 @@ TEST(SensorSampleToEvent, U32HappyPathNoOutliers) {
 }
 
 TEST(SensorSampleToEvent, AirCondHappyPathNoOutliers) {
-    gMonSensorMeta_t sensor_cfg = {.num_items = 1, .num_resamples = 2};
-    mock_samples = staAllocSensorSampleBuffer(&sensor_cfg, GMON_SENSOR_DATA_TYPE_AIRCOND);
+    gMonSensorMeta_t    sensor_cfg = {.num_items = 1, .num_resamples = 2};
+    gmonSensorSamples_t result =
+        staAllocSensorSampleBuffer((gmonSensorSamples_t){0}, &sensor_cfg, GMON_SENSOR_DATA_TYPE_AIRCOND);
+    mock_samples = result.entries;
     TEST_ASSERT_NOT_NULL(mock_samples);
     mock_event = createAndInitEvent(GMON_EVENT_AIR_TEMP_UPDATED, sensor_cfg.num_items, sizeof(gmonAirCond_t));
     TEST_ASSERT_NOT_NULL(mock_event);
@@ -403,8 +530,10 @@ TEST(SensorSampleToEvent, AirCondHappyPathNoOutliers) {
 }
 
 TEST(SensorSampleToEvent, U32SomeOutliersBelowThreshold) {
-    gMonSensorMeta_t sensor_cfg = {.num_items = 1, .num_resamples = 3};
-    mock_samples = staAllocSensorSampleBuffer(&sensor_cfg, GMON_SENSOR_DATA_TYPE_U32);
+    gMonSensorMeta_t    sensor_cfg = {.num_items = 1, .num_resamples = 3};
+    gmonSensorSamples_t result =
+        staAllocSensorSampleBuffer((gmonSensorSamples_t){0}, &sensor_cfg, GMON_SENSOR_DATA_TYPE_U32);
+    mock_samples = result.entries;
     TEST_ASSERT_NOT_NULL(mock_samples);
     mock_event =
         createAndInitEvent(GMON_EVENT_SOIL_MOISTURE_UPDATED, sensor_cfg.num_items, sizeof(unsigned int));
@@ -421,8 +550,10 @@ TEST(SensorSampleToEvent, U32SomeOutliersBelowThreshold) {
 }
 
 TEST(SensorSampleToEvent, AirCondSomeOutliersBelowThreshold) {
-    gMonSensorMeta_t sensor_cfg = {.num_items = 1, .num_resamples = 6};
-    mock_samples = staAllocSensorSampleBuffer(&sensor_cfg, GMON_SENSOR_DATA_TYPE_AIRCOND);
+    gMonSensorMeta_t    sensor_cfg = {.num_items = 1, .num_resamples = 6};
+    gmonSensorSamples_t result =
+        staAllocSensorSampleBuffer((gmonSensorSamples_t){0}, &sensor_cfg, GMON_SENSOR_DATA_TYPE_AIRCOND);
+    mock_samples = result.entries;
     TEST_ASSERT_NOT_NULL(mock_samples);
     mock_event = createAndInitEvent(GMON_EVENT_AIR_TEMP_UPDATED, sensor_cfg.num_items, sizeof(gmonAirCond_t));
     TEST_ASSERT_NOT_NULL(mock_event);
@@ -459,13 +590,14 @@ TEST(SensorSampleToEvent, AirCondSomeOutliersBelowThreshold) {
 }
 
 TEST(SensorSampleToEvent, U32ManyOutliersSetsCorruption) {
-    gMonSensorMeta_t sensor_cfg = {.num_items = 1, .num_resamples = 3};
-    mock_samples = staAllocSensorSampleBuffer(&sensor_cfg, GMON_SENSOR_DATA_TYPE_U32);
+    gMonSensorMeta_t    sensor_cfg = {.num_items = 1, .num_resamples = 3};
+    gmonSensorSamples_t result =
+        staAllocSensorSampleBuffer((gmonSensorSamples_t){0}, &sensor_cfg, GMON_SENSOR_DATA_TYPE_U32);
+    mock_samples = result.entries;
     TEST_ASSERT_NOT_NULL(mock_samples);
     mock_event =
         createAndInitEvent(GMON_EVENT_SOIL_MOISTURE_UPDATED, sensor_cfg.num_items, sizeof(unsigned int));
     TEST_ASSERT_NOT_NULL(mock_event);
-
     ((unsigned int *)mock_samples[0].data)[0] = 10;
     ((unsigned int *)mock_samples[0].data)[1] = 100;
     ((unsigned int *)mock_samples[0].data)[2] = 200;
@@ -480,8 +612,10 @@ TEST(SensorSampleToEvent, U32ManyOutliersSetsCorruption) {
 }
 
 TEST(SensorSampleToEvent, AirCondManyOutliersSetsCorruption) {
-    gMonSensorMeta_t sensor_cfg = {.num_items = 1, .num_resamples = 3};
-    mock_samples = staAllocSensorSampleBuffer(&sensor_cfg, GMON_SENSOR_DATA_TYPE_AIRCOND);
+    gMonSensorMeta_t    sensor_cfg = {.num_items = 1, .num_resamples = 3};
+    gmonSensorSamples_t result =
+        staAllocSensorSampleBuffer((gmonSensorSamples_t){0}, &sensor_cfg, GMON_SENSOR_DATA_TYPE_AIRCOND);
+    mock_samples = result.entries;
     TEST_ASSERT_NOT_NULL(mock_samples);
     mock_event = createAndInitEvent(GMON_EVENT_AIR_TEMP_UPDATED, sensor_cfg.num_items, sizeof(gmonAirCond_t));
     TEST_ASSERT_NOT_NULL(mock_event);
@@ -507,8 +641,10 @@ TEST(SensorSampleToEvent, AirCondManyOutliersSetsCorruption) {
 }
 
 TEST(SensorSampleToEvent, MismatchedDataTypeSetsCorruption) {
-    gMonSensorMeta_t sensor_cfg = {.num_items = 2, .num_resamples = 3};
-    mock_samples = staAllocSensorSampleBuffer(&sensor_cfg, GMON_SENSOR_DATA_TYPE_U32);
+    gMonSensorMeta_t    sensor_cfg = {.num_items = 2, .num_resamples = 3};
+    gmonSensorSamples_t result =
+        staAllocSensorSampleBuffer((gmonSensorSamples_t){0}, &sensor_cfg, GMON_SENSOR_DATA_TYPE_U32);
+    mock_samples = result.entries;
     TEST_ASSERT_NOT_NULL(mock_samples);
     mock_event =
         createAndInitEvent(GMON_EVENT_SOIL_MOISTURE_UPDATED, sensor_cfg.num_items, sizeof(unsigned int));
@@ -523,8 +659,10 @@ TEST(SensorSampleToEvent, MismatchedDataTypeSetsCorruption) {
 }
 
 TEST(SensorSampleToEvent, ZeroLenSampleSetsCorruption) {
-    gMonSensorMeta_t sensor_cfg = {.num_items = 2, .num_resamples = 3};
-    mock_samples = staAllocSensorSampleBuffer(&sensor_cfg, GMON_SENSOR_DATA_TYPE_U32);
+    gMonSensorMeta_t    sensor_cfg = {.num_items = 2, .num_resamples = 3};
+    gmonSensorSamples_t result =
+        staAllocSensorSampleBuffer((gmonSensorSamples_t){0}, &sensor_cfg, GMON_SENSOR_DATA_TYPE_U32);
+    mock_samples = result.entries;
     TEST_ASSERT_NOT_NULL(mock_samples);
     mock_event =
         createAndInitEvent(GMON_EVENT_SOIL_MOISTURE_UPDATED, sensor_cfg.num_items, sizeof(unsigned int));
@@ -533,13 +671,15 @@ TEST(SensorSampleToEvent, ZeroLenSampleSetsCorruption) {
     gMonStatus status = staSensorSampleToEvent(mock_event, mock_samples);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     TEST_ASSERT_FALSE(staGetBitFlag(&mock_event->flgs.corruption, mock_samples[0].id - 1)); // Sensor 1 OK
-    TEST_ASSERT_TRUE(staGetBitFlag(&mock_event->flgs.corruption, mock_samples[1].id - 1)
-    ); // Sensor 2 corrupted
+    // Sensor 2 corrupted
+    TEST_ASSERT_TRUE(staGetBitFlag(&mock_event->flgs.corruption, mock_samples[1].id - 1));
 }
 
 TEST(SensorSampleToEvent, NullDataPointerSetsCorruption) {
-    gMonSensorMeta_t sensor_cfg = {.num_items = 2, .num_resamples = 3};
-    mock_samples = staAllocSensorSampleBuffer(&sensor_cfg, GMON_SENSOR_DATA_TYPE_U32);
+    gMonSensorMeta_t    sensor_cfg = {.num_items = 2, .num_resamples = 3};
+    gmonSensorSamples_t result =
+        staAllocSensorSampleBuffer((gmonSensorSamples_t){0}, &sensor_cfg, GMON_SENSOR_DATA_TYPE_U32);
+    mock_samples = result.entries;
     TEST_ASSERT_NOT_NULL(mock_samples);
     mock_event =
         createAndInitEvent(GMON_EVENT_SOIL_MOISTURE_UPDATED, sensor_cfg.num_items, sizeof(unsigned int));
@@ -548,13 +688,15 @@ TEST(SensorSampleToEvent, NullDataPointerSetsCorruption) {
     gMonStatus status = staSensorSampleToEvent(mock_event, mock_samples);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     TEST_ASSERT_FALSE(staGetBitFlag(&mock_event->flgs.corruption, mock_samples[0].id - 1)); // Sensor 1 OK
-    TEST_ASSERT_TRUE(staGetBitFlag(&mock_event->flgs.corruption, mock_samples[1].id - 1)
-    ); // Sensor 2 corrupted
+    // Sensor 2 corrupted
+    TEST_ASSERT_TRUE(staGetBitFlag(&mock_event->flgs.corruption, mock_samples[1].id - 1));
 }
 
 TEST(SensorSampleToEvent, NullOutlierPointerSetsCorruption) {
-    gMonSensorMeta_t sensor_cfg = {.num_items = 2, .num_resamples = 3};
-    mock_samples = staAllocSensorSampleBuffer(&sensor_cfg, GMON_SENSOR_DATA_TYPE_U32);
+    gMonSensorMeta_t    sensor_cfg = {.num_items = 2, .num_resamples = 3};
+    gmonSensorSamples_t result =
+        staAllocSensorSampleBuffer((gmonSensorSamples_t){0}, &sensor_cfg, GMON_SENSOR_DATA_TYPE_U32);
+    mock_samples = result.entries;
     TEST_ASSERT_NOT_NULL(mock_samples);
     mock_event =
         createAndInitEvent(GMON_EVENT_SOIL_MOISTURE_UPDATED, sensor_cfg.num_items, sizeof(unsigned int));
@@ -563,13 +705,15 @@ TEST(SensorSampleToEvent, NullOutlierPointerSetsCorruption) {
     gMonStatus status = staSensorSampleToEvent(mock_event, mock_samples);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     TEST_ASSERT_FALSE(staGetBitFlag(&mock_event->flgs.corruption, mock_samples[0].id - 1)); // Sensor 1 OK
-    TEST_ASSERT_TRUE(staGetBitFlag(&mock_event->flgs.corruption, mock_samples[1].id - 1)
-    ); // Sensor 2 corrupted
+    // Sensor 2 corrupted
+    TEST_ASSERT_TRUE(staGetBitFlag(&mock_event->flgs.corruption, mock_samples[1].id - 1));
 }
 
 TEST(SensorSampleToEvent, UnsupportedDataTypeSetsCorruption) {
-    gMonSensorMeta_t sensor_cfg = {.num_items = 2, .num_resamples = 3};
-    mock_samples = staAllocSensorSampleBuffer(&sensor_cfg, GMON_SENSOR_DATA_TYPE_U32);
+    gMonSensorMeta_t    sensor_cfg = {.num_items = 2, .num_resamples = 3};
+    gmonSensorSamples_t result =
+        staAllocSensorSampleBuffer((gmonSensorSamples_t){0}, &sensor_cfg, GMON_SENSOR_DATA_TYPE_U32);
+    mock_samples = result.entries;
     TEST_ASSERT_NOT_NULL(mock_samples);
     mock_event =
         createAndInitEvent(GMON_EVENT_SOIL_MOISTURE_UPDATED, sensor_cfg.num_items, sizeof(unsigned int));
@@ -579,13 +723,15 @@ TEST(SensorSampleToEvent, UnsupportedDataTypeSetsCorruption) {
     gMonStatus status = staSensorSampleToEvent(mock_event, mock_samples);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     TEST_ASSERT_FALSE(staGetBitFlag(&mock_event->flgs.corruption, mock_samples[0].id - 1)); // Sensor 1 OK
-    TEST_ASSERT_TRUE(staGetBitFlag(&mock_event->flgs.corruption, mock_samples[1].id - 1)
-    ); // Sensor 2 corrupted
+    // Sensor 2 corrupted
+    TEST_ASSERT_TRUE(staGetBitFlag(&mock_event->flgs.corruption, mock_samples[1].id - 1));
 }
 
 TEST(SensorSampleToEvent, MixedCorruptionFlags) {
-    gMonSensorMeta_t sensor_cfg = {.num_items = 4, .num_resamples = 3};
-    mock_samples = staAllocSensorSampleBuffer(&sensor_cfg, GMON_SENSOR_DATA_TYPE_U32);
+    gMonSensorMeta_t    sensor_cfg = {.num_items = 4, .num_resamples = 3};
+    gmonSensorSamples_t result =
+        staAllocSensorSampleBuffer((gmonSensorSamples_t){0}, &sensor_cfg, GMON_SENSOR_DATA_TYPE_U32);
+    mock_samples = result.entries;
     TEST_ASSERT_NOT_NULL(mock_samples);
     mock_event =
         createAndInitEvent(GMON_EVENT_SOIL_MOISTURE_UPDATED, sensor_cfg.num_items, sizeof(unsigned int));
@@ -607,15 +753,19 @@ TEST(SensorSampleToEvent, MixedCorruptionFlags) {
     gMonStatus status = staSensorSampleToEvent(mock_event, mock_samples);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     TEST_ASSERT_FALSE(staGetBitFlag(&mock_event->flgs.corruption, 0)); // Sensor 1 (ID 1) OK
-    TEST_ASSERT_TRUE(staGetBitFlag(&mock_event->flgs.corruption, 1)
-    ); // Sensor 2 (ID 2) corrupted (too many outliers)
-    TEST_ASSERT_TRUE(staGetBitFlag(&mock_event->flgs.corruption, 2)
-    ); // Sensor 3 (ID 3) corrupted (dtype mismatch)
-    TEST_ASSERT_TRUE(staGetBitFlag(&mock_event->flgs.corruption, 3)); // Sensor 4 (ID 4) corrupted (NULL data)
+    // Sensor 2 (ID 2) corrupted (too many outliers)
+    TEST_ASSERT_TRUE(staGetBitFlag(&mock_event->flgs.corruption, 1));
+    // Sensor 3 (ID 3) corrupted (dtype mismatch)
+    TEST_ASSERT_TRUE(staGetBitFlag(&mock_event->flgs.corruption, 2));
+    // Sensor 4 (ID 4) corrupted (NULL data)
+    TEST_ASSERT_TRUE(staGetBitFlag(&mock_event->flgs.corruption, 3));
 }
 
 TEST_GROUP_RUNNER(gMonSensorSample) {
     RUN_TEST_CASE(SensorSampleAlloc, initOk);
+    RUN_TEST_CASE(SensorSampleAlloc, reallocToDifferentSize);
+    RUN_TEST_CASE(SensorSampleAlloc, reuseSameSize);
+    RUN_TEST_CASE(SensorSampleAlloc, ErrorsFreeOld);
     RUN_TEST_CASE(SensorNoiseDetection, ErrMissingArgs);
     RUN_TEST_CASE(SensorNoiseDetection, U32FewOutliers);
     RUN_TEST_CASE(SensorNoiseDetection, AirCondFewOutliers);
