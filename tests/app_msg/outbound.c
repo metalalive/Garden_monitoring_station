@@ -56,16 +56,19 @@ TEST(GenerateMsgOutflight, EmptyLogEvt) {
     // Initially, all records should be zeroed out by staAppMsgInit and staAppMsgOutResetAllRecords
     gmonAppMsgOutflightResult_t of_res = staGetAppMsgOutflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, of_res.status);
-    gmonStr_t   *out_msg = of_res.msg;
-    const char  *expected_json = "{\"soilmoist\":{\"ticks\":0,\"days\":0,\"qty\":0,\"corruption\":[],"
-                                 "\"values\":[]},"
-                                 "\"airtemp\":{\"ticks\":0,\"days\":0,\"qty\":0,\"corruption\":[],"
-                                 "\"values\":{\"temp\":[],\"humid\":[]}},"
-                                 "\"light\":{\"ticks\":0,\"days\":0,\"qty\":0,\"corruption\":[],"
-                                 "\"values\":[]}}";
-    unsigned int expected_json_sz = sizeof(expected_json) - 1;
+    gmonStr_t *out_msg = of_res.msg;
+#define EXPECTED_JSON \
+    "{\"soilmoist\":{\"ticks\":0,\"days\":0,\"qty\":0,\"corruption\":[],\"values\":[]}," \
+    "\"airtemp\":{\"ticks\":0,\"days\":0,\"qty\":0,\"corruption\":[]," \
+    "\"values\":{\"temp\":[],\"humid\":[]}}," \
+    "\"light\":{\"ticks\":0,\"days\":0,\"qty\":0,\"corruption\":[],\"values\":[]}," \
+    "\"actuators\":{\"pump\":{\"worktime\":0,\"state\":0}," \
+    "\"fan\":{\"worktime\":0,\"state\":0},\"bulb\":{\"worktime\":0,\"state\":0}}" \
+    "}"
+    unsigned short expected_json_sz = sizeof(EXPECTED_JSON) - 1;
     TEST_ASSERT_GREATER_OR_EQUAL(expected_json_sz, out_msg->len);
-    TEST_ASSERT_EQUAL_STRING_LEN(expected_json, (const char *)out_msg->data, expected_json_sz);
+    TEST_ASSERT_EQUAL_UINT16(expected_json_sz, out_msg->nbytes_written);
+    TEST_ASSERT_EQUAL_STRING_LEN(EXPECTED_JSON, (const char *)out_msg->data, expected_json_sz);
     // Verify records are reset after retrieval
     for (int i = 0; i < test_gmon.latest_logs.soilmoist.num_refs; i++)
         TEST_ASSERT_NULL(test_gmon.latest_logs.soilmoist.events[i]);
@@ -76,6 +79,7 @@ TEST(GenerateMsgOutflight, EmptyLogEvt) {
     for (int i = 0; i < test_gmon.latest_logs.light.num_refs; i++)
         TEST_ASSERT_NULL(test_gmon.latest_logs.light.events[i]);
     TEST_ASSERT_EQUAL(0, test_gmon.latest_logs.light.inner_wr_ptr);
+#undef EXPECTED_JSON
 }
 
 TEST(GenerateMsgOutflight, SingleLogEvtPerSensor) {
@@ -96,15 +100,19 @@ TEST(GenerateMsgOutflight, SingleLogEvtPerSensor) {
 
     gmonAppMsgOutflightResult_t of_res = staGetAppMsgOutflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, of_res.status);
-    gmonStr_t  *out_msg = of_res.msg;
-    const char *expected_json =
-        "{\"soilmoist\":{\"ticks\":1234567,\"days\":10,\"qty\":1,\"corruption\":[0],\"values\":[[800]]},"
-        "\"airtemp\":{\"ticks\":1234567,\"days\":10,\"qty\":1,\"corruption\":[0],\"values\":{\"temp\":[[25."
-        "5]],\"humid\":[[75.2]]}},"
-        "\"light\":{\"ticks\":1234567,\"days\":10,\"qty\":1,\"corruption\":[0],\"values\":[[500]]}}";
-    unsigned int expected_json_sz = sizeof(expected_json) - 1;
+    gmonStr_t *out_msg = of_res.msg;
+#define EXPECTED_JSON \
+    "{\"soilmoist\":{\"ticks\":1234567,\"days\":10,\"qty\":1,\"corruption\":[0],\"values\":[[800]]}," \
+    "\"airtemp\":{\"ticks\":1234567,\"days\":10,\"qty\":1,\"corruption\":[0]," \
+    "\"values\":{\"temp\":[[25.5]],\"humid\":[[75.2]]}}," \
+    "\"light\":{\"ticks\":1234567,\"days\":10,\"qty\":1,\"corruption\":[0],\"values\":[[500]]}," \
+    "\"actuators\":{\"pump\":{\"worktime\":0,\"state\":0}," \
+    "\"fan\":{\"worktime\":0,\"state\":0},\"bulb\":{\"worktime\":0,\"state\":0}}" \
+    "}"
+    unsigned short expected_json_sz = sizeof(EXPECTED_JSON) - 1;
     TEST_ASSERT_GREATER_OR_EQUAL(expected_json_sz, out_msg->len);
-    TEST_ASSERT_EQUAL_STRING_LEN(expected_json, (const char *)out_msg->data, expected_json_sz);
+    TEST_ASSERT_EQUAL_UINT16(expected_json_sz, out_msg->nbytes_written);
+    TEST_ASSERT_EQUAL_STRING_LEN(EXPECTED_JSON, (const char *)out_msg->data, expected_json_sz);
 
     // Verify records are reset after retrieval
     TEST_ASSERT_EQUAL_PTR(&evt_s, test_gmon.latest_logs.soilmoist.events[0]);
@@ -118,12 +126,17 @@ TEST(GenerateMsgOutflight, SingleLogEvtPerSensor) {
     TEST_ASSERT_EQUAL(1, test_gmon.latest_logs.soilmoist.inner_wr_ptr);
     TEST_ASSERT_EQUAL(1, test_gmon.latest_logs.aircond.inner_wr_ptr);
     TEST_ASSERT_EQUAL(1, test_gmon.latest_logs.light.inner_wr_ptr);
+#undef EXPECTED_JSON
 }
 
 TEST(GenerateMsgOutflight, MultiLogEvtPerSensor) {
     ut_mockidx_soilmoist = 0;
     ut_mockidx_aircond = 0;
     ut_mockidx_lightness = 0;
+    test_gmon.actuator.pump.status = GMON_OUT_DEV_STATUS_ON;
+    test_gmon.actuator.pump.curr_worktime = 7200;
+    test_gmon.actuator.bulb.status = GMON_OUT_DEV_STATUS_PAUSE;
+    test_gmon.actuator.bulb.curr_resttime = 18000;
     test_gmon.sensors.soil_moist.super.num_items = 2;
     test_gmon.sensors.air_temp.num_items = 2;
     test_gmon.sensors.light.num_items = 3;
@@ -168,21 +181,24 @@ TEST(GenerateMsgOutflight, MultiLogEvtPerSensor) {
 
     gmonAppMsgOutflightResult_t of_res = staGetAppMsgOutflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, of_res.status);
-    gmonStr_t  *out_msg = of_res.msg;
-    const char *expected_json =
-        "{\"soilmoist\":{\"ticks\":2600,\"days\":1,\"qty\":3,\"corruption\":[1,0,0],\"values\":[[3310,1020],["
-        "1011,1021],[1012,1023]]},"
-        "\"airtemp\":{\"ticks\":4000,\"days\":1,\"qty\":2,\"corruption\":[2,0],\"values\":{\"temp\":[[25.5,"
-        "-26.5],[27,27.5]],\"humid\":[[70.5,71.5],[72.5,72]]}},"
-        "\"light\":{\"ticks\":6000,\"days\":1,\"qty\":2,\"corruption\":[3,0],\"values\":[[500,600,616]"
-        ",[510,610,637]]}}";
-    unsigned int expected_json_sz = sizeof(expected_json) - 1;
+    gmonStr_t *out_msg = of_res.msg;
+#define EXPECTED_JSON \
+    "{\"soilmoist\":{\"ticks\":2600,\"days\":1,\"qty\":2,\"corruption\":[1,0,0],\"values\":" \
+    "[[3310,1020],[1011,1021],[1012,1023]]}," \
+    "\"airtemp\":{\"ticks\":4000,\"days\":1,\"qty\":2,\"corruption\":[2,0],\"values\":" \
+    "{\"temp\":[[25.5,-26.5],[27,27.5]],\"humid\":[[70.5,71.5],[72.5,72]]}}," \
+    "\"light\":{\"ticks\":6000,\"days\":1,\"qty\":3,\"corruption\":[3,0],\"values\":" \
+    "[[500,600,616],[510,610,637]]},\"actuators\":{\"pump\":{\"worktime\":7200,\"state\":1}," \
+    "\"fan\":{\"worktime\":0,\"state\":0},\"bulb\":{\"worktime\":18000,\"state\":2}}" \
+    "}"
+    unsigned short expected_json_sz = sizeof(EXPECTED_JSON) - 1;
     TEST_ASSERT_GREATER_OR_EQUAL(expected_json_sz, out_msg->len);
-    TEST_ASSERT_EQUAL_STRING_LEN(expected_json, (const char *)out_msg->data, expected_json_sz);
-
+    TEST_ASSERT_EQUAL_UINT16(expected_json_sz, out_msg->nbytes_written);
+    TEST_ASSERT_EQUAL_STRING_LEN(EXPECTED_JSON, (const char *)out_msg->data, expected_json_sz);
     TEST_ASSERT_EQUAL_HEX8(0x01, test_gmon.latest_logs.soilmoist.events[0]->flgs.corruption);
     TEST_ASSERT_EQUAL_HEX8(0x02, test_gmon.latest_logs.aircond.events[0]->flgs.corruption);
     TEST_ASSERT_EQUAL_HEX8(0x03, test_gmon.latest_logs.light.events[0]->flgs.corruption);
+#undef EXPECTED_JSON
 }
 
 TEST(GenerateMsgOutflight, FullLogEvt) {
@@ -191,6 +207,10 @@ TEST(GenerateMsgOutflight, FullLogEvt) {
     ut_mockidx_soilmoist = 0;
     ut_mockidx_aircond = 0;
     ut_mockidx_lightness = 0;
+    test_gmon.actuator.fan.status = GMON_OUT_DEV_STATUS_ON;
+    test_gmon.actuator.fan.curr_worktime = 91200;
+    test_gmon.actuator.pump.status = GMON_OUT_DEV_STATUS_PAUSE;
+    test_gmon.actuator.pump.curr_resttime = 85100;
     // Set sensor configurations (consistent with the other tests and expected JSON)
     test_gmon.sensors.soil_moist.super.num_items = 2;
     test_gmon.sensors.air_temp.num_items = 2;
@@ -249,18 +269,22 @@ TEST(GenerateMsgOutflight, FullLogEvt) {
     gmonStr_t *out_msg = of_res.msg;
     // Construct the expected JSON string based on the filled circular buffers.
     // Records are ordered from events[0] to events[num_refs-1] when inner_wr_ptr is 0.
-    const char *expected_json =
-        "{\"soilmoist\":{\"ticks\":7000,\"days\":1,\"qty\":2,\"corruption\":[1,2,3,0,1,2],"
-        "\"values\":[[102,103],[104,105],[106,107],[108,109],[110,111],[112,113]]},"
-        "\"airtemp\":{\"ticks\":5050,\"days\":1,\"qty\":2,\"corruption\":[0,2,0,2,0],"
-        "\"values\":{\"temp\":[[20,21],[22.5,23.5],[25,26],[27.5,28.5],[30,31]],"
-        "\"humid\":[[70,71],[72.5,73.5],[75,76],[77.5,78.5],[80,81]]}},"
-        "\"light\":{\"ticks\":6100,\"days\":1,\"qty\":2,\"corruption\":[2,0,1,2],"
-        "\"values\":[[504,505],[506,507],[508,509],[510,511]]}}";
+#define EXPECTED_JSON \
+    "{\"soilmoist\":{\"ticks\":7000,\"days\":1,\"qty\":2,\"corruption\":[1,2,3,0,1,2]," \
+    "\"values\":[[102,103],[104,105],[106,107],[108,109],[110,111],[112,113]]}," \
+    "\"airtemp\":{\"ticks\":5050,\"days\":1,\"qty\":2,\"corruption\":[0,2,0,2,0]," \
+    "\"values\":{\"temp\":[[20,21],[22.5,23.5],[25,26],[27.5,28.5],[30,31]]," \
+    "\"humid\":[[70,71],[72.5,73.5],[75,76],[77.5,78.5],[80,81]]}}," \
+    "\"light\":{\"ticks\":6100,\"days\":1,\"qty\":2,\"corruption\":[2,0,1,2]," \
+    "\"values\":[[504,505],[506,507],[508,509],[510,511]]}," \
+    "\"actuators\":{\"pump\":{\"worktime\":85100,\"state\":2}," \
+    "\"fan\":{\"worktime\":91200,\"state\":1},\"bulb\":{\"worktime\":0,\"state\":0}}" \
+    "}"
 
-    unsigned int expected_json_sz = strlen(expected_json);
+    unsigned short expected_json_sz = sizeof(EXPECTED_JSON) - 1;
     TEST_ASSERT_GREATER_OR_EQUAL(expected_json_sz, out_msg->len);
-    TEST_ASSERT_EQUAL_STRING_LEN(expected_json, (const char *)out_msg->data, expected_json_sz);
+    TEST_ASSERT_EQUAL_UINT16(expected_json_sz, out_msg->nbytes_written);
+    TEST_ASSERT_EQUAL_STRING_LEN(EXPECTED_JSON, (const char *)out_msg->data, expected_json_sz);
     // Verify records state after retrieval: they should not be reset.
     // The events are still referenced in the circular buffers.
     // Soil moisture record check
@@ -280,6 +304,7 @@ TEST(GenerateMsgOutflight, FullLogEvt) {
     TEST_ASSERT_EQUAL(2, test_gmon.latest_logs.light.inner_wr_ptr);
 #undef UT_NUM_SOIL_EVTS
 #undef UT_NUM_LIGHT_EVTS
+#undef EXPECTED_JSON
 }
 
 TEST(GenerateMsgOutflight, LogEvtDataMissing) {
@@ -358,14 +383,20 @@ TEST(GenerateMsgOutflight, LogEvtDataMissing) {
     // - ticks and days are from the LATEST event, which is the NULL data event
     // - corruption array includes all event corruptions in insertion order
     // - values for events with NULL data are serialized as "null"
-    const char *expected_json =
-        "{\"soilmoist\":{\"ticks\":2000,\"days\":1,\"qty\":1,\"corruption\":[0,1],\"values\":[[800],null]},"
-        "\"airtemp\":{\"ticks\":4000,\"days\":1,\"qty\":1,\"corruption\":[0,2],\"values\":{"
-        "\"temp\":[[25.5],null],\"humid\":[[70],null]}},"
-        "\"light\":{\"ticks\":6000,\"days\":1,\"qty\":1,\"corruption\":[0,1],\"values\":[[500],null]}}";
-    unsigned int expected_json_sz = strlen(expected_json);
+#define EXPECTED_JSON \
+    "{\"soilmoist\":" \
+    "{\"ticks\":2000,\"days\":1,\"qty\":1,\"corruption\":[0,1],\"values\":[[800],null]}," \
+    "\"airtemp\":{\"ticks\":4000,\"days\":1,\"qty\":1,\"corruption\":[0,2],\"values\":{" \
+    "\"temp\":[[25.5],null],\"humid\":[[70],null]}}," \
+    "\"light\":{\"ticks\":6000,\"days\":1,\"qty\":1,\"corruption\":[0,1],\"values\":" \
+    "[[500],null]},\"actuators\":{\"pump\":{\"worktime\":0,\"state\":0}," \
+    "\"fan\":{\"worktime\":0,\"state\":0},\"bulb\":{\"worktime\":0,\"state\":0}}" \
+    "}"
+    unsigned short expected_json_sz = sizeof(EXPECTED_JSON) - 1;
     TEST_ASSERT_GREATER_OR_EQUAL(expected_json_sz, out_msg->len);
-    TEST_ASSERT_EQUAL_STRING_LEN(expected_json, (const char *)out_msg->data, expected_json_sz);
+    TEST_ASSERT_EQUAL_UINT16(expected_json_sz, out_msg->nbytes_written);
+    TEST_ASSERT_EQUAL_STRING_LEN(EXPECTED_JSON, (const char *)out_msg->data, expected_json_sz);
+#undef EXPECTED_JSON
 }
 
 TEST(GenerateMsgOutflight, LogEvtInterleavedNullRef) {
@@ -417,23 +448,30 @@ TEST(GenerateMsgOutflight, LogEvtInterleavedNullRef) {
     // Expected JSON string:
     // - Ticks/Days are from the LATEST non-NULL event.
     // - Corruption/Values arrays ONLY include data from non-NULL event pointers, in their logical order.
-    const char *expected_json =
-        "{\"soilmoist\":{\"ticks\":6000,\"days\":1,\"qty\":1,\"corruption\":[1,3,5,6],"
-        "\"values\":[[100],[300],[500],[600]]},"
-        "\"airtemp\":{\"ticks\":1500,\"days\":1,\"qty\":1,\"corruption\":[11,12,14],"
-        "\"values\":{\"temp\":[[21],[22],[24]],\"humid\":[[71],[72],[74]]}},"
-        "\"light\":{\"ticks\":0,\"days\":0,\"qty\":0,\"corruption\":[],\"values\":[]}}";
+#define EXPECTED_JSON \
+    "{\"soilmoist\":{\"ticks\":6000,\"days\":1,\"qty\":1,\"corruption\":[1,3,5,6]," \
+    "\"values\":[[100],[300],[500],[600]]}," \
+    "\"airtemp\":{\"ticks\":1500,\"days\":1,\"qty\":1,\"corruption\":[11,12,14]," \
+    "\"values\":{\"temp\":[[21],[22],[24]],\"humid\":[[71],[72],[74]]}}," \
+    "\"light\":{\"ticks\":0,\"days\":0,\"qty\":0,\"corruption\":[],\"values\":[]}," \
+    "\"actuators\":{\"pump\":{\"worktime\":0,\"state\":0}," \
+    "\"fan\":{\"worktime\":0,\"state\":0},\"bulb\":{\"worktime\":0,\"state\":0}}" \
+    "}"
 
-    unsigned int expected_json_sz = strlen(expected_json);
-    TEST_ASSERT_GREATER_OR_EQUAL(expected_json_sz, out_msg->nbytes_written);
-    TEST_ASSERT_EQUAL_STRING_LEN(expected_json, (const char *)out_msg->data, expected_json_sz);
+    unsigned short expected_json_sz = sizeof(EXPECTED_JSON) - 1;
+    TEST_ASSERT_GREATER_OR_EQUAL(expected_json_sz, out_msg->len);
+    TEST_ASSERT_EQUAL_UINT16(expected_json_sz, out_msg->nbytes_written);
+    TEST_ASSERT_EQUAL_STRING_LEN(EXPECTED_JSON, (const char *)out_msg->data, expected_json_sz);
     // Verify records are NOT reset after retrieval, staGetAppMsgOutflight only serializes.
+#undef EXPECTED_JSON
 }
 
 TEST(GenerateMsgOutflight, LogEvtExtremeValues) {
     ut_mockidx_soilmoist = 0;
     ut_mockidx_aircond = 0;
     ut_mockidx_lightness = 0;
+    test_gmon.actuator.pump.status = GMON_OUT_DEV_STATUS_ON;
+    test_gmon.actuator.pump.curr_worktime = 0x7fffffff;
     test_gmon.sensors.soil_moist.super.num_items = 2;
     test_gmon.sensors.air_temp.num_items = 2;
     test_gmon.sensors.light.num_items = 2;
@@ -478,19 +516,22 @@ TEST(GenerateMsgOutflight, LogEvtExtremeValues) {
 
     gmonAppMsgOutflightResult_t of_res = staGetAppMsgOutflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, of_res.status);
-    gmonStr_t  *out_msg = of_res.msg;
-    const char *expected_json =
-        "{\"soilmoist\":{\"ticks\":2,\"days\":1,\"qty\":2,\"corruption\":[255,0],"
-        "\"values\":[[9999,10],[0,123]]},"
-        "\"airtemp\":{\"ticks\":4,\"days\":1,\"qty\":2,\"corruption\":[127,1],"
-        "\"values\":{\"temp\":[[-102.5,1],[9999.5,-999.5]],\"humid\":[[98.5,-1],[-5,0]]}},"
-        "\"light\":{\"ticks\":6,\"days\":1,\"qty\":2,\"corruption\":[64,2],"
-        "\"values\":[[9999,10],[0,9998]]}}";
+    gmonStr_t *out_msg = of_res.msg;
+#define EXPECTED_JSON \
+    "{\"soilmoist\":{\"ticks\":2,\"days\":1,\"qty\":2,\"corruption\":[255,0]," \
+    "\"values\":[[9999,10],[0,123]]}," \
+    "\"airtemp\":{\"ticks\":4,\"days\":1,\"qty\":2,\"corruption\":[127,1]," \
+    "\"values\":{\"temp\":[[-102.5,1],[9999.5,-999.5]],\"humid\":[[98.5,-1],[-5,0]]}}," \
+    "\"light\":{\"ticks\":6,\"days\":1,\"qty\":2,\"corruption\":[64,2]," \
+    "\"values\":[[9999,10],[0,9998]]}," \
+    "\"actuators\":{\"pump\":{\"worktime\":2147483647,\"state\":1}," \
+    "\"fan\":{\"worktime\":0,\"state\":0},\"bulb\":{\"worktime\":0,\"state\":0}}" \
+    "}"
 
-    unsigned int expected_json_sz = strlen(expected_json);
+    unsigned short expected_json_sz = sizeof(EXPECTED_JSON) - 1;
     TEST_ASSERT_GREATER_OR_EQUAL(expected_json_sz, out_msg->len);
-    TEST_ASSERT_EQUAL_STRING_LEN(expected_json, (const char *)out_msg->data, expected_json_sz);
-
+    TEST_ASSERT_EQUAL_UINT16(expected_json_sz, out_msg->nbytes_written);
+    TEST_ASSERT_EQUAL_STRING_LEN(EXPECTED_JSON, (const char *)out_msg->data, expected_json_sz);
     // Verify records are NOT reset after retrieval, staGetAppMsgOutflight only serializes.
     TEST_ASSERT_EQUAL_PTR(&s1, test_gmon.latest_logs.soilmoist.events[0]);
     TEST_ASSERT_EQUAL_PTR(&s2, test_gmon.latest_logs.soilmoist.events[1]);
@@ -501,6 +542,7 @@ TEST(GenerateMsgOutflight, LogEvtExtremeValues) {
     TEST_ASSERT_EQUAL_PTR(&l1, test_gmon.latest_logs.light.events[0]);
     TEST_ASSERT_EQUAL_PTR(&l2, test_gmon.latest_logs.light.events[1]);
     TEST_ASSERT_EQUAL(2, test_gmon.latest_logs.light.inner_wr_ptr);
+#undef EXPECTED_JSON
 }
 
 TEST(GenerateMsgOutflight, InsufficientMemory) {
@@ -526,7 +568,9 @@ TEST(GenerateMsgOutflight, InsufficientMemory) {
     "\"values\":[[165]]}," \
     "\"airtemp\":{\"ticks\":23456,\"days\":192,\"qty\":1,\"corruption\":[0]," \
     "\"values\":{\"temp\":[[25.5]],\"humid\":[[70.5]]}}," \
-    "\"light\":{\"ticks\":0,\"days\":0,\"qty\":0,\"corruption\":[],\"values\":[]}" \
+    "\"light\":{\"ticks\":0,\"days\":0,\"qty\":0,\"corruption\":[],\"values\":[]}," \
+    "\"actuators\":{\"pump\":{\"worktime\":0,\"state\":0}," \
+    "\"fan\":{\"worktime\":0,\"state\":0},\"bulb\":{\"worktime\":0,\"state\":0}}" \
     "}"
     // ---------- subcase 1 ----------
     // Manually reduce the effective buffer size of outflight message to simulate
@@ -584,14 +628,14 @@ TEST(GenerateMsgOutflight, NumDigitExceedLimit) {
     a1.num_active_sensors = test_gmon.sensors.air_temp.num_items;
     staUpdateLastRecord(&test_gmon.latest_logs.aircond, &a1);
 #define UT_EXPECTED_JSON \
-    "{\"soilmoist\":{\"ticks\":3456,\"days\":9,\"qty\":1,\"corruption\":[0]," \
-    "\"values\":[[9998]]}," \
+    "{\"soilmoist\":{\"ticks\":3456,\"days\":9,\"qty\":1,\"corruption\":[0],\"values\":[[9998]]}," \
     "\"airtemp\":{\"ticks\":4567,\"days\":9,\"qty\":1,\"corruption\":[0]," \
     "\"values\":{\"temp\":[[9999.5]],\"humid\":[[70.5]]}}," \
-    "\"light\":{\"ticks\":0,\"days\":0,\"qty\":0,\"corruption\":[],\"values\":[]}" \
+    "\"light\":{\"ticks\":0,\"days\":0,\"qty\":0,\"corruption\":[],\"values\":[]}," \
+    "\"actuators\":{\"pump\":{\"worktime\":0,\"state\":0}," \
+    "\"fan\":{\"worktime\":0,\"state\":0},\"bulb\":{\"worktime\":0,\"state\":0}}" \
     "}"
-    unsigned short expect_data_sz = sizeof(UT_EXPECTED_JSON) - 1, actual_data_sz = 0;
-
+    unsigned short              expect_data_sz = sizeof(UT_EXPECTED_JSON) - 1, actual_data_sz = 0;
     gmonAppMsgOutflightResult_t of_res = staGetAppMsgOutflight(&test_gmon);
     actual_data_sz = of_res.msg->nbytes_written;
     TEST_ASSERT_EQUAL(GMON_RESP_ERR_MSG_ENCODE, of_res.status);

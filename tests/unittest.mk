@@ -16,7 +16,8 @@ TEST_SRC = tests/mocks.c tests/entry.c tests/app_msg/inbound.c tests/app_msg/out
 		   tests/IO/display.c tests/IO/sensor_sample.c tests/IO/soilsensor.c \
 		   tests/util_stats.c
 
-APP_SRC = src/util.c src/app_msg/outbound.c src/app_msg/inbound.c src/IO/sensor_event.c \
+APP_SRC = src/util.c src/app_msg/outbound.c src/app_msg/inbound.c src/app_msg/misc.c \
+		  src/IO/sensor_event.c \
 		  src/IO/actuator.c src/IO/display.c src/IO/sensor_sample.c src/IO/soilsensor.c \
 		  src/IO/LDR.c src/IO/DHT11.c
 

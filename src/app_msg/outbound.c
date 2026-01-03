@@ -1,6 +1,4 @@
 #include "station_include.h"
-#define JSMN_HEADER
-#include "jsmn.h"
 
 // clang-format off
 // topic : garden/log
@@ -36,6 +34,12 @@
 #define GMON_APPMSG_DATA_NAME_VALUES     "values"
 #define GMON_APPMSG_DATA_NAME_TEMP       "temp"
 #define GMON_APPMSG_DATA_NAME_HUMID      "humid"
+#define GMON_APPMSG_DATA_NAME_ACTUATORS  "actuators"
+#define GMON_APPMSG_DATA_NAME_PUMP       "pump"
+#define GMON_APPMSG_DATA_NAME_FAN        "fan"
+#define GMON_APPMSG_DATA_NAME_BULB       "bulb"
+#define GMON_APPMSG_DATA_NAME_WORKTIME   "worktime"
+#define GMON_APPMSG_DATA_NAME_STATE      "state"
 
 #define GMON_APPMSG_MAX_NBYTES_SERIAL_NUMBER 12
 
@@ -44,8 +48,10 @@
 #define GMON_APPMSG_MAX_DIGITS_DAYS           4
 #define GMON_APPMSG_MAX_DIGITS_QTY            2
 #define GMON_APPMSG_MAX_DIGITS_CORRUPTION     3
-#define GMON_APPMSG_MAX_DIGITS_SOIL_LIGHT     4 // for u32 (e.g., 1023)
-#define GMON_APPMSG_MAX_DIGITS_AIR_TEMP_HUMID 6 // for float (e.g., -99.99, 101.70)
+#define GMON_APPMSG_MAX_DIGITS_SOIL_LIGHT     4  // for u32 (e.g., 1023)
+#define GMON_APPMSG_MAX_DIGITS_AIR_TEMP_HUMID 6  // for float (e.g., -99.99, 101.70)
+#define GMON_APPMSG_MAX_DIGITS_WORKTIME       10 // Max for 32-bit unsigned int
+#define GMON_APPMSG_MAX_DIGITS_STATE          1  // Max for gMonActuatorStatus (0-3)
 
 // Helper to calculate size for a JSON key-value pair, excluding trailing comma
 // name_len: length of the key string
@@ -82,12 +88,6 @@
      1 /* comma */ + \
      KEY_VAL_LEN(sizeof(GMON_APPMSG_DATA_NAME_VALUES) - 1, 0 /* value content size added separately */))
 
-#define FREE_IF_EXIST(v) \
-    if (v) { \
-        XMEMFREE(v); \
-        v = NULL; \
-    }
-
 static unsigned short staAppMsgOutflightRequiredBufSz(
     unsigned char num_soil_sensors, unsigned char num_air_sensors, unsigned char num_light_sensors,
     unsigned char num_soil_evts, unsigned char num_air_evts, unsigned char num_light_evts
@@ -122,7 +122,34 @@ static unsigned short staAppMsgOutflightRequiredBufSz(
     total_len += KEY_VAL_LEN(sizeof(GMON_APPMSG_DATA_NAME_LIGHT) - 1, 0); // "light":
     total_len += COMMON_SENSOR_OBJ_BASE_LEN(num_light_evts);
     total_len += PRIMITIVE_2D_ARRAY_LEN(GMON_APPMSG_MAX_DIGITS_SOIL_LIGHT, num_light_sensors, num_light_evts);
-    // No comma after the last top-level object "light"
+    total_len += 1; // Comma after light object (since actuators follow)
+
+    // --- actuators object ---
+    total_len += KEY_VAL_LEN(sizeof(GMON_APPMSG_DATA_NAME_ACTUATORS) - 1, 0); // "actuators":
+    total_len += 2; // For outer { } of actuators object
+    // For pump object: "pump": {"worktime": X, "state": Y}
+    total_len += KEY_VAL_LEN(sizeof(GMON_APPMSG_DATA_NAME_PUMP) - 1, 0); // "pump":
+    total_len += 2;                                                      // For inner { } of pump object
+    total_len += KEY_VAL_LEN(sizeof(GMON_APPMSG_DATA_NAME_WORKTIME) - 1, GMON_APPMSG_MAX_DIGITS_WORKTIME);
+    total_len += 1; // Comma after worktime
+    total_len += KEY_VAL_LEN(sizeof(GMON_APPMSG_DATA_NAME_STATE) - 1, GMON_APPMSG_MAX_DIGITS_STATE);
+    total_len += 1; // Comma after pump object
+    // For fan object: "fan": {"worktime": X, "state": Y}
+    total_len += KEY_VAL_LEN(sizeof(GMON_APPMSG_DATA_NAME_FAN) - 1, 0); // "fan":
+    total_len += 2;                                                     // For inner { } of fan object
+    total_len += KEY_VAL_LEN(sizeof(GMON_APPMSG_DATA_NAME_WORKTIME) - 1, GMON_APPMSG_MAX_DIGITS_WORKTIME);
+    total_len += 1; // Comma after worktime
+    total_len += KEY_VAL_LEN(sizeof(GMON_APPMSG_DATA_NAME_STATE) - 1, GMON_APPMSG_MAX_DIGITS_STATE);
+    total_len += 1; // Comma after fan object
+    // For bulb object: "bulb": {"worktime": X, "state": Y}
+    total_len += KEY_VAL_LEN(sizeof(GMON_APPMSG_DATA_NAME_BULB) - 1, 0); // "bulb":
+    total_len += 2;                                                      // For inner { } of bulb object
+    total_len += KEY_VAL_LEN(sizeof(GMON_APPMSG_DATA_NAME_WORKTIME) - 1, GMON_APPMSG_MAX_DIGITS_WORKTIME);
+    total_len += 1; // Comma after worktime
+    total_len += KEY_VAL_LEN(sizeof(GMON_APPMSG_DATA_NAME_STATE) - 1, GMON_APPMSG_MAX_DIGITS_STATE);
+    // No comma after bulb's state, as it's the last item in the actuators object.
+    // Also no comma after the entire actuators object, as it's the last top-level object.
+
     return total_len;
 }
 
@@ -401,6 +428,104 @@ static gMonStatus serialize_aircond_values(
     return GMON_RESP_OK;
 }
 
+// New static helper function to serialize a single actuator object
+static gMonStatus serialize_single_actuator_object(
+    unsigned char **buf_ptr, unsigned short *remaining_len, const char *actuator_name,
+    gMonActuator_t *actuator, unsigned char is_last_actuator
+) {
+    gMonStatus   status;
+    unsigned int worktime_val = 0;
+
+    status = staAppMsgSerializeAppendStr(buf_ptr, remaining_len, "\"");
+    if (status != GMON_RESP_OK)
+        return status;
+    status = staAppMsgSerializeAppendStr(buf_ptr, remaining_len, actuator_name);
+    if (status != GMON_RESP_OK)
+        return status;
+    status = staAppMsgSerializeAppendStr(buf_ptr, remaining_len, "\":{");
+    if (status != GMON_RESP_OK)
+        return status;
+
+    // "worktime"
+    status = staAppMsgSerializeAppendStr(buf_ptr, remaining_len, "\"worktime\":");
+    if (status != GMON_RESP_OK)
+        return status;
+    if (actuator->status == GMON_OUT_DEV_STATUS_ON) {
+        worktime_val = actuator->curr_worktime;
+    } else if (actuator->status == GMON_OUT_DEV_STATUS_PAUSE) {
+        worktime_val = actuator->curr_resttime;
+    } else {
+        worktime_val = 0;
+    }
+    status = staAppMsgSerializeUInt(buf_ptr, remaining_len, worktime_val, GMON_APPMSG_MAX_DIGITS_WORKTIME);
+    if (status != GMON_RESP_OK)
+        return status;
+    status = staAppMsgSerializeAppendStr(buf_ptr, remaining_len, ",");
+    if (status != GMON_RESP_OK)
+        return status;
+
+    // "state"
+    status = staAppMsgSerializeAppendStr(buf_ptr, remaining_len, "\"state\":");
+    if (status != GMON_RESP_OK)
+        return status;
+    status = staAppMsgSerializeUInt(
+        buf_ptr, remaining_len, (unsigned int)actuator->status, GMON_APPMSG_MAX_DIGITS_STATE
+    );
+    if (status != GMON_RESP_OK)
+        return status;
+
+    status = staAppMsgSerializeAppendStr(buf_ptr, remaining_len, "}"); // Close single actuator object
+    if (status != GMON_RESP_OK)
+        return status;
+    if (!is_last_actuator) {
+        status =
+            staAppMsgSerializeAppendStr(buf_ptr, remaining_len, ","); // Add comma if not the last actuator
+    }
+    return status;
+}
+
+// New static helper function to serialize the overall actuators object
+static gMonStatus serialize_actuators_object(
+    unsigned char **buf_ptr, unsigned short *remaining_len, gardenMonitor_t *gmon,
+    unsigned char is_last_top_level
+) {
+    gMonStatus status;
+    status = staAppMsgSerializeAppendStr(buf_ptr, remaining_len, "\"" GMON_APPMSG_DATA_NAME_ACTUATORS "\":{");
+    if (status != GMON_RESP_OK)
+        return status;
+
+    // Pump , Not the last field of actuator
+    status = serialize_single_actuator_object(
+        buf_ptr, remaining_len, GMON_APPMSG_DATA_NAME_PUMP, &gmon->actuator.pump, 0
+    );
+    if (status != GMON_RESP_OK)
+        return status;
+
+    // Fan
+    status = serialize_single_actuator_object(
+        buf_ptr, remaining_len, GMON_APPMSG_DATA_NAME_FAN, &gmon->actuator.fan, 0
+    );
+    if (status != GMON_RESP_OK)
+        return status;
+
+    // Bulb (last actuator)
+    status = serialize_single_actuator_object(
+        buf_ptr, remaining_len, GMON_APPMSG_DATA_NAME_BULB, &gmon->actuator.bulb, 1 // Last actuator
+    );
+    if (status != GMON_RESP_OK)
+        return status;
+
+    status = staAppMsgSerializeAppendStr(buf_ptr, remaining_len, "}"); // Close actuators object
+    if (status != GMON_RESP_OK)
+        return status;
+    if (!is_last_top_level) {
+        status = staAppMsgSerializeAppendStr(
+            buf_ptr, remaining_len, ","
+        ); // Add comma if not the last top-level object
+    }
+    return status;
+}
+
 // Function to handle serialization of a single sensor type (e.g., soilmoist, airtemp, light)
 static gMonStatus serialize_sensor_type_object(
     unsigned char **buf_ptr, unsigned short *remaining_len, const char *sensor_name, gMonSensorMeta_t *s_meta,
@@ -514,109 +639,18 @@ gmonAppMsgOutflightResult_t staGetAppMsgOutflight(gardenMonitor_t *gmon) {
     status = serialize_sensor_type_object(
         &buf_ptr, &remaining_len, GMON_APPMSG_DATA_NAME_LIGHT, &gmon->sensors.light, &gmon->latest_logs.light,
         GMON_SENSOR_DATA_TYPE_U32,
-        1 // Last sensor type, no trailing comma needed
+        0 // NOW NOT THE LAST SENSOR TYPE, actuators follow
     );
     if (status != GMON_RESP_OK)
         goto done;
+
+    // Serialize actuators object , the last top-level object
+    status = serialize_actuators_object(&buf_ptr, &remaining_len, gmon, 1);
+    if (status != GMON_RESP_OK)
+        goto done;
+
     status = staAppMsgSerializeAppendStr(&buf_ptr, &remaining_len, "}\x00");
 done:
     outflight_msg->nbytes_written = outflight_msg->len - remaining_len;
     return (gmonAppMsgOutflightResult_t){.msg = outflight_msg, .status = status};
-}
-
-gMonStatus staAppMsgInit(gardenMonitor_t *gmon) {
-    gMonRawMsg_t *rmsg = &gmon->rawmsg;
-    rmsg->outflight.data = NULL;
-    rmsg->inflight.data = NULL;
-    // Calculate required buffer sizes for outflight and inflight messages
-    rmsg->inflight.len = staAppMsgInflightCalcRequiredBufSz();
-    rmsg->jsn_decoder = XCALLOC(1, sizeof(jsmn_parser));
-    rmsg->jsn_decoded_token = XCALLOC(GMON_NUM_JSON_TOKEN_DECODE, sizeof(jsmntok_t));
-
-    // Initialize record fields for latest_logs
-    gmonSensorRecord_t *record = &gmon->latest_logs.soilmoist;
-    record->events = XCALLOC(GMON_CFG_NUM_SOIL_SENSOR_RECORDS_KEEP, sizeof(gmonEvent_t *));
-    record->num_refs = GMON_CFG_NUM_SOIL_SENSOR_RECORDS_KEEP;
-    record = &gmon->latest_logs.aircond;
-    record->events = XCALLOC(GMON_CFG_NUM_AIR_SENSOR_RECORDS_KEEP, sizeof(gmonEvent_t *));
-    record->num_refs = GMON_CFG_NUM_AIR_SENSOR_RECORDS_KEEP;
-    record = &gmon->latest_logs.light;
-    record->events = XCALLOC(GMON_CFG_NUM_LIGHT_SENSOR_RECORDS_KEEP, sizeof(gmonEvent_t *));
-    record->num_refs = GMON_CFG_NUM_LIGHT_SENSOR_RECORDS_KEEP;
-
-    uint8_t any_failed = (rmsg->jsn_decoder == NULL) || (rmsg->jsn_decoded_token == NULL) ||
-                         (gmon->latest_logs.soilmoist.events == NULL) ||
-                         (gmon->latest_logs.aircond.events == NULL) ||
-                         (gmon->latest_logs.light.events == NULL);
-    if (any_failed) // call de-init function below if init failed
-        return GMON_RESP_ERRMEM;
-    // init internal write pointers of sensor records
-    staAppMsgOutResetAllRecords(gmon);
-    return GMON_RESP_OK;
-} // end of staAppMsgInit
-
-gMonStatus staAppMsgDeinit(gardenMonitor_t *gmon) {
-    FREE_IF_EXIST(gmon->rawmsg.outflight.data);
-    gmon->rawmsg.inflight.data = NULL;
-    FREE_IF_EXIST(gmon->rawmsg.jsn_decoder);
-    FREE_IF_EXIST(gmon->rawmsg.jsn_decoded_token);
-    FREE_IF_EXIST(gmon->latest_logs.aircond.events);
-    FREE_IF_EXIST(gmon->latest_logs.soilmoist.events);
-    FREE_IF_EXIST(gmon->latest_logs.light.events);
-    return GMON_RESP_OK;
-}
-
-static gmonEvent_t *staPopOldestEvent(gmonSensorRecord_t *sr) {
-    // Get the event that will be replaced (this is the oldest one if the buffer is full).
-    gmonEvent_t *discarded = sr->events[sr->inner_wr_ptr];
-    // Explicitly clear the slot to 'make space'.
-    sr->events[sr->inner_wr_ptr] = NULL;
-    return discarded;
-}
-
-gmonEvent_t *staUpdateLastRecord(gmonSensorRecord_t *sr, gmonEvent_t *new_evt) {
-    if (sr == NULL || sr->events == NULL || sr->num_refs == 0 || new_evt == NULL)
-        return NULL;
-    gmonEvent_t *discarded = NULL;
-    stationSysEnterCritical();
-    // pop off the oldest event reference from given sensor record, to make space
-    // for inserting the new reference
-    discarded = staPopOldestEvent(sr);
-    // Insert the new event into the slot pointed to by inner_wr_ptr.
-    // This slot was just 'popped' (its content retrieved and cleared).
-    if (sr != NULL && sr->events != NULL && sr->num_refs > 0) {
-        sr->events[sr->inner_wr_ptr] = new_evt;
-        // Advance the wraparound counter to the next position for insertion.
-        sr->inner_wr_ptr = (sr->inner_wr_ptr + 1) % sr->num_refs;
-    }
-    stationSysExitCritical();
-    return discarded;
-}
-
-void stationSensorDataLogTaskFn(void *params) {
-    gardenMonitor_t *gmon = (gardenMonitor_t *)params;
-    while (1) {
-        const uint32_t block_time = 5000;
-        gmonEvent_t   *new_evt = NULL, *discarded_evt = NULL;
-        gMonStatus     status = staSysMsgBoxGet(gmon->msgpipe.sensor2net, (void **)&new_evt, block_time);
-        if (new_evt == NULL)
-            continue;
-        configASSERT(status == GMON_RESP_OK);
-        configASSERT(new_evt->data != NULL);
-        switch (new_evt->event_type) {
-        case GMON_EVENT_SOIL_MOISTURE_UPDATED:
-            discarded_evt = staUpdateLastRecord(&gmon->latest_logs.soilmoist, new_evt);
-            break;
-        case GMON_EVENT_LIGHTNESS_UPDATED:
-            discarded_evt = staUpdateLastRecord(&gmon->latest_logs.light, new_evt);
-            break;
-        case GMON_EVENT_AIR_TEMP_UPDATED:
-            discarded_evt = staUpdateLastRecord(&gmon->latest_logs.aircond, new_evt);
-            break;
-        default:
-            break;
-        }
-        if (discarded_evt)
-            staFreeSensorEvent(&gmon->sensors.event, discarded_evt);
-    }
 }
