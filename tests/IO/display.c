@@ -225,10 +225,59 @@ TEST(RenderPrintText, LightSensorLogOk) {
     );
 }
 
+TEST(RenderPrintText, AppFailure) {
+    gMonDisplayFailure_t failure_info = {0};
+    gMonStatus           status;
+    gmonPrintInfo_t     *info1, *info2, *info3;
+    // Set sample failure data
+    failure_info.curr_ticks = 72610000; // 20 hours, 10 minutes, 10 seconds
+    failure_info.curr_days = 123;
+    failure_info.func_pc = (void *)0x8001234;
+    failure_info.status = GMON_RESP_ERRMEM; // -3
+    // Call the function under test
+    status = staDisplayFailure(&test_gmon.display, failure_info);
+    TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
+    // Get pointers to the modified display blocks
+    info1 = &test_gmon.display.blocks[GMON_BLOCK_NETCONN_STATUS].content;
+    info2 = &test_gmon.display.blocks[GMON_BLOCK_ACTUATOR_THRESHOLD].content;
+    info3 = &test_gmon.display.blocks[GMON_BLOCK_ACTUATOR_STATUS].content;
+
+    // Verify content of info1 (curr_ticks, curr_days)
+    TEST_ASSERT_NOT_NULL(info1->str.data);
+    TEST_ASSERT_EQUAL_STRING_LEN("20:10:10,D123", info1->str.data, info1->str.nbytes_written);
+    TEST_ASSERT_EQUAL(XSTRLEN("20:10:10,D123"), info1->str.nbytes_written);
+    TEST_ASSERT_EQUAL(0, info1->posx);
+    TEST_ASSERT_EQUAL(0, info1->posy);
+    // Verify content of info2 (func_pc)
+    TEST_ASSERT_NOT_NULL(info2->str.data);
+    TEST_ASSERT_EQUAL_STRING_LEN("PC:8001234", info2->str.data, info2->str.nbytes_written);
+    TEST_ASSERT_EQUAL(XSTRLEN("PC:8001234"), info2->str.nbytes_written);
+    TEST_ASSERT_EQUAL(0, info2->posx);
+    TEST_ASSERT_EQUAL(test_gmon.display.fonts[0].height + 2, info2->posy);
+    // Verify content of info3 (status)
+    TEST_ASSERT_NOT_NULL(info3->str.data);
+    TEST_ASSERT_EQUAL_STRING_LEN("Status:-3", info3->str.data, info3->str.nbytes_written);
+    TEST_ASSERT_EQUAL(XSTRLEN("Status:-3"), info3->str.nbytes_written);
+    TEST_ASSERT_EQUAL(0, info3->posx);
+    TEST_ASSERT_EQUAL((test_gmon.display.fonts[0].height << 1) + 2, info3->posy);
+
+    // Test with different values
+    failure_info.curr_ticks = 3600000; // 1 hour, 0 minutes, 0 seconds
+    failure_info.curr_days = 0;
+    failure_info.func_pc = (void *)0xDEADBEEF;
+    failure_info.status = GMON_RESP_OK; // 0
+    status = staDisplayFailure(&test_gmon.display, failure_info);
+    TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
+    TEST_ASSERT_EQUAL_STRING_LEN("1:0:0,D0", info1->str.data, info1->str.nbytes_written);
+    TEST_ASSERT_EQUAL_STRING_LEN("PC:deadbeef", info2->str.data, info2->str.nbytes_written);
+    TEST_ASSERT_EQUAL_STRING_LEN("Status:0", info3->str.data, info3->str.nbytes_written);
+}
+
 TEST_GROUP_RUNNER(gMonDisplay) {
     RUN_TEST_CASE(RenderPrintText, InitOk);
     RUN_TEST_CASE(RenderPrintText, SoilSensorLogOk);
     RUN_TEST_CASE(RenderPrintText, AirSensorLogOk);
     RUN_TEST_CASE(RenderPrintText, LightSensorLogOk);
     RUN_TEST_CASE(RenderPrintText, ActuatorStateOk);
+    RUN_TEST_CASE(RenderPrintText, AppFailure);
 }

@@ -171,6 +171,8 @@ header file. */
 #define configASSERT(x) \
     if ((x) == 0) { \
         portDISABLE_INTERRUPTS(); \
+        void stationFailureHandler(unsigned int *func_pc); \
+        stationFailureHandler(staPlatformProgramCounter()); \
         for (;;); \
     }
 // clang-format on

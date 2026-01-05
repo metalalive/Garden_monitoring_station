@@ -62,6 +62,8 @@ extern "C" {
 
 #define staCvtUNumToStr(outstr, num) uiESPcvtNumToStr((uint8_t *)(outstr), (num), ESP_DIGIT_BASE_DECIMAL)
 
+#define staCvtUNumToHexStr(outstr, num) uiESPcvtNumToStr((uint8_t *)(outstr), (num), ESP_DIGIT_BASE_HEX)
+
 typedef espSysThread_t stationSysTask_t;
 
 typedef espSysThreFunc stationSysTaskFn_t;

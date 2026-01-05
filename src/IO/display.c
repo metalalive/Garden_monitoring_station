@@ -537,6 +537,88 @@ gMonStatus staDisplayDeInit(gardenMonitor_t *gmon) {
 #endif
 }
 
+gMonStatus staDisplayFailure(gMonDisplayContext_t *ctx, gMonDisplayFailure_t c) {
+#ifdef GMON_CFG_ENABLE_DISPLAY
+    if (ctx == NULL)
+        return GMON_RESP_ERRARGS;
+
+    unsigned int current_len = 0;
+    uint8_t      num_chr = 0;
+    for (short idx = 0; idx < GMON_DISPLAY_NUM_PRINT_STRINGS; idx++) {
+        gmonPrintInfo_t *info = &ctx->blocks[idx].content;
+        XMEMSET(info->str.data, 0, info->str.len);
+    }
+    // --- Buffer 1: curr_ticks (HH:mm:ss) and curr_days ---
+    gmonPrintInfo_t *info1 = &ctx->blocks[GMON_BLOCK_NETCONN_STATUS].content;
+    {
+        current_len = 0;
+        unsigned int time_ms = c.curr_ticks;
+        unsigned int hours = (time_ms / 3600000) % 24; // HH of a day (0-23)
+        unsigned int minutes = (time_ms / 60000) % 60;
+        unsigned int seconds = (time_ms / 1000) % 60;
+        num_chr = staCvtUNumToStr(&info1->str.data[current_len], hours);
+        current_len += num_chr;
+        info1->str.data[current_len++] = ':';
+        num_chr = staCvtUNumToStr(&info1->str.data[current_len], minutes);
+        current_len += num_chr;
+        info1->str.data[current_len++] = ':';
+        num_chr = staCvtUNumToStr(&info1->str.data[current_len], seconds);
+        current_len += num_chr;
+
+    #define DAYS_PREFIX ",D"
+        XMEMCPY(&info1->str.data[current_len], DAYS_PREFIX, sizeof(DAYS_PREFIX) - 1);
+        current_len += sizeof(DAYS_PREFIX) - 1;
+    #undef DAYS_PREFIX
+        num_chr = staCvtUNumToStr(&info1->str.data[current_len], c.curr_days);
+        current_len += num_chr;
+        info1->str.data[current_len] = '\0';
+        info1->str.nbytes_written = current_len;
+    }
+    // --- Buffer 2: func_pc ---
+    gmonPrintInfo_t *info2 = &ctx->blocks[GMON_BLOCK_ACTUATOR_THRESHOLD].content;
+    {
+        current_len = 0;
+    #define PC_PREFIX "PC:"
+        XMEMCPY(&info2->str.data[current_len], PC_PREFIX, sizeof(PC_PREFIX) - 1);
+        current_len += sizeof(PC_PREFIX) - 1;
+    #undef PC_PREFIX
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wpointer-to-int-cast"
+        num_chr = staCvtUNumToHexStr(&info2->str.data[current_len], (unsigned int)c.func_pc);
+    #pragma GCC diagnostic pop
+        current_len += num_chr;
+        info2->str.data[current_len] = '\0';
+        info2->str.nbytes_written = current_len;
+    }
+    // --- Buffer 3: status (using staCvtFloatToStr with zero precision) ---
+    gmonPrintInfo_t *info3 = &ctx->blocks[GMON_BLOCK_ACTUATOR_STATUS].content;
+    {
+        current_len = 0;
+    #define STATUS_PREFIX "Status:"
+        XMEMCPY(&info3->str.data[current_len], STATUS_PREFIX, sizeof(STATUS_PREFIX) - 1);
+        current_len += sizeof(STATUS_PREFIX) - 1;
+    #undef STATUS_PREFIX
+        num_chr = staCvtFloatToStr(&info3->str.data[current_len], (float)c.status, 0x0);
+        current_len += num_chr;
+        info3->str.data[current_len] = '\0';
+        info3->str.nbytes_written = current_len;
+    }
+    {
+        info1->posy = 0;
+        info2->posy = ctx->fonts[0].height + 2;
+        info3->posy = (ctx->fonts[0].height << 1) + 2;
+        info1->posx = info2->posx = info3->posx = 0;
+        displayHorizontalScroll(info1, 0, 0);
+        displayHorizontalScroll(info2, 0, 0);
+        displayHorizontalScroll(info3, 0, 0);
+    }
+    GMON_DISPLAY_DEV_REFRESH_SCREEN_FN();
+    return GMON_RESP_OK;
+#else
+    return GMON_RESP_SKIP;
+#endif
+} // end of staDisplayFailure
+
 void stationDisplayTaskFn(void *params) {
     gmonEvent_t *new_evt = NULL;
     gMonStatus   status = GMON_RESP_OK;

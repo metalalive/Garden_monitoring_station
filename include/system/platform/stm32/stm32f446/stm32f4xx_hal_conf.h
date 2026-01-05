@@ -40,8 +40,16 @@
 extern "C" {
     #endif
 
-    /* Exported types ------------------------------------------------------------*/
-    /* Exported constants --------------------------------------------------------*/
+/* Exported types ------------------------------------------------------------*/
+/* Exported constants --------------------------------------------------------*/
+    // TODO, move to RTOS playground codebase if this macro will be
+    // reused in other applications.
+    #define staPlatformProgramCounter() \
+        ({ \
+            unsigned int *_pc_addr = NULL; \
+            __asm volatile("mov %0, pc \n" : "=r"(_pc_addr)::); \
+            _pc_addr; \
+        })
 
     /* ########################## Module Selection ############################## */
     /**
