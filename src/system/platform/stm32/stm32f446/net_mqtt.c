@@ -95,23 +95,6 @@ UART_HandleTypeDef *STM32_config_UART(void) { return &haluart3; }
 DMA_HandleTypeDef  *STM32_config_DMA4UART(void) { return &haldma_usart3_rx; }
 TIM_HandleTypeDef  *STM32_config_GeneralTimer(void) { return &htim2; }
 
-// brief This function handles Non maskable interrupt.
-void NMI_Handler(void) {}
-
-// brief This function handles Debug monitor.
-void DebugMon_Handler(void) {}
-
-// brief This function handles Pre-fetch fault, memory access fault.
-void BusFault_Handler(void) { configASSERT(0); }
-
-// brief This function handles Undefined instruction or illegal state.
-void UsageFault_Handler(void) { configASSERT(0); }
-
-void vTestAppHardFaultHandler(UBaseType_t *sp) {
-    BaseType_t done = vPortTryRecoverHardFault(sp);
-    configASSERT(done);
-}
-
 void SysTick_Handler(void) { vPortSysTickHandler(); }
 
 void TIM2_IRQHandler(void) { HAL_TIM_IRQHandler(&htim2); }

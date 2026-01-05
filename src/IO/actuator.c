@@ -160,9 +160,8 @@ gMonStatus staActuatorAggregateAirCond(gmonEvent_t *evt, gMonActuator_t *dev, in
 } // end of staActuatorAggregateAirCond
 
 gMonStatus staPauseWorkingActuators(gardenMonitor_t *gmon) {
-    if (gmon == NULL) {
+    if (gmon == NULL)
         return GMON_RESP_ERRARGS;
-    }
     // pause the actuators which require precise control
     gMonActuator_t *dev = &gmon->actuator.pump;
     if (dev->status == GMON_OUT_DEV_STATUS_ON) {
@@ -174,6 +173,22 @@ gMonStatus staPauseWorkingActuators(gardenMonitor_t *gmon) {
         dev->status = GMON_OUT_DEV_STATUS_PAUSE;
     }
     return GMON_RESP_OK;
+}
+
+gMonStatus staEmergencyShutdownAllActuators(gardenMonitor_t *gmon) {
+#define NUM_ACTUATOR_TYPES 3
+    if (gmon == NULL)
+        return GMON_RESP_ERRARGS;
+    gMonStatus status[NUM_ACTUATOR_TYPES] = {0};
+    status[0] = staTurnOffActuator(&gmon->actuator.pump);
+    status[1] = staTurnOffActuator(&gmon->actuator.fan);
+    status[2] = staTurnOffActuator(&gmon->actuator.bulb);
+    for (short idx = 0; idx < NUM_ACTUATOR_TYPES; idx++) {
+        if (status[idx] != GMON_RESP_OK)
+            return status[idx];
+    }
+    return GMON_RESP_OK;
+#undef NUM_ACTUATOR_TYPES
 }
 
 gMonActuatorStatus staActuatorMeasureWorkingTime(gMonActuator_t *dev, unsigned int time_elapsed_ms) {

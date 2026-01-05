@@ -261,7 +261,7 @@ HardFault_Handler:
     mrseq   r0, msp
     mrsne   r0, psp
     push    {lr}
-    bl      vTestAppHardFaultHandler
+    bl      vAppHardFaultHandler
     pop     {pc}
 .size  HardFault_Handler, .-HardFault_Handler
 

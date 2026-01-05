@@ -90,6 +90,8 @@ gMonStatus staSetTrigThresholdFan(gMonActuator_t *, unsigned int new_val);
 gMonStatus staSetTrigThresholdBulb(gMonActuator_t *, unsigned int new_val);
 
 gMonStatus staPauseWorkingActuators(gardenMonitor_t *);
+gMonStatus staEmergencyShutdownAllActuators(gardenMonitor_t *);
+gMonStatus staTurnOffActuator(gMonActuator_t *);
 
 #ifdef __cplusplus
 }

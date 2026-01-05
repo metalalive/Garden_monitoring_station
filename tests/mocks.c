@@ -79,6 +79,11 @@ gMonStatus staActuatorInitBulb(gMonActuator_t *dev) {
 }
 gMonStatus staActuatorDeinitBulb(void) { return GMON_RESP_OK; }
 
+gMonStatus staTurnOffActuator(gMonActuator_t *ac) {
+    ac->status = GMON_OUT_DEV_STATUS_OFF;
+    return GMON_RESP_OK;
+}
+
 gMonStatus staSetNetConnTaskInterval(gMonNet_t *net, unsigned int interval_ms) {
     net->interval_ms = interval_ms; // Update gmon for verification
     return GMON_RESP_OK;

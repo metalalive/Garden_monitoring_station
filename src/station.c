@@ -2,6 +2,16 @@
 
 static gardenMonitor_t *garden_monitor;
 
+void stationFailureHandler(unsigned int *func_pc) {
+    gMonDisplayFailure_t c = {
+        .curr_ticks = stationGetTicksPerDay(&garden_monitor->tick),
+        .curr_days = stationGetDays(&garden_monitor->tick),
+        .func_pc = func_pc,
+        .status = staEmergencyShutdownAllActuators(garden_monitor),
+    };
+    staDisplayFailure(&garden_monitor->display, c);
+}
+
 static gMonStatus stationInit(gardenMonitor_t **gmon) {
     if (gmon == NULL)
         return GMON_RESP_ERRARGS;

@@ -132,3 +132,10 @@ gMonStatus staActuatorTrigBulb(gMonActuator_t *dev, gmonEvent_t *evt, gMonSensor
     }
     return status;
 }
+
+gMonStatus staTurnOffActuator(gMonActuator_t *ac) {
+    if (ac == NULL)
+        return GMON_RESP_ERRARGS;
+    ac->status = GMON_OUT_DEV_STATUS_OFF;
+    return staPlatformWritePin(ac->lowlvl, GMON_PLATFORM_PIN_RESET);
+}

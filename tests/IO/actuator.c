@@ -247,6 +247,32 @@ TEST(AggregateU32, AllRelevantSensorsCorrupted) {
     TEST_ASSERT_EQUAL(100, dev.ema.last_aggregated);
 }
 
+TEST_GROUP(ShutdownAllActuators);
+
+TEST_SETUP(ShutdownAllActuators) {}
+
+TEST_TEAR_DOWN(ShutdownAllActuators) {}
+
+TEST(ShutdownAllActuators, NullMonitorPointer) {
+    gMonStatus status = staEmergencyShutdownAllActuators(NULL);
+    TEST_ASSERT_EQUAL(GMON_RESP_ERRARGS, status);
+}
+
+TEST(ShutdownAllActuators, SuccessAllActuatorsOff) {
+    gardenMonitor_t gmon = {0};
+    // Set initial statuses to ON to verify they change to OFF
+    gmon.actuator.pump.status = GMON_OUT_DEV_STATUS_ON;
+    gmon.actuator.fan.status = GMON_OUT_DEV_STATUS_PAUSE;
+    gmon.actuator.bulb.status = GMON_OUT_DEV_STATUS_ON;
+    // All staTurnOffActuator calls will succeed due to the mock of staPlatformWritePin
+    gMonStatus status = staEmergencyShutdownAllActuators(&gmon);
+    TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
+    // Verify that all actuator statuses are set to OFF
+    TEST_ASSERT_EQUAL(GMON_OUT_DEV_STATUS_OFF, gmon.actuator.pump.status);
+    TEST_ASSERT_EQUAL(GMON_OUT_DEV_STATUS_OFF, gmon.actuator.fan.status);
+    TEST_ASSERT_EQUAL(GMON_OUT_DEV_STATUS_OFF, gmon.actuator.bulb.status);
+}
+
 TEST_GROUP(AggregateAirCond);
 
 TEST_SETUP(AggregateAirCond) {}
@@ -460,4 +486,6 @@ TEST_GROUP_RUNNER(gMonActuator) {
     RUN_TEST_CASE(AggregateAirCond, SubsequentAggregationOk);
     RUN_TEST_CASE(AggregateAirCond, SingleRelevantUncorrupted);
     RUN_TEST_CASE(AggregateAirCond, MixedRelevantCorrupted);
+    RUN_TEST_CASE(ShutdownAllActuators, NullMonitorPointer);
+    RUN_TEST_CASE(ShutdownAllActuators, SuccessAllActuatorsOff);
 }

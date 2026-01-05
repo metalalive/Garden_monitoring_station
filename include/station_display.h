@@ -47,6 +47,13 @@ typedef struct {
     } config;
 } gMonDisplayContext_t;
 
+typedef struct {
+    unsigned int  curr_ticks; // represent system crash time
+    unsigned int  curr_days;
+    unsigned int *func_pc; // low-level program counter on system crash
+    gMonStatus    status;  // whether all actuators have been turned OFF on system crash
+} gMonDisplayFailure_t;
+
 // ----------------------------
 gMonStatus     staDisplayDevInit(void);
 gMonStatus     staDisplayDevDeInit(void);
@@ -57,6 +64,7 @@ gMonStatus     staDiplayDevPrintString(gmonPrintInfo_t *);
 
 gMonStatus staDisplayInit(struct gardenMonitor_s *);
 gMonStatus staDisplayDeInit(struct gardenMonitor_s *);
+gMonStatus staDisplayFailure(gMonDisplayContext_t *, gMonDisplayFailure_t);
 
 void stationDisplayTaskFn(void *params);
 
