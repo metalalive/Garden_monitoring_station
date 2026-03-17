@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-// these come from third-party STM32CubeMX library
+// from third-party STM32CubeMX library
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_tim.h"
 
@@ -17,6 +17,12 @@ extern "C" {
 
 #define GMON_PLATFORM_PIN_RESET GPIO_PIN_RESET
 #define GMON_PLATFORM_PIN_SET   GPIO_PIN_SET
+
+typedef struct {
+    GPIO_TypeDef *port;
+    uint16_t      pin;
+    uint8_t       alternate;
+} hal_pinout_t;
 
 // ---- functions that interface hardware implementation from application domain ----
 
@@ -48,6 +54,7 @@ gMonStatus staPlatformWritePin(void *pinstruct, uint8_t new_state);
 uint8_t    staPlatformReadPin(void *pinstruct);
 
 gMonStatus staPlatformDelayUs(uint16_t us);
+gMonStatus staPlatformNetPower(uint8_t en);
 
 // direction :
 // - 1: transition from LOW to HIGH

@@ -13,6 +13,7 @@ gMonStatus staSysCvtResp(int resp_in) {
         resp_out = GMON_RESP_ERRMEM;
         break;
     case espTIMEOUT:
+    case espERRCONNTIMEOUT:
         resp_out = GMON_RESP_TIMEOUT;
         break;
     default:
@@ -48,6 +49,22 @@ gMonStatus stationSysTaskDelete(stationSysTask_t *task_ptr) {
 
 gMonStatus stationSysInit(void) { return stationPlatformInit(); }
 
-gMonStatus stationSysDelayUs(unsigned short time_us) {
-    return staPlatformDelayUs(time_us);
-} // end of stationSysDelayUs
+gMonStatus stationSysDelayUs(unsigned short time_us) { return staPlatformDelayUs(time_us); }
+
+gMonStatus stationSysNetPowerOn(void) {
+#define DELAY_MS 6
+    espRes_t response = eESPpowerOn(DELAY_MS);
+#undef DELAY_MS
+    return staSysCvtResp(response);
+}
+
+gMonStatus stationSysNetPowerOff(void) {
+    espRes_t response = eESPpowerOff();
+    return staSysCvtResp(response);
+}
+
+espRes_t eESPlowLvlPower(espFnEn_t en) {
+    unsigned char pinstate = en == ESP_ENABLE ? 1 : 0;
+    gMonStatus    status = staPlatformNetPower(pinstate);
+    return status == GMON_RESP_OK ? espOK : espERR;
+}

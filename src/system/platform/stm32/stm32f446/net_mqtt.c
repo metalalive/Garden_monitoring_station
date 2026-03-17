@@ -1,5 +1,4 @@
-#include "stm32f4xx_hal.h"
-#include "FreeRTOS.h"
+#include "station_include.h"
 #include "pin_map.h"
 
 extern void STM32_generic_USART_IRQHandler(UART_HandleTypeDef *);
@@ -144,15 +143,14 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef *huart) {
 HAL_StatusTypeDef STM32_HAL_GPIO_Init(void) {
     //  ---------- initialize GPIO pins  for ESP device ----------
     GPIO_InitTypeDef GPIO_InitStruct = {0};
-    // `PH0` on STM32 board is always pulled HIGH and connected to `CH_PD` and `GPIO0`
-    // pin of ESP device, for now they are hardcoded here they don't need to be
-    // shared in core library implementation
     __HAL_RCC_GPIOH_CLK_ENABLE();
-    GPIO_InitStruct.Pin = GPIO_PIN_0;
+    GPIO_InitStruct.Pin = HW_ESP8266_CHIPENABLE_PIN;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_PULLUP;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
+    HAL_GPIO_Init(HW_ESP8266_CHIPENABLE_PORT, &GPIO_InitStruct);
+    GPIO_InitStruct.Pin = HW_ESP8266_POWERGATE_PIN;
+    HAL_GPIO_Init(HW_ESP8266_POWERGATE_PORT, &GPIO_InitStruct);
     // configure network device RST pin
     GPIO_InitStruct.Pin = HW_ESP8266_RST_PIN;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -169,8 +167,15 @@ HAL_StatusTypeDef STM32_HAL_GPIO_Init(void) {
     GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(HW_ENTROPY_ECHO_PORT, &GPIO_InitStruct);
-    HAL_GPIO_WritePin(GPIOH, GPIO_PIN_0, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(HW_ESP8266_CHIPENABLE_PORT, HW_ESP8266_CHIPENABLE_PIN, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(HW_ESP8266_POWERGATE_PORT, HW_ESP8266_POWERGATE_PIN, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(HW_ESP8266_RST_PORT, HW_ESP8266_RST_PIN, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(HW_ENTROPY_TRIG_PORT, HW_ENTROPY_TRIG_PIN, GPIO_PIN_RESET);
     return HAL_OK;
+}
+
+gMonStatus staPlatformNetPower(uint8_t en) {
+    GPIO_PinState pinstate = en == 1 ? GPIO_PIN_SET : GPIO_PIN_RESET;
+    hal_pinout_t  loc = {.port = HW_ESP8266_POWERGATE_PORT, .pin = HW_ESP8266_POWERGATE_PIN, .alternate = 0};
+    return staPlatformWritePin(&loc, pinstate);
 }

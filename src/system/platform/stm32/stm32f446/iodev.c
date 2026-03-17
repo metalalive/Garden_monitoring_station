@@ -5,12 +5,6 @@
 #define APP_APB2CLK_DIVIDER RCC_HCLK_DIV1 // PCLK2 freq. == HCLK
 
 typedef struct {
-    GPIO_TypeDef *port;
-    uint16_t      pin;
-    uint8_t       alternate;
-} hal_pinout_t;
-
-typedef struct {
     SPI_HandleTypeDef *handler;
     hal_pinout_t       SCK;
     hal_pinout_t       MOSI;

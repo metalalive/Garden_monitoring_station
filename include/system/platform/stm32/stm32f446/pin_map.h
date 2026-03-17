@@ -49,6 +49,14 @@ extern "C" {
 #define HW_ESP8266_UART_TX_AF   GPIO_AF7_USART3
 #define HW_ESP8266_RST_PORT     ESP8266_RST_PINGRP
 #define HW_ESP8266_RST_PIN      ESP8266_RST_PINNUM
+// - `PH0` on STM32 board is always pulled HIGH and connected to `CH_PD` and `GPIO0`
+//   pins of ESP device.
+// - `PH1` on STM32 board is toggled to control remote power switch,
+//   (e.g. MOSFET, relay, etc...)
+#define HW_ESP8266_CHIPENABLE_PORT GPIOH
+#define HW_ESP8266_CHIPENABLE_PIN  GPIO_PIN_0
+#define HW_ESP8266_POWERGATE_PORT  GPIOH
+#define HW_ESP8266_POWERGATE_PIN   GPIO_PIN_1
 
 // Entropy Source (HCSR04) Pin Assignments
 #define HW_ENTROPY_TRIG_PORT ENTROPY_HCSR04_OUT_GRP
