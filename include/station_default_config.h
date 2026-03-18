@@ -48,6 +48,9 @@ extern "C" {
     #ifndef GMON_CFG_SOIL_SENSOR_NUM_OVERSAMPLE
         #define GMON_CFG_SOIL_SENSOR_NUM_OVERSAMPLE 1
     #endif
+    #ifndef GMON_CFG_POWER_SOILSENSORS_LATENCY_MS
+        #define GMON_CFG_POWER_SOILSENSORS_LATENCY_MS 18
+    #endif
 #else
     #define GMON_SENSOR_INIT_FN_SOIL_MOIST(s)           GMON_RESP_OK
     #define GMON_SENSOR_DEINIT_FN_SOIL_MOIST(s)         GMON_RESP_OK
@@ -55,6 +58,7 @@ extern "C" {
     #define GMON_CFG_SENSOR_READ_INTERVAL_MS_SOIL_MOIST 0xffffffff
     #define GMON_CFG_NUM_SOIL_SENSORS                   0
     #define GMON_CFG_SOIL_SENSOR_NUM_OVERSAMPLE         0
+    #define GMON_CFG_POWER_SOILSENSORS_LATENCY_MS       0
 #endif // end of GMON_CFG_ENABLE_SENSOR_SOIL_MOIST
 
 #ifdef GMON_CFG_ENABLE_SENSOR_AIR_TEMP

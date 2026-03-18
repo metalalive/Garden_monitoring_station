@@ -44,6 +44,7 @@ gMonStatus staSensorInitSoilMoist(gMonSoilSensorMeta_t *s) {
     XMEMSET(s->fast_poll.enabled, 0x0, sizeof(unsigned char) * 1);
     s->fast_poll.divisor = GMON_CFG_SENSOR_FASTPOLL_DIVISOR;
     s->fast_poll._div_cnt = 0;
+    s->super.pwrup_latency_ms = GMON_CFG_POWER_SOILSENSORS_LATENCY_MS; // TODO, runtime configurable
     return staSensorPlatformInitSoilMoist(&s->super);
 }
 
@@ -126,12 +127,17 @@ char staSensorPollEnabled(gMonSoilSensorMeta_t *s_meta, unsigned short idx) {
 }
 
 gMonStatus staSensorReadSoilMoist(gMonSoilSensorMeta_t *s_meta, gmonSensorSample_t *readval) {
-    gMonStatus status = GMON_RESP_OK;
-    stationSysEnterCritical();
-    status = staPlatformReadSoilMoistSensor(&s_meta->super, readval);
-    stationSysExitCritical();
+    gMonSensorMeta_t *meta = &s_meta->super;
+    gMonStatus        status = staSensorPlatformPowerUpSoilMoist(meta);
     if (status == GMON_RESP_OK) {
-        status = staSensorDetectNoise(&s_meta->super, readval);
+        stationSysDelayMs((unsigned int)s_meta->super.pwrup_latency_ms);
+        stationSysEnterCritical();
+        status = staPlatformReadSoilMoistSensor(meta, readval);
+        stationSysExitCritical();
+    }
+    staSensorPlatformPowerDownSoilMoist(meta);
+    if (status == GMON_RESP_OK) {
+        status = staSensorDetectNoise(meta, readval);
     }
     return status;
 }

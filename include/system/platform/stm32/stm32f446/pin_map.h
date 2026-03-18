@@ -7,8 +7,13 @@ extern "C" {
 
 // ---- hardware pins mapping to application domain ----
 // Sensor Pin Assignments
-#define HW_SOIL_MOISTURE_PIN    GPIO_PIN_6 // PA6
-#define HW_SOIL_MOISTURE_ADC_CH ADC_CHANNEL_6
+#define HW_SOIL_MOISTURE_1_PIN   GPIO_PIN_6 // PA6
+#define HW_SOIL_MOISTURE_2_PIN   GPIO_PIN_5 // PA5
+#define HW_SOIL_MOISTURE_ADC_CH1 ADC_CHANNEL_6
+#define HW_SOIL_MOISTURE_ADC_CH2 ADC_CHANNEL_5
+
+#define HW_PWR_SOIL_MOISTURE_PORT GPIOA // PA12
+#define HW_PWR_SOIL_MOISTURE_PIN  GPIO_PIN_12
 
 #define HW_LIGHT_SENSOR_CH1_PIN GPIO_PIN_7 // PA7
 #define HW_LIGHT_SENSOR_CH2_PIN GPIO_PIN_1 // PB1

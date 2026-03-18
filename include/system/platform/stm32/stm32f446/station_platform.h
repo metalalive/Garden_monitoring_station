@@ -31,6 +31,8 @@ gMonStatus stationPlatformDeinit(void);
 
 gMonStatus staSensorPlatformInitSoilMoist(gMonSensorMeta_t *);
 gMonStatus staSensorPlatformDeInitSoilMoist(gMonSensorMeta_t *);
+gMonStatus staSensorPlatformPowerUpSoilMoist(gMonSensorMeta_t *);
+gMonStatus staSensorPlatformPowerDownSoilMoist(gMonSensorMeta_t *);
 gMonStatus staPlatformReadSoilMoistSensor(gMonSensorMeta_t *, gmonSensorSample_t *);
 
 gMonStatus staSensorPlatformInitAirTemp(gMonSensorMeta_t *);
