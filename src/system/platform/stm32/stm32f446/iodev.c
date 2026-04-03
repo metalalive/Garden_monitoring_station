@@ -28,6 +28,7 @@ typedef struct {
 static TIM_HandleTypeDef hal_tim_us;
 static ADC_HandleTypeDef hadc1; // used as analog input of soil moisture sensor
 static SPI_HandleTypeDef hspi2;
+static DMA_HandleTypeDef hdma_adc1;
 // PC14, PC15 are reserved for RCC LSE clock
 static const hal_pinout_t hal_air_temp_read_pin[1] = {{HW_AIRTEMP_PORT, HW_AIRTEMP_PIN, 0}};
 static const hal_pinout_t hal_pump_write_pin = {HW_PUMP_PORT, HW_PUMP_PIN, 0};
@@ -39,9 +40,11 @@ static hal_spi_pinout_t   hal_display_spi_pins;
 // power gating
 static const hal_pinout_t pwrctrl_soilmoist = {HW_PWR_SOIL_MOISTURE_PORT, HW_PWR_SOIL_MOISTURE_PIN, 0};
 
-static const hal_extend_adc_t hal_extended_adc_devices[4] = {
+static const hal_extend_adc_t hal_extended_adc_devices[6] = {
     {.reference = &hadc1, .channel = HW_SOIL_MOISTURE_ADC_CH1, .app_sensor_id = 1},
     {.reference = &hadc1, .channel = HW_SOIL_MOISTURE_ADC_CH2, .app_sensor_id = 2},
+    {.reference = &hadc1, .channel = HW_SOIL_MOISTURE_ADC_CH3, .app_sensor_id = 3},
+    {.reference = &hadc1, .channel = HW_SOIL_MOISTURE_ADC_CH4, .app_sensor_id = 4},
     {.reference = &hadc1, .channel = HW_LIGHT_SENSOR_ADC_CH1, .app_sensor_id = 1},
     {.reference = &hadc1, .channel = HW_LIGHT_SENSOR_ADC_CH2, .app_sensor_id = 2},
 };
@@ -135,7 +138,9 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim_base) {
     }
 }
 
-#define GPIOA_ADC1_PINS (HW_SOIL_MOISTURE_1_PIN | HW_SOIL_MOISTURE_2_PIN | HW_LIGHT_SENSOR_CH1_PIN)
+#define GPIOA_ADC1_PINS \
+    (HW_SOIL_MOISTURE_1_PIN | HW_SOIL_MOISTURE_2_PIN | HW_SOIL_MOISTURE_3_PIN | HW_LIGHT_SENSOR_CH1_PIN)
+#define GPIOB_ADC1_PINS (HW_SOIL_MOISTURE_4_PIN | HW_LIGHT_SENSOR_CH2_PIN)
 void HAL_ADC_MspInit(ADC_HandleTypeDef *hadc) {
     GPIO_InitTypeDef GPIO_InitStruct = {0};
     // for power control pins
@@ -148,14 +153,16 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef *hadc) {
     if (hadc->Instance == ADC1) {
         // Peripheral clock enable
         __HAL_RCC_ADC1_CLK_ENABLE();
+        __HAL_RCC_DMA2_CLK_ENABLE();
         // ADC1 GPIO Configuration
-        // PA5 --> ADC1_IN5, PA6 --> ADC1_IN6, PA7 --> ADC1_IN7
-        // PB1 --> ADC1_IN9
+        // PA1 --> ADC1_IN1, PA4 --> ADC1_IN4, PA6 --> ADC1_IN6,
+        // PA7 --> ADC1_IN7, PB0 --> ADC1_IN8, PB1 --> ADC1_IN9
         GPIO_InitStruct.Pin = GPIOA_ADC1_PINS;
         GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
         GPIO_InitStruct.Pull = GPIO_NOPULL;
+        GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
         HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-        GPIO_InitStruct.Pin = HW_LIGHT_SENSOR_CH2_PIN;
+        GPIO_InitStruct.Pin = GPIOB_ADC1_PINS;
         HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
     }
 }
@@ -163,8 +170,9 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef *hadc) {
 void HAL_ADC_MspDeInit(ADC_HandleTypeDef *hadc) {
     if (hadc->Instance == ADC1) {
         HAL_GPIO_DeInit(GPIOA, GPIOA_ADC1_PINS);
-        HAL_GPIO_DeInit(GPIOB, HW_LIGHT_SENSOR_CH2_PIN);
+        HAL_GPIO_DeInit(GPIOB, GPIOB_ADC1_PINS);
         __HAL_RCC_ADC1_CLK_DISABLE();
+        __HAL_RCC_DMA2_CLK_DISABLE();
     }
     HAL_GPIO_DeInit(HW_PWR_SOIL_MOISTURE_PORT, HW_PWR_SOIL_MOISTURE_PIN);
 }
@@ -204,23 +212,39 @@ void HAL_SPI_MspDeInit(SPI_HandleTypeDef *hspi) {
     }
 }
 
-static gMonStatus STM32_HAL_ADC1_Init(unsigned short num_devices) {
+static gMonStatus STM32_HAL_ADC1_Init(void) {
     // Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
     // in this proejct, multi-channel ADC will be configured, one of the channels is used for analog signal
     // of soil moisture sensor, 2 of the channels are used for analog signals of light-dependent resistors
     hadc1.Instance = ADC1;
     hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
     hadc1.Init.Resolution = ADC_RESOLUTION_10B;
-    hadc1.Init.ScanConvMode = ENABLE;
-    hadc1.Init.ContinuousConvMode = ENABLE;
+    hadc1.Init.ScanConvMode = DISABLE;
+    hadc1.Init.ContinuousConvMode = DISABLE;
     hadc1.Init.DiscontinuousConvMode = DISABLE;
     hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
     hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
     hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-    hadc1.Init.NbrOfConversion = num_devices;
+    hadc1.Init.NbrOfConversion = 1;
     hadc1.Init.DMAContinuousRequests = DISABLE;
     hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
     HAL_StatusTypeDef status = HAL_ADC_Init(&hadc1);
+    if (status != HAL_OK)
+        return GMON_RESP_ERR;
+    hdma_adc1.Instance = DMA2_Stream4;
+    hdma_adc1.Init.Channel = DMA_CHANNEL_0;
+    hdma_adc1.Init.Direction = DMA_PERIPH_TO_MEMORY;
+    hdma_adc1.Init.PeriphInc = DMA_PINC_DISABLE;
+    hdma_adc1.Init.MemInc = DMA_MINC_ENABLE;
+    hdma_adc1.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
+    hdma_adc1.Init.MemDataAlignment = DMA_PDATAALIGN_WORD;
+    hdma_adc1.Init.Mode = DMA_NORMAL;
+    hdma_adc1.Init.Priority = DMA_PRIORITY_MEDIUM;
+    hdma_adc1.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
+    status = HAL_DMA_Init(&hdma_adc1);
+    if (status == HAL_OK) {
+        __HAL_LINKDMA(&hadc1, DMA_Handle, hdma_adc1);
+    }
     return (status == HAL_OK ? GMON_RESP_OK : GMON_RESP_ERR);
 }
 
@@ -247,8 +271,7 @@ gMonStatus stationPlatformInit(void) {
     __HAL_RCC_GPIOC_CLK_ENABLE();
     __HAL_RCC_GPIOB_CLK_ENABLE();
     __HAL_RCC_GPIOA_CLK_ENABLE();
-    unsigned short    num_analog_pins = sizeof(hal_extended_adc_devices);
-    HAL_StatusTypeDef status = STM32_HAL_ADC1_Init(num_analog_pins);
+    HAL_StatusTypeDef status = STM32_HAL_ADC1_Init();
     if (status != HAL_OK) {
         goto done;
     }
@@ -272,7 +295,7 @@ done:
 }
 
 gMonStatus staSensorPlatformInitSoilMoist(gMonSensorMeta_t *s) {
-    if (s->num_items != 2)
+    if (s->num_items > 4)
         return GMON_RESP_ERRARGS;
     s->lowlvl = (void *)&hal_extended_devices[0];
     return GMON_RESP_OK;
@@ -286,7 +309,7 @@ gMonStatus staSensorPlatformDeInitSoilMoist(gMonSensorMeta_t *s) {
 gMonStatus staSensorPlatformInitLight(gMonSensorMeta_t *s) {
     if (s->num_items != 2)
         return GMON_RESP_ERRARGS;
-    s->lowlvl = (void *)&hal_extended_adc_devices[2];
+    s->lowlvl = (void *)&hal_extended_adc_devices[4];
     return GMON_RESP_OK;
 }
 
@@ -307,6 +330,12 @@ gMonStatus staSensorPlatformPowerDownSoilMoist(gMonSensorMeta_t *meta) {
     return PowerSoilMoist(meta, GPIO_PIN_RESET);
 }
 
+static void staResetADCregMap(ADC_TypeDef *regmap) {
+    regmap->SQR1 &= ~(ADC_SQR1_L);
+    regmap->CR1 &= ~(ADC_CR1_SCAN);
+    regmap->CR2 &= ~(ADC_CR2_EOCS);
+}
+
 gMonStatus staPlatformReadSoilMoistSensor(gMonSensorMeta_t *sensor, gmonSensorSample_t *out) {
     if (sensor == NULL || out == NULL || sensor->num_items == 0)
         return GMON_RESP_ERRARGS;
@@ -319,52 +348,60 @@ gMonStatus staPlatformReadSoilMoistSensor(gMonSensorMeta_t *sensor, gmonSensorSa
     unsigned short k = 0, max_oversample_len = 0;
     if (adc_devs == NULL)
         return GMON_RESP_ERRARGS;
+    // the ADC registers below should be only modified once, otherwise ADC might
+    // improperly sample input voltage state resulting in unstable read value.
+    // Currently only ADC1 is applied so all references point to a single ADC1
+    // instance.
+    ADC_TypeDef *regmap = adc_devs[0].reference->Instance;
+    staResetADCregMap(regmap);
+    regmap->SQR1 |= ADC_SQR1(sensor->num_items);
+    regmap->CR1 |= ADC_CR1_SCANCONV(ENABLE);
+    regmap->CR2 |= ADC_CR2_EOCSelection(ADC_EOC_SEQ_CONV);
 
     for (k = 0; k < sensor->num_items; k++) {
-        ADC_ChannelConfTypeDef sConfig = {0};
         if (out[k].data == NULL || out[k].len == 0 || out[k].id != adc_devs[k].app_sensor_id)
             return GMON_RESP_ERRMEM;
 
         char enabled = staSensorPollEnabled((gMonSoilSensorMeta_t *)sensor, k);
         if (!enabled)
             continue;
-        sConfig.Channel = adc_devs[k].channel;
-        sConfig.Rank = k + 1;
-        sConfig.SamplingTime = ADC_SAMPLETIME_15CYCLES;
 
-        hal_status = HAL_ADC_ConfigChannel(adc_devs[k].reference, &sConfig);
-        if (hal_status != HAL_OK)
-            goto done;
+        ADC_HandleTypeDef *adc_ref = adc_devs[k].reference;
         if (out[k].len > max_oversample_len)
             max_oversample_len = out[k].len;
+
+        ADC_ChannelConfTypeDef sConfig = {
+            .Channel = adc_devs[k].channel,
+            .Rank = k + 1,
+            .SamplingTime = ADC_SAMPLETIME_480CYCLES,
+        };
+        hal_status = HAL_ADC_ConfigChannel(adc_ref, &sConfig);
+        if (hal_status != HAL_OK)
+            return GMON_RESP_ERR;
     }
     // Perform resampling rounds with start/stop per round
     for (unsigned short m_round = 0; m_round < max_oversample_len; m_round++) {
+        ADC_HandleTypeDef *adc_ref = adc_devs[k].reference;
         // Start ADC for this resampling round,
         // note in current implementation, all channels comes from the same
         // ADC1 components, simply start ADC1 at here.
-        hal_status = HAL_ADC_Start(adc_devs[0].reference);
+        uint32_t dma_buffer[sensor->num_items];
+        hal_status = HAL_ADC_Start_DMA(adc_ref, dma_buffer, sensor->num_items);
         if (hal_status != HAL_OK)
             break;
-
+        // currently DMA interrupt is masked / suppressed  by upper application layer
+        // caller, the workaround here is to polling EN bit in SxCR register to see
+        // whether it is cleared by hardware (implicitly means end of transfer)
+        while (HAL_IS_BIT_SET(adc_ref->DMA_Handle->Instance->CR, DMA_SxCR_EN))
+            ;
+        // TODO , error processing
+        HAL_ADC_Stop_DMA(adc_ref);
         for (k = 0; k < sensor->num_items; k++) {
-            char enabled = staSensorPollEnabled((gMonSoilSensorMeta_t *)sensor, k);
-            if (!enabled)
-                continue;
-            if (m_round >= out[k].len)
-                continue;
-            hal_status = HAL_ADC_PollForConversion(adc_devs[k].reference, 100);
-            if (hal_status != HAL_OK) {
-                HAL_ADC_Stop(adc_devs[0].reference); // Stop ADC on error before exiting
-                goto done;
+            if (m_round < out[k].len) {
+                ((unsigned int *)out[k].data)[m_round] = dma_buffer[k];
             }
-            uint32_t adc_value = HAL_ADC_GetValue(adc_devs[k].reference);
-            ((unsigned int *)out[k].data)[m_round] = adc_value;
         }
-        // Stop ADC after all channels for this round are sampled
-        HAL_ADC_Stop(adc_devs[0].reference);
     }
-done:
     return (hal_status == HAL_OK ? GMON_RESP_OK : GMON_RESP_ERR);
 } // end of staPlatformReadSoilMoistSensor
 
@@ -379,6 +416,13 @@ gMonStatus staPlatformReadLightSensor(gMonSensorMeta_t *sensor, gmonSensorSample
     unsigned short k = 0, max_oversample_len = 0;
     if (adc_devs == NULL)
         return GMON_RESP_ERRARGS;
+
+    ADC_HandleTypeDef *adc_ref = adc_devs[0].reference;
+    ADC_TypeDef       *regmap = adc_ref->Instance;
+    staResetADCregMap(regmap);
+    regmap->SQR1 |= ADC_SQR1(sensor->num_items);
+    regmap->CR1 |= ADC_CR1_SCANCONV(ENABLE);
+    regmap->CR2 |= ADC_CR2_EOCSelection(ADC_EOC_SINGLE_CONV);
 
     for (k = 0; k < sensor->num_items; k++) {
         ADC_ChannelConfTypeDef sConfig = {0};

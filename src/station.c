@@ -62,7 +62,7 @@ static void stationInitTaskFn(void *param) {
     const unsigned char isPrivileged = 0x1;
 
     task_ptr = NULL;
-    task_stack_size = 0x80; // Use same stack size as sensorReader for consistency
+    task_stack_size = 0x96; // Use same stack size as sensorReader for consistency
     stationSysCreateTask(
         "pumpCtrler", (stationSysTaskFn_t)pumpControllerTaskFn, (void *)gmon, task_stack_size,
         GMON_TASKS_PRIO_MIN, isPrivileged, &task_ptr
