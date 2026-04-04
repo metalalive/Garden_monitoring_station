@@ -128,14 +128,14 @@ char staSensorPollEnabled(gMonSoilSensorMeta_t *s_meta, unsigned short idx) {
 
 gMonStatus staSensorReadSoilMoist(gMonSoilSensorMeta_t *s_meta, gmonSensorSample_t *readval) {
     gMonSensorMeta_t *meta = &s_meta->super;
-    gMonStatus        status = staSensorPlatformPowerUpSoilMoist(meta);
+    gMonStatus        status = staSensorPlatformPowerUp(meta);
     if (status == GMON_RESP_OK) {
         stationSysDelayMs((unsigned int)s_meta->super.pwrup_latency_ms);
         stationSysEnterCritical();
         status = staPlatformReadSoilMoistSensor(meta, readval);
         stationSysExitCritical();
     }
-    staSensorPlatformPowerDownSoilMoist(meta);
+    staSensorPlatformPowerDown(meta);
     if (status == GMON_RESP_OK) {
         status = staSensorDetectNoise(meta, readval);
     }

@@ -28,11 +28,11 @@ typedef struct {
 
 gMonStatus stationPlatformInit(void);
 gMonStatus stationPlatformDeinit(void);
+gMonStatus staSensorPlatformPowerUp(gMonSensorMeta_t *);
+gMonStatus staSensorPlatformPowerDown(gMonSensorMeta_t *);
 
 gMonStatus staSensorPlatformInitSoilMoist(gMonSensorMeta_t *);
 gMonStatus staSensorPlatformDeInitSoilMoist(gMonSensorMeta_t *);
-gMonStatus staSensorPlatformPowerUpSoilMoist(gMonSensorMeta_t *);
-gMonStatus staSensorPlatformPowerDownSoilMoist(gMonSensorMeta_t *);
 gMonStatus staPlatformReadSoilMoistSensor(gMonSensorMeta_t *, gmonSensorSample_t *);
 
 gMonStatus staSensorPlatformInitAirTemp(gMonSensorMeta_t *);

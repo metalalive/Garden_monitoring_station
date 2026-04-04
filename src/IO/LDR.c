@@ -61,18 +61,23 @@ gMonStatus staSensorInitLight(gMonSensorMeta_t *s) {
     status = staSensorSetMinMAD(s, GMON_LIGHT_SENSOR_MAD_THRESHOLD);
     if (status != GMON_RESP_OK)
         return status;
+    s->pwrup_latency_ms = GMON_CFG_POWER_LIGHTSENSORS_LATENCY_MS; // TODO, runtime configurable
     return staSensorPlatformInitLight(s);
 }
 
 gMonStatus staSensorDeInitLight(gMonSensorMeta_t *s) { return staSensorPlatformDeInitLight(s); }
 
-gMonStatus staSensorReadLight(gMonSensorMeta_t *sensor, gmonSensorSample_t *read_val) {
-    gMonStatus status = GMON_RESP_OK;
-    stationSysEnterCritical();
-    status = staPlatformReadLightSensor(sensor, read_val);
-    stationSysExitCritical();
+gMonStatus staSensorReadLight(gMonSensorMeta_t *meta, gmonSensorSample_t *readval) {
+    gMonStatus status = staSensorPlatformPowerUp(meta);
     if (status == GMON_RESP_OK) {
-        status = staSensorDetectNoise(sensor, read_val);
+        stationSysDelayMs((unsigned int)meta->pwrup_latency_ms);
+        stationSysEnterCritical();
+        status = staPlatformReadLightSensor(meta, readval);
+        stationSysExitCritical();
+    }
+    staSensorPlatformPowerDown(meta);
+    if (status == GMON_RESP_OK) {
+        status = staSensorDetectNoise(meta, readval);
     }
     return status;
 }

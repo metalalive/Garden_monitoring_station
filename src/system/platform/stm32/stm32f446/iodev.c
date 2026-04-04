@@ -39,18 +39,21 @@ static const hal_pinout_t hal_display_dc_pin = {HW_DISPLAY_DC_PORT, HW_DISPLAY_D
 static hal_spi_pinout_t   hal_display_spi_pins;
 // power gating
 static const hal_pinout_t pwrctrl_soilmoist = {HW_PWR_SOIL_MOISTURE_PORT, HW_PWR_SOIL_MOISTURE_PIN, 0};
+static const hal_pinout_t pwrctrl_light = {HW_PWR_LIGHT_DETECT_PORT, HW_PWR_LIGHT_DETECT_PIN, 0};
 
-static const hal_extend_adc_t hal_extended_adc_devices[6] = {
+static const hal_extend_adc_t hal_extended_adc_devices[7] = {
     {.reference = &hadc1, .channel = HW_SOIL_MOISTURE_ADC_CH1, .app_sensor_id = 1},
     {.reference = &hadc1, .channel = HW_SOIL_MOISTURE_ADC_CH2, .app_sensor_id = 2},
     {.reference = &hadc1, .channel = HW_SOIL_MOISTURE_ADC_CH3, .app_sensor_id = 3},
     {.reference = &hadc1, .channel = HW_SOIL_MOISTURE_ADC_CH4, .app_sensor_id = 4},
     {.reference = &hadc1, .channel = HW_LIGHT_SENSOR_ADC_CH1, .app_sensor_id = 1},
     {.reference = &hadc1, .channel = HW_LIGHT_SENSOR_ADC_CH2, .app_sensor_id = 2},
+    {.reference = &hadc1, .channel = HW_LIGHT_SENSOR_ADC_CH3, .app_sensor_id = 3},
 };
 
-static const hal_extend_t hal_extended_devices[1] = {
+static const hal_extend_t hal_extended_devices[2] = {
     {.adc = &hal_extended_adc_devices[0], .pwrctrl = &pwrctrl_soilmoist},
+    {.adc = &hal_extended_adc_devices[4], .pwrctrl = &pwrctrl_light},
 };
 
 HAL_StatusTypeDef SystemClock_Config(void) {
@@ -141,10 +144,11 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim_base) {
 #define GPIOA_ADC1_PINS \
     (HW_SOIL_MOISTURE_1_PIN | HW_SOIL_MOISTURE_2_PIN | HW_SOIL_MOISTURE_3_PIN | HW_LIGHT_SENSOR_CH1_PIN)
 #define GPIOB_ADC1_PINS (HW_SOIL_MOISTURE_4_PIN | HW_LIGHT_SENSOR_CH2_PIN)
+#define GPIOC_ADC1_PINS (HW_LIGHT_SENSOR_CH3_PIN)
 void HAL_ADC_MspInit(ADC_HandleTypeDef *hadc) {
     GPIO_InitTypeDef GPIO_InitStruct = {0};
     // for power control pins
-    GPIO_InitStruct.Pin = HW_PWR_SOIL_MOISTURE_PIN;
+    GPIO_InitStruct.Pin = HW_PWR_SOIL_MOISTURE_PIN | HW_PWR_LIGHT_DETECT_PIN;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_PULLDOWN;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
@@ -157,6 +161,7 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef *hadc) {
         // ADC1 GPIO Configuration
         // PA1 --> ADC1_IN1, PA4 --> ADC1_IN4, PA6 --> ADC1_IN6,
         // PA7 --> ADC1_IN7, PB0 --> ADC1_IN8, PB1 --> ADC1_IN9
+        // PC4 --> ADC1_IN14
         GPIO_InitStruct.Pin = GPIOA_ADC1_PINS;
         GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
         GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -164,6 +169,8 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef *hadc) {
         HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
         GPIO_InitStruct.Pin = GPIOB_ADC1_PINS;
         HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+        GPIO_InitStruct.Pin = GPIOC_ADC1_PINS;
+        HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
     }
 }
 
@@ -171,12 +178,15 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef *hadc) {
     if (hadc->Instance == ADC1) {
         HAL_GPIO_DeInit(GPIOA, GPIOA_ADC1_PINS);
         HAL_GPIO_DeInit(GPIOB, GPIOB_ADC1_PINS);
+        HAL_GPIO_DeInit(GPIOC, GPIOC_ADC1_PINS);
         __HAL_RCC_ADC1_CLK_DISABLE();
         __HAL_RCC_DMA2_CLK_DISABLE();
     }
-    HAL_GPIO_DeInit(HW_PWR_SOIL_MOISTURE_PORT, HW_PWR_SOIL_MOISTURE_PIN);
+    HAL_GPIO_DeInit(HW_PWR_SOIL_MOISTURE_PORT, HW_PWR_SOIL_MOISTURE_PIN | HW_PWR_LIGHT_DETECT_PIN);
 }
 #undef GPIOA_ADC_PINS
+#undef GPIOB_ADC_PINS
+#undef GPIOC_ADC_PINS
 
 void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi) {
     GPIO_InitTypeDef GPIO_InitStruct = {0};
@@ -307,9 +317,9 @@ gMonStatus staSensorPlatformDeInitSoilMoist(gMonSensorMeta_t *s) {
 }
 
 gMonStatus staSensorPlatformInitLight(gMonSensorMeta_t *s) {
-    if (s->num_items != 2)
+    if (s->num_items > 3)
         return GMON_RESP_ERRARGS;
-    s->lowlvl = (void *)&hal_extended_adc_devices[4];
+    s->lowlvl = (void *)&hal_extended_devices[1];
     return GMON_RESP_OK;
 }
 
@@ -318,16 +328,13 @@ gMonStatus staSensorPlatformDeInitLight(gMonSensorMeta_t *s) {
     return GMON_RESP_OK;
 }
 
-static gMonStatus PowerSoilMoist(gMonSensorMeta_t *meta, uint8_t enable) {
+static gMonStatus PowerCompGeneric(gMonSensorMeta_t *meta, uint8_t enable) {
     const hal_extend_t *ll_devs = (const hal_extend_t *)meta->lowlvl;
     return staPlatformWritePin((void *)ll_devs->pwrctrl, enable);
 }
-
-gMonStatus staSensorPlatformPowerUpSoilMoist(gMonSensorMeta_t *meta) {
-    return PowerSoilMoist(meta, GPIO_PIN_SET);
-}
-gMonStatus staSensorPlatformPowerDownSoilMoist(gMonSensorMeta_t *meta) {
-    return PowerSoilMoist(meta, GPIO_PIN_RESET);
+gMonStatus staSensorPlatformPowerUp(gMonSensorMeta_t *meta) { return PowerCompGeneric(meta, GPIO_PIN_SET); }
+gMonStatus staSensorPlatformPowerDown(gMonSensorMeta_t *meta) {
+    return PowerCompGeneric(meta, GPIO_PIN_RESET);
 }
 
 static void staResetADCregMap(ADC_TypeDef *regmap) {
@@ -410,56 +417,43 @@ gMonStatus staPlatformReadLightSensor(gMonSensorMeta_t *sensor, gmonSensorSample
         return GMON_RESP_ERRARGS;
     if (out->dtype != GMON_SENSOR_DATA_TYPE_U32)
         return GMON_RESP_ERRARGS;
-    HAL_StatusTypeDef hal_status = HAL_OK;
-    hal_extend_adc_t *adc_devs = (hal_extend_adc_t *)sensor->lowlvl;
+    HAL_StatusTypeDef   hal_status = HAL_OK;
+    const hal_extend_t *ll_devs = (const hal_extend_t *)sensor->lowlvl;
+    if (ll_devs == NULL)
+        return GMON_RESP_ERRARGS;
 
-    unsigned short k = 0, max_oversample_len = 0;
+    const hal_extend_adc_t *adc_devs = ll_devs->adc;
+
     if (adc_devs == NULL)
         return GMON_RESP_ERRARGS;
 
-    ADC_HandleTypeDef *adc_ref = adc_devs[0].reference;
-    ADC_TypeDef       *regmap = adc_ref->Instance;
+    ADC_TypeDef *regmap = adc_devs[0].reference->Instance;
     staResetADCregMap(regmap);
     regmap->SQR1 |= ADC_SQR1(sensor->num_items);
-    regmap->CR1 |= ADC_CR1_SCANCONV(ENABLE);
+    regmap->CR1 |= ADC_CR1_SCANCONV(DISABLE);
     regmap->CR2 |= ADC_CR2_EOCSelection(ADC_EOC_SINGLE_CONV);
 
-    for (k = 0; k < sensor->num_items; k++) {
-        ADC_ChannelConfTypeDef sConfig = {0};
+    for (unsigned short k = 0; k < sensor->num_items; k++) {
+        ADC_HandleTypeDef     *adc_ref = adc_devs[k].reference;
+        ADC_ChannelConfTypeDef sConfig = {.Rank = 1, .SamplingTime = ADC_SAMPLETIME_144CYCLES};
         if (out[k].data == NULL || out[k].len == 0 || out[k].id != adc_devs[k].app_sensor_id)
             return GMON_RESP_ERRMEM;
 
         sConfig.Channel = adc_devs[k].channel;
-        sConfig.Rank = k + 1;
-        sConfig.SamplingTime = ADC_SAMPLETIME_15CYCLES;
-        hal_status = HAL_ADC_ConfigChannel(adc_devs[k].reference, &sConfig);
+        hal_status = HAL_ADC_ConfigChannel(adc_ref, &sConfig);
         if (hal_status != HAL_OK)
             goto done;
-        if (out[k].len > max_oversample_len)
-            max_oversample_len = out[k].len;
-    }
-    // Perform resampling rounds with start/stop per round
-    for (unsigned short m_round = 0; m_round < max_oversample_len; m_round++) {
-        // Start ADC for this resampling round,
-        // note in current implementation, all channels comes from the same
-        // ADC1 components, simply start ADC1 at here.
-        hal_status = HAL_ADC_Start(adc_devs[0].reference);
-        if (hal_status != HAL_OK)
-            break;
-
-        for (k = 0; k < sensor->num_items; k++) {
-            if (m_round >= out[k].len)
-                continue;
-            hal_status = HAL_ADC_PollForConversion(adc_devs[k].reference, 80);
-            if (hal_status != HAL_OK) {
-                HAL_ADC_Stop(adc_devs[0].reference); // Stop ADC on error before exiting
-                goto done;
+        for (unsigned short m_round = 0; m_round < out[k].len; m_round++) {
+            hal_status = HAL_ADC_Start(adc_ref);
+            if (hal_status != HAL_OK)
+                break;
+            hal_status = HAL_ADC_PollForConversion(adc_ref, 65);
+            if (hal_status == HAL_OK) {
+                uint32_t adc_value = HAL_ADC_GetValue(adc_ref);
+                ((unsigned int *)out[k].data)[m_round] = adc_value;
             }
-            uint32_t adc_value = HAL_ADC_GetValue(adc_devs[k].reference);
-            ((unsigned int *)out[k].data)[m_round] = adc_value;
+            HAL_ADC_Stop(adc_ref);
         }
-        // Stop ADC after all channels for this round are sampled
-        HAL_ADC_Stop(adc_devs[0].reference);
     }
 done:
     return (hal_status == HAL_OK ? GMON_RESP_OK : GMON_RESP_ERR);
