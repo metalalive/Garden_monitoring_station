@@ -380,7 +380,7 @@ gMonStatus staPlatformReadSoilMoistSensor(gMonSensorMeta_t *sensor, gmonSensorSa
         ADC_ChannelConfTypeDef sConfig = {
             .Channel = adc_devs[k].channel,
             .Rank = k + 1,
-            .SamplingTime = ADC_SAMPLETIME_480CYCLES,
+            .SamplingTime = ADC_SAMPLETIME_15CYCLES,
         };
         hal_status = HAL_ADC_ConfigChannel(adc_ref, &sConfig);
         if (hal_status != HAL_OK)
