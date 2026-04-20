@@ -70,7 +70,7 @@ static void stationInitTaskFn(void *param) {
     gmon->tasks.pump_controller = (void *)task_ptr;
 
     task_ptr = NULL;
-    task_stack_size = 0x80;
+    task_stack_size = 0x84;
     stationSysCreateTask(
         "airMonitor", (stationSysTaskFn_t)airQualityMonitorTaskFn, (void *)gmon, task_stack_size,
         GMON_TASKS_PRIO_MIN, isPrivileged, &task_ptr

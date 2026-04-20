@@ -49,6 +49,8 @@ gMonStatus staActuatorPlatformInitBulb(void **pinstruct);
 gMonStatus staDisplayPlatformInit(uint8_t comm_protocal_id, void **pinstruct);
 gMonStatus staDisplayPlatformDeinit(void *pinstruct);
 
+void *staPlatformFindIOpin(void *lowlvl, uint8_t idx);
+
 gMonStatus staPlatformPinSetDirection(void *pinstruct, uint8_t direction);
 gMonStatus staPlatformSPItransmit(void *pinstruct, unsigned char *pData, unsigned short sz);
 

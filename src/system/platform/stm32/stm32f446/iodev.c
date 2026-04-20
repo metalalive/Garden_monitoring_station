@@ -1,8 +1,11 @@
 #include "station_include.h"
 #include "pin_map.h"
 
-#define PLATFORM_ONE_MHZ    1000000
-#define APP_APB2CLK_DIVIDER RCC_HCLK_DIV1 // PCLK2 freq. == HCLK
+#define PLATFORM_ONE_MHZ      1000000
+#define APP_APB2CLK_DIVIDER   RCC_HCLK_DIV1 // PCLK2 freq. == HCLK
+#define NUM_AIRTEMP_DATA_PINS 2
+#define NUM_LIGHTS_DATA_PINS  3
+#define NUM_SOILS_DATA_PINS   4
 
 typedef struct {
     SPI_HandleTypeDef *handler;
@@ -18,8 +21,12 @@ typedef struct {
 } hal_extend_adc_t;
 
 typedef struct {
-    const hal_extend_adc_t *adc;
-    const hal_pinout_t     *pwrctrl;
+    const hal_pinout_t *pwrctrl;
+    union {
+        const hal_extend_adc_t *adc;
+        const hal_pinout_t     *gpio;
+    } func;
+    uint8_t len;
 } hal_extend_t;
 
 // timer that increments counter every 1 microsecond in non-blocking manner,
@@ -30,7 +37,9 @@ static ADC_HandleTypeDef hadc1; // used as analog input of soil moisture sensor
 static SPI_HandleTypeDef hspi2;
 static DMA_HandleTypeDef hdma_adc1;
 // PC14, PC15 are reserved for RCC LSE clock
-static const hal_pinout_t hal_air_temp_read_pin[1] = {{HW_AIRTEMP_PORT, HW_AIRTEMP_PIN, 0}};
+static const hal_pinout_t hal_air_temp_read_pins[NUM_AIRTEMP_DATA_PINS] = {
+    {HW_AIRTEMP_PORT, HW_AIRTEMP1_PIN, 0}, {HW_AIRTEMP_PORT, HW_AIRTEMP2_PIN, 0}
+};
 static const hal_pinout_t hal_pump_write_pin = {HW_PUMP_PORT, HW_PUMP_PIN, 0};
 static const hal_pinout_t hal_fan_write_pin = {HW_FAN_PORT, HW_FAN_PIN, 0};
 static const hal_pinout_t hal_bulb_write_pin = {HW_BULB_PORT, HW_BULB_PIN, 0};
@@ -40,8 +49,9 @@ static hal_spi_pinout_t   hal_display_spi_pins;
 // power gating
 static const hal_pinout_t pwrctrl_soilmoist = {HW_PWR_SOIL_MOISTURE_PORT, HW_PWR_SOIL_MOISTURE_PIN, 0};
 static const hal_pinout_t pwrctrl_light = {HW_PWR_LIGHT_DETECT_PORT, HW_PWR_LIGHT_DETECT_PIN, 0};
+static const hal_pinout_t pwrctrl_airtemp = {HW_PWR_AIRTEMP_DETECT_PORT, HW_PWR_AIRTEMP_DETECT_PIN, 0};
 
-static const hal_extend_adc_t hal_extended_adc_devices[7] = {
+static const hal_extend_adc_t hal_extended_adc_devices[NUM_SOILS_DATA_PINS + NUM_LIGHTS_DATA_PINS] = {
     {.reference = &hadc1, .channel = HW_SOIL_MOISTURE_ADC_CH1, .app_sensor_id = 1},
     {.reference = &hadc1, .channel = HW_SOIL_MOISTURE_ADC_CH2, .app_sensor_id = 2},
     {.reference = &hadc1, .channel = HW_SOIL_MOISTURE_ADC_CH3, .app_sensor_id = 3},
@@ -51,9 +61,11 @@ static const hal_extend_adc_t hal_extended_adc_devices[7] = {
     {.reference = &hadc1, .channel = HW_LIGHT_SENSOR_ADC_CH3, .app_sensor_id = 3},
 };
 
-static const hal_extend_t hal_extended_devices[2] = {
-    {.adc = &hal_extended_adc_devices[0], .pwrctrl = &pwrctrl_soilmoist},
-    {.adc = &hal_extended_adc_devices[4], .pwrctrl = &pwrctrl_light},
+static const hal_extend_t hal_extended_devices[3] = {
+    {.func = {.adc = &hal_extended_adc_devices[0]}, .len = NUM_SOILS_DATA_PINS, .pwrctrl = &pwrctrl_soilmoist
+    },
+    {.func = {.adc = &hal_extended_adc_devices[4]}, .len = NUM_LIGHTS_DATA_PINS, .pwrctrl = &pwrctrl_light},
+    {.func = {.gpio = &hal_air_temp_read_pins[0]}, .len = NUM_AIRTEMP_DATA_PINS, .pwrctrl = &pwrctrl_airtemp},
 };
 
 HAL_StatusTypeDef SystemClock_Config(void) {
@@ -153,6 +165,8 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef *hadc) {
     GPIO_InitStruct.Pull = GPIO_PULLDOWN;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
     HAL_GPIO_Init(HW_PWR_SOIL_MOISTURE_PORT, &GPIO_InitStruct);
+    GPIO_InitStruct.Pin = HW_PWR_AIRTEMP_DETECT_PIN;
+    HAL_GPIO_Init(HW_PWR_AIRTEMP_DETECT_PORT, &GPIO_InitStruct);
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     if (hadc->Instance == ADC1) {
         // Peripheral clock enable
@@ -183,6 +197,7 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef *hadc) {
         __HAL_RCC_DMA2_CLK_DISABLE();
     }
     HAL_GPIO_DeInit(HW_PWR_SOIL_MOISTURE_PORT, HW_PWR_SOIL_MOISTURE_PIN | HW_PWR_LIGHT_DETECT_PIN);
+    HAL_GPIO_DeInit(HW_PWR_AIRTEMP_DETECT_PORT, HW_PWR_AIRTEMP_DETECT_PIN);
 }
 #undef GPIOA_ADC_PINS
 #undef GPIOB_ADC_PINS
@@ -305,7 +320,7 @@ done:
 }
 
 gMonStatus staSensorPlatformInitSoilMoist(gMonSensorMeta_t *s) {
-    if (s->num_items > 4)
+    if (s->num_items > hal_extended_devices[0].len)
         return GMON_RESP_ERRARGS;
     s->lowlvl = (void *)&hal_extended_devices[0];
     return GMON_RESP_OK;
@@ -317,7 +332,7 @@ gMonStatus staSensorPlatformDeInitSoilMoist(gMonSensorMeta_t *s) {
 }
 
 gMonStatus staSensorPlatformInitLight(gMonSensorMeta_t *s) {
-    if (s->num_items > 3)
+    if (s->num_items > hal_extended_devices[1].len)
         return GMON_RESP_ERRARGS;
     s->lowlvl = (void *)&hal_extended_devices[1];
     return GMON_RESP_OK;
@@ -350,7 +365,7 @@ gMonStatus staPlatformReadSoilMoistSensor(gMonSensorMeta_t *sensor, gmonSensorSa
         return GMON_RESP_ERRARGS;
     HAL_StatusTypeDef       hal_status = HAL_OK;
     const hal_extend_t     *ll_devs = (const hal_extend_t *)sensor->lowlvl;
-    const hal_extend_adc_t *adc_devs = ll_devs->adc;
+    const hal_extend_adc_t *adc_devs = ll_devs->func.adc;
 
     unsigned short k = 0, max_oversample_len = 0;
     if (adc_devs == NULL)
@@ -422,7 +437,7 @@ gMonStatus staPlatformReadLightSensor(gMonSensorMeta_t *sensor, gmonSensorSample
     if (ll_devs == NULL)
         return GMON_RESP_ERRARGS;
 
-    const hal_extend_adc_t *adc_devs = ll_devs->adc;
+    const hal_extend_adc_t *adc_devs = ll_devs->func.adc;
 
     if (adc_devs == NULL)
         return GMON_RESP_ERRARGS;
@@ -460,10 +475,9 @@ done:
 } // end of staPlatformReadLightSensor
 
 gMonStatus staSensorPlatformInitAirTemp(gMonSensorMeta_t *s) {
-    if (s == NULL || s->num_items != 1)
+    if (s == NULL || s->num_items > hal_extended_devices[2].len)
         return GMON_RESP_ERRARGS;
-    void **pinstruct = &s->lowlvl;
-    *(const hal_pinout_t **)pinstruct = hal_air_temp_read_pin;
+    s->lowlvl = (void *)&hal_extended_devices[2];
     return GMON_RESP_OK;
 }
 
@@ -580,6 +594,16 @@ gMonStatus staPlatformMeasurePulse(void *pinstruct, uint8_t *direction, uint16_t
     *us = (uint16_t)current_counter;
     *direction = (s0 == GPIO_PIN_RESET) ? 1 : 0;
     return GMON_RESP_OK;
+}
+
+void *staPlatformFindIOpin(void *lowlvl, uint8_t idx) {
+    void *out = NULL;
+    if (lowlvl == NULL)
+        return out;
+    const hal_extend_t *ll_devs = (const hal_extend_t *)lowlvl;
+    if (idx < ll_devs->len)
+        out = (void *)&ll_devs->func.gpio[idx];
+    return out;
 }
 
 gMonStatus staPlatformPinSetDirection(void *pinstruct, uint8_t direction) {

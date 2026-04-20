@@ -1,4 +1,6 @@
 #include "station_include.h"
+#define RESAMPLE_PERIOD_MS    1200 // essential for some sensors
+#define SAMPLE_INIT_PERIOD_MS 38
 
 gMonStatus staSetNumAirSensor(gMonSensorMeta_t *s, unsigned char new_val) {
     if (s == NULL)
@@ -171,31 +173,36 @@ done:
 // - modify function signature for introducing external reliable reference positive-integer
 //   which can calibrate the sensor here .
 // - set up power gate to this device
-gMonStatus staSensorReadAirTemp(gMonSensorMeta_t *sensor, gmonSensorSample_t *out) {
-    if (sensor == NULL || sensor->lowlvl == NULL || sensor->num_items == 0 || out == NULL)
+gMonStatus staSensorReadAirTemp(gMonSensorMeta_t *s_meta, gmonSensorSample_t *out) {
+    if (s_meta == NULL || s_meta->lowlvl == NULL || s_meta->num_items == 0 || out == NULL)
         return GMON_RESP_ERRARGS;
-    gMonStatus final_status = GMON_RESP_OK;
-    void      *signal_pin = sensor->lowlvl;
-    stationSysDelayMs(1000); // Wait 1 second after power on without sending any data
+    gMonStatus final_status = staSensorPlatformPowerUp(s_meta);
+    if (final_status != GMON_RESP_OK)
+        return final_status;
     // Iterate through each 'air sensor' item (if num_items > 1)
-    for (unsigned char item_idx = 0; item_idx < sensor->num_items; ++item_idx) {
+    for (unsigned char item_idx = 0; item_idx < s_meta->num_items; ++item_idx) {
         // Ensure the data buffer for this specific sample is allocated
         // and is of the expected type (gmonAirCond_t) with sufficient length
         if (out[item_idx].data == NULL || out[item_idx].dtype != GMON_SENSOR_DATA_TYPE_AIRCOND ||
             out[item_idx].len < 1) {
             return GMON_RESP_ERRMEM;
         }
-        gMonStatus current_item_status = GMON_RESP_SENSOR_FAIL;
         // Perform resampling for the current sensor item
-        for (unsigned char resample_idx = 0; resample_idx < sensor->num_resamples; ++resample_idx) {
-            current_item_status =
+        void *signal_pin = staPlatformFindIOpin(s_meta->lowlvl, item_idx);
+        if (signal_pin == NULL)
+            continue;
+        unsigned int interval_delay = SAMPLE_INIT_PERIOD_MS;
+        for (unsigned char resample_idx = 0; resample_idx < s_meta->num_resamples; ++resample_idx) {
+            stationSysDelayMs(interval_delay);
+            interval_delay = RESAMPLE_PERIOD_MS;
+            gMonStatus current_item_status =
                 sensorReadAirIteration(signal_pin, &((gmonAirCond_t *)out[item_idx].data)[resample_idx]);
-        }
-        if (current_item_status != GMON_RESP_OK) {
-            // If after all resamples, this item still failed, propagate the error.
-            final_status = current_item_status;
-            break; // No need to try other items if one failed persistently
+            if (current_item_status != GMON_RESP_OK) {
+                final_status = current_item_status; // propagate the error.
+                break;
+            }
         }
     }
+    staSensorPlatformPowerDown(s_meta);
     return final_status;
 } // end of staSensorReadAirTemp
