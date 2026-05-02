@@ -1,6 +1,5 @@
 #include "station_include.h"
-#define RESAMPLE_PERIOD_MS    1200 // essential for some sensors
-#define SAMPLE_INIT_PERIOD_MS 38
+#define RESAMPLE_PERIOD_MS 1200 // essential for some sensors
 
 gMonStatus staSetNumAirSensor(gMonSensorMeta_t *s, unsigned char new_val) {
     if (s == NULL)
@@ -40,6 +39,7 @@ gMonStatus staSensorInitAirTemp(gMonSensorMeta_t *s) {
     status = staSensorSetMinMAD(s, GMON_AIR_SENSOR_MAD_THRESHOLD);
     if (status != GMON_RESP_OK)
         return status;
+    s->pwrup_latency_ms = GMON_CFG_POWER_AIRSENSORS_LATENCY_MS; // TODO, runtime configurable
     return staSensorPlatformInitAirTemp(s);
 }
 
@@ -191,7 +191,7 @@ gMonStatus staSensorReadAirTemp(gMonSensorMeta_t *s_meta, gmonSensorSample_t *ou
         void *signal_pin = staPlatformFindIOpin(s_meta->lowlvl, item_idx);
         if (signal_pin == NULL)
             continue;
-        unsigned int interval_delay = SAMPLE_INIT_PERIOD_MS;
+        unsigned int interval_delay = s_meta->pwrup_latency_ms;
         for (unsigned char resample_idx = 0; resample_idx < s_meta->num_resamples; ++resample_idx) {
             stationSysDelayMs(interval_delay);
             interval_delay = RESAMPLE_PERIOD_MS;
