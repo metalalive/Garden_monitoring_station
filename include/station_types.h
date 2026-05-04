@@ -143,28 +143,33 @@ typedef struct {
     } fast_poll;
 } gMonSoilSensorMeta_t;
 
+// runtime configurable parameters for actuator
 typedef struct {
-    void *lowlvl;
     // ---- TODO, shorten data size on some fields ----
     // maximum time in milliseconds for a device that has been
     // continuously working in one day, maximum value MUST NOT
     // be greater than 1000 * 60 * 60 * 24 = 0x5265c00
     unsigned int max_worktime;
-    // current working time since this device is turned on last time
-    unsigned int curr_worktime;
     // minimum time in milliseconds to pause a device after it continuously
     // worked overtime but still needs to work longer to change
     // environment condition e.g. temperature drop, provide more growing
     // light...etc.
     // Again the maximum value MUST NOT be greater than 1000 * 60 * 60 * 24 = 0x5265c00
     unsigned int min_resttime;
-    unsigned int curr_resttime;
     // threshold that turns ON / OFF low-level device
     int threshold;
-    // low-level device status
-    gMonActuatorStatus status : 8;
     // Bitmask to select specific sensor IDs (pointed by `gmonSensorSample_t.id`)
     unsigned char sensor_id_mask;
+} gMonActuatorParam_t;
+
+typedef struct {
+    void               *lowlvl;
+    gMonActuatorParam_t user_param;
+    // current working time since this device is turned on last time
+    unsigned int curr_worktime;
+    unsigned int curr_resttime;
+    // low-level device status
+    gMonActuatorStatus status : 8;
     // EMA (Exponential Moving Average) is applied to event data aggregation, where
     // the outcome will be compared with pre-defined threshold field above.
     struct {
@@ -174,6 +179,11 @@ typedef struct {
         int last_aggregated;
     } ema;
 } gMonActuator_t;
+
+typedef struct {
+    gMonActuator_t *entries;
+    unsigned char   count;
+} gMonActuators_t;
 
 typedef struct {
     unsigned int ticks_per_day;

@@ -296,20 +296,23 @@ static gMonStatus staUpdatePrintStrActuatorThreshold(
     unsigned char *var_content_ptr[3];
     staInitPrintTxtVarPtr(&content->str, &fix_content_idx[0], &var_content_ptr[0]);
     stationSysEnterCritical();
-    {
+    { // TODO, multiple actuator support
+        gMonActuator_t *ator = &gmon->actuator.pump.entries[0];
         dst_buf = var_content_ptr[0];
         XMEMSET(dst_buf, 0x20, fix_content_idx[1]);
-        num_chr = staCvtUNumToStr(dst_buf, (unsigned int)gmon->actuator.pump.threshold);
+        num_chr = staCvtUNumToStr(dst_buf, (unsigned int)ator->user_param.threshold);
         XASSERT(num_chr <= fix_content_idx[1]);
 
+        ator = &gmon->actuator.fan.entries[0];
         dst_buf = var_content_ptr[1];
         XMEMSET(dst_buf, 0x20, fix_content_idx[3]);
-        num_chr = staCvtFloatToStr(dst_buf, (float)gmon->actuator.fan.threshold, 0x1);
+        num_chr = staCvtFloatToStr(dst_buf, (float)ator->user_param.threshold, 0x1);
         XASSERT(num_chr <= fix_content_idx[3]);
 
+        ator = &gmon->actuator.bulb.entries[0];
         dst_buf = var_content_ptr[2];
         XMEMSET(dst_buf, 0x20, fix_content_idx[5]);
-        num_chr = staCvtUNumToStr(dst_buf, (unsigned int)gmon->actuator.bulb.threshold);
+        num_chr = staCvtUNumToStr(dst_buf, (unsigned int)ator->user_param.threshold);
         XASSERT(num_chr <= fix_content_idx[5]);
     }
     stationSysExitCritical();
@@ -359,17 +362,20 @@ static gMonStatus staUpdatePrintStrActuatorStatus(gmonPrintInfo_t *content, void
     unsigned char *var_content_ptr[3] = {0};
     staInitPrintTxtVarPtr(&content->str, &fix_content_idx[0], &var_content_ptr[0]);
     stationSysEnterCritical();
-    {
+    { // TODO, multiple actuator support
+        gMonActuator_t *ator = &gmon->actuator.pump.entries[0];
         dst_buf = var_content_ptr[0];
-        label_buf = staCvtActuatorStatusToStr(gmon->actuator.pump.status);
+        label_buf = staCvtActuatorStatusToStr(ator->status);
         XMEMSET(dst_buf, 0x20, fix_content_idx[1]);
         XMEMCPY(dst_buf, label_buf, XSTRLEN(label_buf));
         dst_buf = var_content_ptr[1];
-        label_buf = staCvtActuatorStatusToStr(gmon->actuator.fan.status);
+        ator = &gmon->actuator.fan.entries[0];
+        label_buf = staCvtActuatorStatusToStr(ator->status);
         XMEMSET(dst_buf, 0x20, fix_content_idx[3]);
         XMEMCPY(dst_buf, label_buf, XSTRLEN(label_buf));
         dst_buf = var_content_ptr[2];
-        label_buf = staCvtActuatorStatusToStr(gmon->actuator.bulb.status);
+        ator = &gmon->actuator.bulb.entries[0];
+        label_buf = staCvtActuatorStatusToStr(ator->status);
         XMEMSET(dst_buf, 0x20, fix_content_idx[5]);
         XMEMCPY(dst_buf, label_buf, XSTRLEN(label_buf));
     }

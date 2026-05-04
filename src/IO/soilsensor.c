@@ -68,10 +68,10 @@ gMonStatus staSensorFastPollToggle(gMonSoilSensorMeta_t *s_meta, gMonActuator_t 
     case GMON_OUT_DEV_STATUS_ON:
         if (!soilSensorAnyFastPoll(s_meta))
             s_meta->fast_poll._div_cnt = s_meta->fast_poll.divisor;
-        s_meta->fast_poll.enabled[0] |= actuator->sensor_id_mask;
+        s_meta->fast_poll.enabled[0] |= actuator->user_param.sensor_id_mask;
         break;
     case GMON_OUT_DEV_STATUS_OFF:
-        s_meta->fast_poll.enabled[0] &= ~actuator->sensor_id_mask;
+        s_meta->fast_poll.enabled[0] &= ~actuator->user_param.sensor_id_mask;
         if (!soilSensorAnyFastPoll(s_meta))
             s_meta->fast_poll._div_cnt = 0;
         break;

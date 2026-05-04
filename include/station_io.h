@@ -57,30 +57,28 @@ gMonStatus staSensorDetectNoise(gMonSensorMeta_t *, gmonSensorSample_t *);
 gMonStatus staSensorSampleToEvent(gmonEvent_t *, gmonSensorSample_t *);
 
 // ------ actuators ------
-gMonStatus staActuatorInitPump(gMonActuator_t *);
-gMonStatus staActuatorDeinitPump(void);
-gMonStatus staActuatorTrigPump(gMonActuator_t *, gmonEvent_t *, gMonSoilSensorMeta_t *);
+gMonStatus staActuatorInitPump(gMonActuators_t *);
+gMonStatus staActuatorDeinitPump(gMonActuators_t *);
+gMonStatus staActuatorTrigPump(gMonActuators_t *, gmonEvent_t *, gMonSoilSensorMeta_t *);
 
-gMonStatus staActuatorInitFan(gMonActuator_t *);
-gMonStatus staActuatorDeinitFan(void);
-gMonStatus staActuatorTrigFan(gMonActuator_t *, gmonEvent_t *, gMonSensorMeta_t *);
+gMonStatus staActuatorInitFan(gMonActuators_t *);
+gMonStatus staActuatorDeinitFan(gMonActuators_t *);
+gMonStatus staActuatorTrigFan(gMonActuators_t *, gmonEvent_t *, gMonSensorMeta_t *);
 
-gMonStatus staActuatorInitBulb(gMonActuator_t *);
-gMonStatus staActuatorDeinitBulb(void);
-gMonStatus staActuatorTrigBulb(gMonActuator_t *, gmonEvent_t *, gMonSensorMeta_t *);
+gMonStatus staActuatorInitBulb(gMonActuators_t *);
+gMonStatus staActuatorDeinitBulb(gMonActuators_t *);
+gMonStatus staActuatorTrigBulb(gMonActuators_t *, gmonEvent_t *, gMonSensorMeta_t *);
 
 // generic functions to init device
-gMonStatus staActuatorInitGenericPump(gMonActuator_t *);
-gMonStatus staActuatorDeinitGenericPump(void);
-
-gMonStatus staActuatorInitGenericFan(gMonActuator_t *);
-gMonStatus staActuatorDeinitGenericFan(void);
-
-gMonStatus staActuatorInitGenericBulb(gMonActuator_t *);
-gMonStatus staActuatorDeinitGenericBulb(void);
+gMonStatus staActuatorGenericInit(gMonActuator_t *, unsigned char ema_lambda_fixpt);
+gMonStatus staActuatorUpdateParam(
+    gMonActuator_t *, const gMonActuatorParam_t *, gMonStatus (*)(gMonActuator_t *, unsigned int)
+);
 
 gMonStatus staActuatorAggregateU32(gmonEvent_t *, gMonActuator_t *, int *value);
 gMonStatus staActuatorAggregateAirCond(gmonEvent_t *, gMonActuator_t *, int *value);
+
+gMonStatus staActuatorAdjustSize(gMonActuators_t *, unsigned char new_count);
 
 gMonActuatorStatus staActuatorMeasureWorkingTime(gMonActuator_t *, unsigned int time_elapsed_ms);
 
@@ -91,7 +89,7 @@ gMonStatus staSetTrigThresholdBulb(gMonActuator_t *, unsigned int new_val);
 
 gMonStatus staPauseWorkingActuators(gardenMonitor_t *);
 gMonStatus staEmergencyShutdownAllActuators(gardenMonitor_t *);
-gMonStatus staTurnOffActuator(gMonActuator_t *);
+gMonStatus staTurnOffActuator(gMonActuators_t *);
 
 #ifdef __cplusplus
 }

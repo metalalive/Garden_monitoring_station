@@ -40,7 +40,7 @@ _COMMON_C_SOURCES_FUNC = \
     src/IO/actuator.c  \
     src/IO/display.c \
     src/IO/display/textfonts.c \
-    src/IO/relay/SRD-0xVDC-SL-C.c \
+    src/IO/relay.c \
     src/IO/display/SSD1315_OLED.c \
     src/IO/soilsensor.c \
     src/IO/LDR.c  \

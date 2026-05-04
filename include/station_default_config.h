@@ -160,32 +160,44 @@ extern "C" {
 
 #ifdef GMON_CFG_ENABLE_ACTUATOR_PUMP
     #define GMON_ACTUATOR_INIT_FN_PUMP(dev)              staActuatorInitPump((dev))
-    #define GMON_ACTUATOR_DEINIT_FN_PUMP()               staActuatorDeinitPump()
+    #define GMON_ACTUATOR_DEINIT_FN_PUMP(dev)            staActuatorDeinitPump((dev))
     #define GMON_ACTUATOR_TRIG_FN_PUMP(dev, evt, sensor) staActuatorTrigPump((dev), (evt), (sensor))
+    #ifndef GMON_CFG_ACTUATOR_NUM_PUMPS
+        #define GMON_CFG_ACTUATOR_NUM_PUMPS 0
+    #endif
 #else
     #define GMON_ACTUATOR_INIT_FN_PUMP(dev)              GMON_RESP_OK
-    #define GMON_ACTUATOR_DEINIT_FN_PUMP()               GMON_RESP_OK
+    #define GMON_ACTUATOR_DEINIT_FN_PUMP(dev)            GMON_RESP_OK
     #define GMON_ACTUATOR_TRIG_FN_PUMP(dev, evt, sensor) GMON_RESP_OK
+    #define GMON_CFG_ACTUATOR_NUM_PUMPS                  0
 #endif
 
 #ifdef GMON_CFG_ENABLE_ACTUATOR_FAN
     #define GMON_ACTUATOR_INIT_FN_FAN(dev)              staActuatorInitFan((dev))
-    #define GMON_ACTUATOR_DEINIT_FN_FAN()               staActuatorDeinitFan()
+    #define GMON_ACTUATOR_DEINIT_FN_FAN(dev)            staActuatorDeinitFan((dev))
     #define GMON_ACTUATOR_TRIG_FN_FAN(dev, evt, sensor) staActuatorTrigFan((dev), (evt), (sensor))
+    #ifndef GMON_CFG_ACTUATOR_NUM_FANS
+        #define GMON_CFG_ACTUATOR_NUM_FANS 0
+    #endif
 #else
     #define GMON_ACTUATOR_INIT_FN_FAN(dev)              GMON_RESP_OK
-    #define GMON_ACTUATOR_DEINIT_FN_FAN()               GMON_RESP_OK
+    #define GMON_ACTUATOR_DEINIT_FN_FAN(dev)            GMON_RESP_OK
     #define GMON_ACTUATOR_TRIG_FN_FAN(dev, evt, sensor) GMON_RESP_OK
+    #define GMON_CFG_ACTUATOR_NUM_FANS                  0
 #endif
 
 #ifdef GMON_CFG_ENABLE_ACTUATOR_BULB
     #define GMON_ACTUATOR_INIT_FN_BULB(dev)              staActuatorInitBulb((dev))
-    #define GMON_ACTUATOR_DEINIT_FN_BULB()               staActuatorDeinitBulb()
+    #define GMON_ACTUATOR_DEINIT_FN_BULB(dev)            staActuatorDeinitBulb((dev))
     #define GMON_ACTUATOR_TRIG_FN_BULB(dev, evt, sensor) staActuatorTrigBulb((dev), (evt), (sensor))
+    #ifndef GMON_CFG_ACTUATOR_NUM_BULBS
+        #define GMON_CFG_ACTUATOR_NUM_BULBS 0
+    #endif
 #else
     #define GMON_ACTUATOR_INIT_FN_BULB(dev)              GMON_RESP_OK
-    #define GMON_ACTUATOR_DEINIT_FN_BULB()               GMON_RESP_OK
+    #define GMON_ACTUATOR_DEINIT_FN_BULB(dev)            GMON_RESP_OK
     #define GMON_ACTUATOR_TRIG_FN_BULB(dev, evt, sensor) GMON_RESP_OK
+    #define GMON_CFG_ACTUATOR_NUM_BULBS                  0
 #endif
 
 #ifdef GMON_CFG_ENABLE_DISPLAY

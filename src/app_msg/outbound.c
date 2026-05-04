@@ -493,24 +493,20 @@ static gMonStatus serialize_actuators_object(
     status = staAppMsgSerializeAppendStr(buf_ptr, remaining_len, "\"" GMON_APPMSG_DATA_NAME_ACTUATORS "\":{");
     if (status != GMON_RESP_OK)
         return status;
-
+    gMonActuator_t *ator = &gmon->actuator.pump.entries[0]; // TODO, multi-actuator support
     // Pump , Not the last field of actuator
-    status = serialize_single_actuator_object(
-        buf_ptr, remaining_len, GMON_APPMSG_DATA_NAME_PUMP, &gmon->actuator.pump, 0
-    );
+    status = serialize_single_actuator_object(buf_ptr, remaining_len, GMON_APPMSG_DATA_NAME_PUMP, ator, 0);
     if (status != GMON_RESP_OK)
         return status;
-
+    ator = &gmon->actuator.fan.entries[0];
     // Fan
-    status = serialize_single_actuator_object(
-        buf_ptr, remaining_len, GMON_APPMSG_DATA_NAME_FAN, &gmon->actuator.fan, 0
-    );
+    status = serialize_single_actuator_object(buf_ptr, remaining_len, GMON_APPMSG_DATA_NAME_FAN, ator, 0);
     if (status != GMON_RESP_OK)
         return status;
-
+    ator = &gmon->actuator.bulb.entries[0];
     // Bulb (last actuator)
     status = serialize_single_actuator_object(
-        buf_ptr, remaining_len, GMON_APPMSG_DATA_NAME_BULB, &gmon->actuator.bulb, 1 // Last actuator
+        buf_ptr, remaining_len, GMON_APPMSG_DATA_NAME_BULB, ator, 1 // Last actuator
     );
     if (status != GMON_RESP_OK)
         return status;

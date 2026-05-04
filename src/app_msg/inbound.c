@@ -106,14 +106,14 @@ static gMonStatus staDecodeRatioAndSetSensorMeta(
 }
 
 static gMonStatus staDecodeActuatorConfig(
-    const unsigned char *json_data, jsmntok_t *tokens, int start_obj_tok_idx, gMonActuator_t *actuator,
+    const unsigned char *json_data, jsmntok_t *tokens, int start_obj_tok_idx, gMonActuators_t *ators,
     gMonStatus (*set_threshold_fn)(gMonActuator_t *, unsigned int), gMonStatus *threshold_status_field,
     int *tokens_consumed_out
 ) {
     gMonStatus status = GMON_RESP_OK;
     jsmntok_t *config_obj_token = &tokens[start_obj_tok_idx];
-    *tokens_consumed_out = 1; // For the config object itself
-
+    *tokens_consumed_out = 1;                      // For the config object itself
+    gMonActuator_t *actuator = &ators->entries[0]; // TODO, support multiple actuators
     if (config_obj_token->type != JSMN_OBJECT)
         return GMON_RESP_ERR_MSG_DECODE;
     int parsed_int = 0, curr_child_tok_idx = start_obj_tok_idx + 1;
@@ -128,12 +128,12 @@ static gMonStatus staDecodeActuatorConfig(
             if (XSTRNCMP(GMON_APPMSG_DATA_NAME_MAX_WORKTIME, child_key_name, child_key_len) == 0) {
                 status = staDecodeMsgCvtStrToInt(json_data, child_value_token, &parsed_int);
                 if (status == GMON_RESP_OK) {
-                    actuator->max_worktime = (unsigned int)parsed_int;
+                    actuator->user_param.max_worktime = (unsigned int)parsed_int;
                 }
             } else if (XSTRNCMP(GMON_APPMSG_DATA_NAME_MIN_RESTTIME, child_key_name, child_key_len) == 0) {
                 status = staDecodeMsgCvtStrToInt(json_data, child_value_token, &parsed_int);
                 if (status == GMON_RESP_OK) {
-                    actuator->min_resttime = (unsigned int)parsed_int;
+                    actuator->user_param.min_resttime = (unsigned int)parsed_int;
                 }
             } else if (XSTRNCMP(GMON_APPMSG_DATA_NAME_THRESHOLD, child_key_name, child_key_len) == 0) {
                 status = staDecodeMsgCvtStrToInt(json_data, child_value_token, &parsed_int);

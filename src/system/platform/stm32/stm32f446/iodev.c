@@ -491,7 +491,7 @@ gMonStatus staActuatorPlatformInitPump(void **pinstruct) {
         return GMON_RESP_ERRARGS;
     }
     *(const hal_pinout_t **)pinstruct = &hal_pump_write_pin;
-    return GMON_RESP_OK;
+    return staPlatformPinSetDirection(*pinstruct, GMON_PLATFORM_PIN_DIRECTION_OUT);
 }
 
 gMonStatus staActuatorPlatformInitFan(void **pinstruct) {
@@ -499,7 +499,7 @@ gMonStatus staActuatorPlatformInitFan(void **pinstruct) {
         return GMON_RESP_ERRARGS;
     }
     *(const hal_pinout_t **)pinstruct = &hal_fan_write_pin;
-    return GMON_RESP_OK;
+    return staPlatformPinSetDirection(*pinstruct, GMON_PLATFORM_PIN_DIRECTION_OUT);
 }
 
 gMonStatus staActuatorPlatformInitBulb(void **pinstruct) {
@@ -507,7 +507,7 @@ gMonStatus staActuatorPlatformInitBulb(void **pinstruct) {
         return GMON_RESP_ERRARGS;
     }
     *(const hal_pinout_t **)pinstruct = &hal_bulb_write_pin;
-    return GMON_RESP_OK;
+    return staPlatformPinSetDirection(*pinstruct, GMON_PLATFORM_PIN_DIRECTION_OUT);
 }
 
 gMonStatus staDisplayPlatformInit(uint8_t comm_protocal_id, void **pinstruct) {

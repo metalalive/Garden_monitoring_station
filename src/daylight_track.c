@@ -45,7 +45,7 @@ void lightControllerTaskFn(void *params) {
         status = staSensorSampleToEvent(event, read_vals.entries);
         XASSERT(status == GMON_RESP_OK);
         // TODO, redesign how to determine max work time of artifical light
-        gmon->actuator.bulb.max_worktime = 1230;
+        gmon->actuator.bulb.entries[0].user_param.max_worktime = 1230;
         status = GMON_ACTUATOR_TRIG_FN_BULB(&gmon->actuator.bulb, event, &gmon->sensors.light);
         // always pass event to message pipe regardless of actuator's return value
         event->curr_ticks = stationGetTicksPerDay(&gmon->tick);
