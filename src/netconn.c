@@ -1,8 +1,9 @@
 #include "station_include.h"
 
 struct gMonNetStatus {
-    gMonStatus send;
-    gMonStatus recv;
+    gMonStatus send : 8;
+    gMonStatus recv : 8;
+    gMonStatus pwr  : 8;
 };
 
 // encoding / decoding message sent from the peer / received from the peer,
@@ -68,23 +69,28 @@ static struct gMonNetStatus staNetConnIteration(
     gMonNet_t *net_handle, gmonStr_t *app_msg_recv, gmonStr_t *app_msg_send, uint8_t num_reconn
 ) {
     // this station might not always receive update from remote user
-    gMonStatus send_status = GMON_RESP_OK, recv_status = GMON_RESP_SKIP;
+    gMonStatus send_s = GMON_RESP_SKIP, recv_s = GMON_RESP_SKIP;
+    gMonStatus pwr_s = stationSysNetPowerOn();
+    if (pwr_s != GMON_RESP_OK) {
+        num_reconn = 0; // go straight to the end due to power-on issue
+    }
     // start network connection to MQTT broker
     while (num_reconn > 0) {
-        send_status = stationNetConnEstablish(net_handle);
-        if (send_status == GMON_RESP_OK) {
+        send_s = stationNetConnEstablish(net_handle);
+        if (send_s == GMON_RESP_OK) {
             // publish encoded JSON data
-            send_status = stationNetConnSend(net_handle, app_msg_send);
+            send_s = stationNetConnSend(net_handle, app_msg_send);
         }
-        if (send_status == GMON_RESP_OK) {
+        if (send_s == GMON_RESP_OK) {
             // check any update from user including : threshold of each output device trigger,
             // time interval of the working tasks, it must be JSON-based
-            recv_status = stationNetConnRecv(net_handle, app_msg_recv);
+            recv_s = stationNetConnRecv(net_handle, app_msg_recv);
         }
         stationNetConnClose(net_handle);
-        num_reconn = (send_status == GMON_RESP_OK) ? 0 : (num_reconn - 1);
+        num_reconn = (send_s == GMON_RESP_OK) ? 0 : (num_reconn - 1);
     }
-    struct gMonNetStatus out = {.send = send_status, .recv = recv_status};
+    stationSysNetPowerOff();
+    struct gMonNetStatus out = {.send = send_s, .recv = recv_s, .pwr = pwr_s};
     return out;
 }
 

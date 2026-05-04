@@ -116,7 +116,8 @@ typedef struct {
     // this takes effect when estimated MAD function returns zero in z-score calculation.
     float mad_threshold;
     // TODO, change to interval in seconds , with shorter number size (short)
-    unsigned int read_interval_ms;
+    unsigned int  read_interval_ms;
+    unsigned char pwrup_latency_ms;
     // number of sensors installed in one spot ,
     // note current appllication does not identify sensors in several different spots
     unsigned char num_items     : 4;

@@ -83,6 +83,9 @@ gMonStatus stationSysDelayUs(unsigned short time_us);
 
 gMonStatus staSysCvtResp(int resp_in);
 
+gMonStatus stationSysNetPowerOn(void);
+gMonStatus stationSysNetPowerOff(void);
+
 #ifdef __cplusplus
 }
 #endif

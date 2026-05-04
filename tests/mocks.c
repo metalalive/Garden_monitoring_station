@@ -107,6 +107,14 @@ unsigned short staDisplayDevGetScreenWidth(void) { return 120; }
 
 gMonStatus staDisplayRefreshScreen(void) { return GMON_RESP_OK; }
 
+gMonStatus staSensorPlatformPowerUp(gMonSensorMeta_t *s) {
+    (void)s;
+    return GMON_RESP_OK;
+}
+gMonStatus staSensorPlatformPowerDown(gMonSensorMeta_t *s) {
+    (void)s;
+    return GMON_RESP_OK;
+}
 gMonStatus staSensorPlatformInitSoilMoist(gMonSensorMeta_t *s) {
     (void)s;
     return GMON_RESP_OK;
@@ -146,6 +154,10 @@ gMonStatus staPlatformMeasurePulse(void *pinstruct, uint8_t *direction, uint16_t
     (void)direction;
     (void)us;
     return GMON_RESP_OK;
+}
+void *staPlatformFindIOpin(void *lowlvl, uint8_t idx) {
+    (void)idx;
+    return lowlvl;
 }
 gMonStatus staPlatformPinSetDirection(void *pinstruct, uint8_t direction) {
     (void)pinstruct;

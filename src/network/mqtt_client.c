@@ -158,6 +158,8 @@ gMonStatus stationNetConnInit(gMonNet_t *net_handle) {
         ext_ctx->subscribe_topic.filter.data = (byte *)GMON_MQTT_TOPIC_USR_CTRL;
         ext_ctx->subscribe_topic.filter.len = sizeof(GMON_MQTT_TOPIC_USR_CTRL) - 1;
     }
+    if (status == GMON_RESP_OK)
+        status = stationSysNetPowerOff();
     return status;
 } // end of stationNetConnInit
 
