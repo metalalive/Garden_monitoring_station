@@ -15,10 +15,9 @@ TEST_SETUP(SensorFastPoll) {
     test_soil_sensor_meta.super.num_items = 4;            // 4 sensors
     test_soil_sensor_meta.fast_poll.divisor = 5;
     test_soil_sensor_meta.fast_poll._div_cnt = 0; // Default to full poll cycle
-
     // Reset test pump actuator
     XMEMSET(&test_pump_actuator, 0, sizeof(gMonActuator_t));
-    test_pump_actuator.sensor_id_mask = (1 << 0) | (1 << 2); // Mask for sensor 0 and 2
+    test_pump_actuator.param.sensor_id_mask = (1 << 0) | (1 << 2); // Mask for sensor 0 and 2
     test_pump_actuator.status = GMON_OUT_DEV_STATUS_OFF;
 }
 
@@ -51,9 +50,10 @@ TEST(SensorFastPoll, ToggleActuatorOnOff) {
     ut_verify_poll_enabled(&test_soil_sensor_meta, 4, enabled_bits_02on);
 
     // ---- sub-case 2 , Test with another actuator mask, should OR ----
-    gMonActuator_t another_actuator = {0};
-    another_actuator.sensor_id_mask = (1 << 1); // Mask for sensor 1
-    another_actuator.status = GMON_OUT_DEV_STATUS_ON;
+    gMonActuator_t another_actuator = {
+        .param = {.sensor_id_mask = (1 << 1)}, // Mask for sensor 1
+        .status = GMON_OUT_DEV_STATUS_ON,
+    };
     status = staSensorFastPollToggle(&test_soil_sensor_meta, &another_actuator);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     // sensors 0, 1, and 2 are polling at faster rate
@@ -71,7 +71,7 @@ TEST(SensorFastPoll, ToggleActuatorOnOff) {
     ut_verify_poll_enabled(&test_soil_sensor_meta, 4, enabled_bits_1on);
 
     // ---- sub-case 4 , Test turning off a mask that wasn't enabled ----
-    another_actuator.sensor_id_mask = (1 << 5); // Mask for sensor 6 (unknown)
+    another_actuator.param.sensor_id_mask = (1 << 5); // Mask for sensor 6 (unknown)
     another_actuator.status = GMON_OUT_DEV_STATUS_OFF;
     status = staSensorFastPollToggle(&test_soil_sensor_meta, &another_actuator);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
@@ -81,7 +81,7 @@ TEST(SensorFastPoll, ToggleActuatorOnOff) {
     TEST_ASSERT_EQUAL(5, test_soil_sensor_meta.fast_poll._div_cnt);
 
     // ---- sub-case 5, turn off with another actuator mask ----
-    another_actuator.sensor_id_mask = (1 << 1); // Mask for sensor 1
+    another_actuator.param.sensor_id_mask = (1 << 1); // Mask for sensor 1
     status = staSensorFastPollToggle(&test_soil_sensor_meta, &another_actuator);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     // all sensors go back to default polling rate

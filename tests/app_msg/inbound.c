@@ -6,11 +6,16 @@
 TEST_GROUP(DecodeMsgInflight);
 
 // Test fixtures
-static gardenMonitor_t test_gmon; // Global gardenMonitor_t for tests
+static gMonActuator_t  test_actuator[3] = {0};
+static gardenMonitor_t test_gmon = {0};
 
 TEST_SETUP(DecodeMsgInflight) {
     // Reset test_gmon and mock statuses before each test
     XMEMSET(&test_gmon, 0, sizeof(gardenMonitor_t));
+    XMEMSET(test_actuator, 0, 3 * sizeof(gMonActuator_t));
+    test_gmon.actuator.pump = (gMonActuators_t){.count = 1, .entries = &test_actuator[0]};
+    test_gmon.actuator.fan = (gMonActuators_t){.count = 1, .entries = &test_actuator[1]};
+    test_gmon.actuator.bulb = (gMonActuators_t){.count = 1, .entries = &test_actuator[2]};
     staAppMsgInit(&test_gmon);
     gMonStatus status = staAppMsgReallocBuffer(&test_gmon);
     XASSERT(GMON_RESP_OK == status);
@@ -113,9 +118,9 @@ TEST(DecodeMsgInflight, ValidThresholds) {
     test_gmon.rawmsg.inflight.nbytes_written = testdata_sz;
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
-    TEST_ASSERT_EQUAL(1019, test_gmon.actuator.pump.threshold);
-    TEST_ASSERT_EQUAL(35, test_gmon.actuator.fan.threshold);
-    TEST_ASSERT_EQUAL(521, test_gmon.actuator.bulb.threshold);
+    TEST_ASSERT_EQUAL(1019, test_gmon.actuator.pump.entries[0].param.threshold);
+    TEST_ASSERT_EQUAL(35, test_gmon.actuator.fan.entries[0].param.threshold);
+    TEST_ASSERT_EQUAL(521, test_gmon.actuator.bulb.entries[0].param.threshold);
     TEST_ASSERT_EQUAL(7200000, test_gmon.user_ctrl.required_light_daylength_ticks);
 }
 
@@ -143,9 +148,9 @@ TEST(DecodeMsgInflight, MixedValid) {
     TEST_ASSERT_FLOAT_WITHIN(0.002f, 2.75f, test_gmon.sensors.air_temp.outlier_threshold);
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 2.923f, test_gmon.sensors.light.mad_threshold);
     TEST_ASSERT_EQUAL(360095, test_gmon.netconn.interval_ms);
-    TEST_ASSERT_EQUAL(934, test_gmon.actuator.pump.threshold);
-    TEST_ASSERT_EQUAL(31, test_gmon.actuator.fan.threshold);
-    TEST_ASSERT_EQUAL(609, test_gmon.actuator.bulb.threshold);
+    TEST_ASSERT_EQUAL(934, test_gmon.actuator.pump.entries[0].param.threshold);
+    TEST_ASSERT_EQUAL(31, test_gmon.actuator.fan.entries[0].param.threshold);
+    TEST_ASSERT_EQUAL(609, test_gmon.actuator.bulb.entries[0].param.threshold);
     TEST_ASSERT_EQUAL(7200012, test_gmon.user_ctrl.required_light_daylength_ticks);
 }
 
@@ -176,9 +181,9 @@ TEST(DecodeMsgInflight, MixedValidReordered) {
     // Assert netconn interval
     TEST_ASSERT_EQUAL(360095, test_gmon.netconn.interval_ms);
     // Assert output device thresholds
-    TEST_ASSERT_EQUAL(934, test_gmon.actuator.pump.threshold);
-    TEST_ASSERT_EQUAL(31, test_gmon.actuator.fan.threshold);
-    TEST_ASSERT_EQUAL(819, test_gmon.actuator.bulb.threshold);
+    TEST_ASSERT_EQUAL(934, test_gmon.actuator.pump.entries[0].param.threshold);
+    TEST_ASSERT_EQUAL(31, test_gmon.actuator.fan.entries[0].param.threshold);
+    TEST_ASSERT_EQUAL(819, test_gmon.actuator.bulb.entries[0].param.threshold);
     // Assert required daylight length
     TEST_ASSERT_EQUAL(7200012, test_gmon.user_ctrl.required_light_daylength_ticks);
 }
@@ -243,7 +248,7 @@ TEST(DecodeMsgInflight, NestedUnknownKeys) {
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     TEST_ASSERT_EQUAL(146, test_gmon.netconn.interval_ms);
-    TEST_ASSERT_EQUAL(291, test_gmon.actuator.pump.threshold);
+    TEST_ASSERT_EQUAL(291, test_gmon.actuator.pump.entries[0].param.threshold);
 }
 
 TEST(DecodeMsgInflight, ValidActuatorConfig) {
@@ -257,12 +262,12 @@ TEST(DecodeMsgInflight, ValidActuatorConfig) {
     test_gmon.rawmsg.inflight.nbytes_written = testdata_sz;
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
-    TEST_ASSERT_EQUAL(10000, test_gmon.actuator.pump.max_worktime);
-    TEST_ASSERT_EQUAL(1000, test_gmon.actuator.pump.min_resttime);
-    TEST_ASSERT_EQUAL(20000, test_gmon.actuator.fan.max_worktime);
-    TEST_ASSERT_EQUAL(2000, test_gmon.actuator.fan.min_resttime);
-    TEST_ASSERT_EQUAL(30000, test_gmon.actuator.bulb.max_worktime);
-    TEST_ASSERT_EQUAL(3000, test_gmon.actuator.bulb.min_resttime);
+    TEST_ASSERT_EQUAL(10000, test_gmon.actuator.pump.entries[0].param.max_worktime);
+    TEST_ASSERT_EQUAL(1000, test_gmon.actuator.pump.entries[0].param.min_resttime);
+    TEST_ASSERT_EQUAL(20000, test_gmon.actuator.fan.entries[0].param.max_worktime);
+    TEST_ASSERT_EQUAL(2000, test_gmon.actuator.fan.entries[0].param.min_resttime);
+    TEST_ASSERT_EQUAL(30000, test_gmon.actuator.bulb.entries[0].param.max_worktime);
+    TEST_ASSERT_EQUAL(3000, test_gmon.actuator.bulb.entries[0].param.min_resttime);
 }
 
 TEST(DecodeMsgInflight, ValidActuatorConfigPartial) {
@@ -274,9 +279,10 @@ TEST(DecodeMsgInflight, ValidActuatorConfigPartial) {
     test_gmon.rawmsg.inflight.nbytes_written = testdata_sz;
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
-    TEST_ASSERT_EQUAL(15000, test_gmon.actuator.pump.max_worktime);
-    TEST_ASSERT_EQUAL(0, test_gmon.actuator.pump.min_resttime); // Should be 0 as not specified
-    TEST_ASSERT_EQUAL(0, test_gmon.actuator.fan.max_worktime);  // Should be 0 as not specified
+    TEST_ASSERT_EQUAL(15000, test_gmon.actuator.pump.entries[0].param.max_worktime);
+    // Should be 0 as not specified
+    TEST_ASSERT_EQUAL(0, test_gmon.actuator.pump.entries[0].param.min_resttime);
+    TEST_ASSERT_EQUAL(0, test_gmon.actuator.fan.entries[0].param.max_worktime);
 }
 
 TEST(DecodeMsgInflight, ValidActuatorConfigUnknownKey) {
@@ -289,8 +295,8 @@ TEST(DecodeMsgInflight, ValidActuatorConfigUnknownKey) {
     test_gmon.rawmsg.inflight.nbytes_written = testdata_sz;
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status); // Should skip unknown key and continue parsing
-    TEST_ASSERT_EQUAL(11000, test_gmon.actuator.pump.max_worktime);
-    TEST_ASSERT_EQUAL(1100, test_gmon.actuator.pump.min_resttime);
+    TEST_ASSERT_EQUAL(11000, test_gmon.actuator.pump.entries[0].param.max_worktime);
+    TEST_ASSERT_EQUAL(1100, test_gmon.actuator.pump.entries[0].param.min_resttime);
 }
 
 TEST(DecodeMsgInflight, ComprehensiveConfigWithActuators) {
@@ -328,18 +334,18 @@ TEST(DecodeMsgInflight, ComprehensiveConfigWithActuators) {
     // Netconn interval
     TEST_ASSERT_EQUAL(360095, test_gmon.netconn.interval_ms);
     // Output device thresholds
-    TEST_ASSERT_EQUAL(934, test_gmon.actuator.pump.threshold);
-    TEST_ASSERT_EQUAL(31, test_gmon.actuator.fan.threshold);
-    TEST_ASSERT_EQUAL(189, test_gmon.actuator.bulb.threshold);
+    TEST_ASSERT_EQUAL(934, test_gmon.actuator.pump.entries[0].param.threshold);
+    TEST_ASSERT_EQUAL(31, test_gmon.actuator.fan.entries[0].param.threshold);
+    TEST_ASSERT_EQUAL(189, test_gmon.actuator.bulb.entries[0].param.threshold);
     // Required daylight length
     TEST_ASSERT_EQUAL(7200012, test_gmon.user_ctrl.required_light_daylength_ticks);
     // Actuator work/rest times
-    TEST_ASSERT_EQUAL(50000, test_gmon.actuator.pump.max_worktime);
-    TEST_ASSERT_EQUAL(5000, test_gmon.actuator.pump.min_resttime);
-    TEST_ASSERT_EQUAL(60000, test_gmon.actuator.fan.max_worktime);
-    TEST_ASSERT_EQUAL(6000, test_gmon.actuator.fan.min_resttime);
-    TEST_ASSERT_EQUAL(70000, test_gmon.actuator.bulb.max_worktime);
-    TEST_ASSERT_EQUAL(7000, test_gmon.actuator.bulb.min_resttime);
+    TEST_ASSERT_EQUAL(50000, test_gmon.actuator.pump.entries[0].param.max_worktime);
+    TEST_ASSERT_EQUAL(5000, test_gmon.actuator.pump.entries[0].param.min_resttime);
+    TEST_ASSERT_EQUAL(60000, test_gmon.actuator.fan.entries[0].param.max_worktime);
+    TEST_ASSERT_EQUAL(6000, test_gmon.actuator.fan.entries[0].param.min_resttime);
+    TEST_ASSERT_EQUAL(70000, test_gmon.actuator.bulb.entries[0].param.max_worktime);
+    TEST_ASSERT_EQUAL(7000, test_gmon.actuator.bulb.entries[0].param.min_resttime);
 }
 
 TEST(DecodeMsgInflight, SensorOutlierDenominatorZero) {

@@ -70,22 +70,23 @@ gMonStatus staActuatorDeinitBulb(gMonActuators_t *);
 gMonStatus staActuatorTrigBulb(gMonActuators_t *, gmonEvent_t *, gMonSensorMeta_t *);
 
 // generic functions to init device
-gMonStatus staActuatorGenericInit(gMonActuator_t *, unsigned char ema_lambda_fixpt);
+gMonStatus staActuatorGenericInit(gMonActuator_t *, gMonActuatorId_t, unsigned char ema_lambda_fixpt);
 gMonStatus staActuatorUpdateParam(
-    gMonActuator_t *, const gMonActuatorParam_t *, gMonStatus (*)(gMonActuator_t *, unsigned int)
+    gMonActuatorParam_t *, const gMonActuatorParam_t *, gMonStatus (*)(gMonActuatorParam_t *, unsigned int)
 );
 
 gMonStatus staActuatorAggregateU32(gmonEvent_t *, gMonActuator_t *, int *value);
 gMonStatus staActuatorAggregateAirCond(gmonEvent_t *, gMonActuator_t *, int *value);
 
-gMonStatus staActuatorAdjustSize(gMonActuators_t *, unsigned char new_count);
+gMonStatus staActuatorGrowSize(gMonActuators_t *, unsigned char new_count);
+gMonStatus staActuatorShrinkSize(gMonActuators_t *, unsigned char new_count, const gMonActuatorId_t *ids2rm);
 
 gMonActuatorStatus staActuatorMeasureWorkingTime(gMonActuator_t *, unsigned int time_elapsed_ms);
 
 gMonStatus staSetDefaultSensorReadInterval(gardenMonitor_t *, unsigned int new_interval);
-gMonStatus staSetTrigThresholdPump(gMonActuator_t *, unsigned int new_val);
-gMonStatus staSetTrigThresholdFan(gMonActuator_t *, unsigned int new_val);
-gMonStatus staSetTrigThresholdBulb(gMonActuator_t *, unsigned int new_val);
+gMonStatus staSetTrigThresholdPump(gMonActuatorParam_t *, unsigned int new_val);
+gMonStatus staSetTrigThresholdFan(gMonActuatorParam_t *, unsigned int new_val);
+gMonStatus staSetTrigThresholdBulb(gMonActuatorParam_t *, unsigned int new_val);
 
 gMonStatus staPauseWorkingActuators(gardenMonitor_t *);
 gMonStatus staEmergencyShutdownAllActuators(gardenMonitor_t *);

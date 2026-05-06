@@ -2,22 +2,17 @@
 
 gMonStatus staActuatorInitPump(gMonActuators_t *ators) {
     XMEMSET(ators, 0x00, sizeof(gMonActuators_t));
-    gMonStatus status = staActuatorAdjustSize(ators, GMON_CFG_ACTUATOR_NUM_PUMPS);
-    if (status != GMON_RESP_OK)
+    gMonStatus status = staActuatorGrowSize(ators, GMON_CFG_ACTUATOR_NUM_PUMPS);
+    if (status != GMON_RESP_OK && status != GMON_RESP_SKIP)
         goto done;
-    gMonActuatorParam_t new_param = {
-        .threshold = GMON_CFG_ACTUATOR_TRIG_THRESHOLD_PUMP,
-        .max_worktime = GMON_CFG_ACTUATOR_MAX_WORKTIME_PUMP,
-        .min_resttime = GMON_CFG_ACTUATOR_MIN_RESTTIME_PUMP,
-        .sensor_id_mask = GMON_CFG_ACTUATOR_SENSOR_MASK_PUMP,
-    };
+    static const gMonActuatorConfig_t new_cfg[GMON_CFG_ACTUATOR_NUM_PUMPS] =
+        GMON_CFG_ACTUATOR_INIT_PARAMS_PUMP;
     for (unsigned char idx = 0; idx < ators->count; idx++) {
         gMonActuator_t *ator = &ators->entries[idx];
-        status = staActuatorGenericInit(ator, GMON_CFG_ACTUATOR_EMA_LAMBDA_PUMP);
+        status = staActuatorGenericInit(ator, new_cfg[idx].id, GMON_CFG_ACTUATOR_EMA_LAMBDA_PUMP);
         if (status != GMON_RESP_OK)
             goto done;
-        new_param.sensor_id_mask = new_param.sensor_id_mask << 1;
-        status = staActuatorUpdateParam(ator, &new_param, staSetTrigThresholdPump);
+        status = staActuatorUpdateParam(&ator->param, &new_cfg[idx].param, staSetTrigThresholdPump);
         if (status != GMON_RESP_OK)
             goto done;
         status = staActuatorPlatformInitPump(&ator->lowlvl);
@@ -29,25 +24,20 @@ done:
     return status;
 }
 
-gMonStatus staActuatorDeinitPump(gMonActuators_t *ators) { return staActuatorAdjustSize(ators, 0); }
+gMonStatus staActuatorDeinitPump(gMonActuators_t *ators) { return staActuatorShrinkSize(ators, 0, NULL); }
 
 gMonStatus staActuatorInitFan(gMonActuators_t *ators) {
     XMEMSET(ators, 0x00, sizeof(gMonActuators_t));
-    gMonStatus status = staActuatorAdjustSize(ators, GMON_CFG_ACTUATOR_NUM_FANS);
-    if (status != GMON_RESP_OK)
+    gMonStatus status = staActuatorGrowSize(ators, GMON_CFG_ACTUATOR_NUM_FANS);
+    if (status != GMON_RESP_OK && status != GMON_RESP_SKIP)
         goto done;
-    const gMonActuatorParam_t new_param = {
-        .threshold = GMON_CFG_ACTUATOR_TRIG_THRESHOLD_FAN,
-        .max_worktime = GMON_CFG_ACTUATOR_MAX_WORKTIME_FAN,
-        .min_resttime = GMON_CFG_ACTUATOR_MIN_RESTTIME_FAN,
-        .sensor_id_mask = GMON_CFG_ACTUATOR_SENSOR_MASK_FAN,
-    };
+    static const gMonActuatorConfig_t new_cfg[GMON_CFG_ACTUATOR_NUM_FANS] = GMON_CFG_ACTUATOR_INIT_PARAMS_FAN;
     for (unsigned char idx = 0; idx < ators->count; idx++) {
         gMonActuator_t *ator = &ators->entries[idx];
-        status = staActuatorGenericInit(ator, GMON_CFG_ACTUATOR_EMA_LAMBDA_FAN);
+        status = staActuatorGenericInit(ator, new_cfg[idx].id, GMON_CFG_ACTUATOR_EMA_LAMBDA_FAN);
         if (status != GMON_RESP_OK)
             goto done;
-        status = staActuatorUpdateParam(ator, &new_param, staSetTrigThresholdFan);
+        status = staActuatorUpdateParam(&ator->param, &new_cfg[idx].param, staSetTrigThresholdFan);
         if (status != GMON_RESP_OK)
             goto done;
         status = staActuatorPlatformInitFan(&ator->lowlvl);
@@ -59,25 +49,21 @@ done:
     return status;
 }
 
-gMonStatus staActuatorDeinitFan(gMonActuators_t *ators) { return staActuatorAdjustSize(ators, 0); }
+gMonStatus staActuatorDeinitFan(gMonActuators_t *ators) { return staActuatorShrinkSize(ators, 0, NULL); }
 
 gMonStatus staActuatorInitBulb(gMonActuators_t *ators) {
     XMEMSET(ators, 0x00, sizeof(gMonActuators_t));
-    gMonStatus status = staActuatorAdjustSize(ators, GMON_CFG_ACTUATOR_NUM_BULBS);
-    if (status != GMON_RESP_OK)
+    gMonStatus status = staActuatorGrowSize(ators, GMON_CFG_ACTUATOR_NUM_BULBS);
+    if (status != GMON_RESP_OK && status != GMON_RESP_SKIP)
         goto done;
-    const gMonActuatorParam_t new_param = {
-        .threshold = GMON_CFG_ACTUATOR_TRIG_THRESHOLD_BULB,
-        .max_worktime = GMON_CFG_ACTUATOR_MAX_WORKTIME_BULB,
-        .min_resttime = GMON_CFG_ACTUATOR_MIN_RESTTIME_BULB,
-        .sensor_id_mask = GMON_CFG_ACTUATOR_SENSOR_MASK_BULB,
-    };
+    static const gMonActuatorConfig_t new_cfg[GMON_CFG_ACTUATOR_NUM_BULBS] =
+        GMON_CFG_ACTUATOR_INIT_PARAMS_BULB;
     for (unsigned char idx = 0; idx < ators->count; idx++) {
         gMonActuator_t *ator = &ators->entries[idx];
-        status = staActuatorGenericInit(ator, GMON_CFG_ACTUATOR_EMA_LAMBDA_BULB);
+        status = staActuatorGenericInit(ator, new_cfg[idx].id, GMON_CFG_ACTUATOR_EMA_LAMBDA_BULB);
         if (status != GMON_RESP_OK)
             goto done;
-        status = staActuatorUpdateParam(ator, &new_param, staSetTrigThresholdBulb);
+        status = staActuatorUpdateParam(&ator->param, &new_cfg[idx].param, staSetTrigThresholdBulb);
         if (status != GMON_RESP_OK)
             goto done;
         status = staActuatorPlatformInitBulb(&ator->lowlvl);
@@ -89,23 +75,23 @@ done:
     return status;
 }
 
-gMonStatus staActuatorDeinitBulb(gMonActuators_t *ators) { return staActuatorAdjustSize(ators, 0); }
+gMonStatus staActuatorDeinitBulb(gMonActuators_t *ators) { return staActuatorShrinkSize(ators, 0, NULL); }
 
-static gMonStatus TrigSinglePump(gMonActuator_t *dev, gmonEvent_t *evt, gMonSoilSensorMeta_t *sensor) {
+static gMonStatus TrigSinglePump(gMonActuator_t *ator, gmonEvent_t *evt, gMonSoilSensorMeta_t *sensor) {
     int          soil_moist = 0;
-    gMonStatus   status = staActuatorAggregateU32(evt, dev, &soil_moist);
+    gMonStatus   status = staActuatorAggregateU32(evt, ator, &soil_moist);
     unsigned int read_period_ms = staSensorReadInterval(sensor);
     // output device starts working until either max working time reached or actual read
     // value lesser than threshold larger input value means dry soil
-    gMonActuatorStatus dev_status = ((status == GMON_RESP_OK) && (dev->user_param.threshold < soil_moist))
-                                        ? staActuatorMeasureWorkingTime(dev, read_period_ms)
+    gMonActuatorStatus dev_status = ((status == GMON_RESP_OK) && (ator->param.threshold < soil_moist))
+                                        ? staActuatorMeasureWorkingTime(ator, read_period_ms)
                                         : GMON_OUT_DEV_STATUS_OFF;
-    if (dev->status != dev_status) {
-        dev->status = dev_status;
-        staSensorFastPollToggle(sensor, dev);
+    if (ator->status != dev_status) {
+        ator->status = dev_status;
+        staSensorFastPollToggle(sensor, ator);
         uint8_t pin_state =
             (dev_status == GMON_OUT_DEV_STATUS_ON ? GMON_PLATFORM_PIN_SET : GMON_PLATFORM_PIN_RESET);
-        status = staPlatformWritePin(dev->lowlvl, pin_state);
+        status = staPlatformWritePin(ator->lowlvl, pin_state);
     }
     return status;
 }
@@ -126,19 +112,19 @@ gMonStatus staActuatorTrigPump(gMonActuators_t *ators, gmonEvent_t *evt, gMonSoi
     return status;
 }
 
-static gMonStatus TrigSingleFan(gMonActuator_t *dev, gmonEvent_t *evt, gMonSensorMeta_t *sensor) {
+static gMonStatus TrigSingleFan(gMonActuator_t *ator, gmonEvent_t *evt, gMonSensorMeta_t *sensor) {
     int        air_cond = 0;
-    gMonStatus status = staActuatorAggregateAirCond(evt, dev, &air_cond);
+    gMonStatus status = staActuatorAggregateAirCond(evt, ator, &air_cond);
     // output device starts working until either max working time reached or actual read
     // value lesser than threshold
-    gMonActuatorStatus dev_status = ((status == GMON_RESP_OK) && (dev->user_param.threshold < air_cond))
-                                        ? staActuatorMeasureWorkingTime(dev, sensor->read_interval_ms)
+    gMonActuatorStatus dev_status = ((status == GMON_RESP_OK) && (ator->param.threshold < air_cond))
+                                        ? staActuatorMeasureWorkingTime(ator, sensor->read_interval_ms)
                                         : GMON_OUT_DEV_STATUS_OFF;
-    if (dev->status != dev_status) {
-        dev->status = dev_status;
+    if (ator->status != dev_status) {
+        ator->status = dev_status;
         uint8_t pin_state =
             (dev_status == GMON_OUT_DEV_STATUS_ON ? GMON_PLATFORM_PIN_SET : GMON_PLATFORM_PIN_RESET);
-        status = staPlatformWritePin(dev->lowlvl, pin_state);
+        status = staPlatformWritePin(ator->lowlvl, pin_state);
     }
     return status;
 }
@@ -159,20 +145,20 @@ gMonStatus staActuatorTrigFan(gMonActuators_t *ators, gmonEvent_t *evt, gMonSens
     return status;
 }
 
-static gMonStatus TrigSingleBulb(gMonActuator_t *dev, gmonEvent_t *evt, gMonSensorMeta_t *sensor) {
+static gMonStatus TrigSingleBulb(gMonActuator_t *ator, gmonEvent_t *evt, gMonSensorMeta_t *sensor) {
     // TODO: finish implementation, maximum working time per day for a bulb must be estimate,
     // in case that the plant you're growing still needs more growing light of a day.
     int        lightness = 0;
-    gMonStatus status = staActuatorAggregateU32(evt, dev, &lightness);
+    gMonStatus status = staActuatorAggregateU32(evt, ator, &lightness);
     // smaller value means less natural light
-    gMonActuatorStatus dev_status = ((status == GMON_RESP_OK) && (dev->user_param.threshold > lightness))
-                                        ? staActuatorMeasureWorkingTime(dev, sensor->read_interval_ms)
+    gMonActuatorStatus dev_status = ((status == GMON_RESP_OK) && (ator->param.threshold > lightness))
+                                        ? staActuatorMeasureWorkingTime(ator, sensor->read_interval_ms)
                                         : GMON_OUT_DEV_STATUS_OFF;
-    if (dev->status != dev_status) {
-        dev->status = dev_status;
+    if (ator->status != dev_status) {
+        ator->status = dev_status;
         uint8_t pin_state =
             (dev_status == GMON_OUT_DEV_STATUS_ON ? GMON_PLATFORM_PIN_SET : GMON_PLATFORM_PIN_RESET);
-        status = staPlatformWritePin(dev->lowlvl, pin_state);
+        status = staPlatformWritePin(ator->lowlvl, pin_state);
     }
     return status;
 }

@@ -107,7 +107,7 @@ static gMonStatus staDecodeRatioAndSetSensorMeta(
 
 static gMonStatus staDecodeActuatorConfig(
     const unsigned char *json_data, jsmntok_t *tokens, int start_obj_tok_idx, gMonActuators_t *ators,
-    gMonStatus (*set_threshold_fn)(gMonActuator_t *, unsigned int), gMonStatus *threshold_status_field,
+    gMonStatus (*set_threshold_fn)(gMonActuatorParam_t *, unsigned int), gMonStatus *threshold_status_field,
     int *tokens_consumed_out
 ) {
     gMonStatus status = GMON_RESP_OK;
@@ -128,17 +128,17 @@ static gMonStatus staDecodeActuatorConfig(
             if (XSTRNCMP(GMON_APPMSG_DATA_NAME_MAX_WORKTIME, child_key_name, child_key_len) == 0) {
                 status = staDecodeMsgCvtStrToInt(json_data, child_value_token, &parsed_int);
                 if (status == GMON_RESP_OK) {
-                    actuator->user_param.max_worktime = (unsigned int)parsed_int;
-                }
+                    actuator->param.max_worktime = (unsigned int)parsed_int;
+                } // TODO, replace with `staActuatorUpdateParam`
             } else if (XSTRNCMP(GMON_APPMSG_DATA_NAME_MIN_RESTTIME, child_key_name, child_key_len) == 0) {
                 status = staDecodeMsgCvtStrToInt(json_data, child_value_token, &parsed_int);
                 if (status == GMON_RESP_OK) {
-                    actuator->user_param.min_resttime = (unsigned int)parsed_int;
+                    actuator->param.min_resttime = (unsigned int)parsed_int;
                 }
             } else if (XSTRNCMP(GMON_APPMSG_DATA_NAME_THRESHOLD, child_key_name, child_key_len) == 0) {
                 status = staDecodeMsgCvtStrToInt(json_data, child_value_token, &parsed_int);
                 if (status == GMON_RESP_OK && set_threshold_fn != NULL && threshold_status_field != NULL) {
-                    *threshold_status_field = set_threshold_fn(actuator, (unsigned int)parsed_int);
+                    *threshold_status_field = set_threshold_fn(&actuator->param, (unsigned int)parsed_int);
                 }
             } else {
                 int skip_tokens_for_value = staCalcTokensToSkip(child_value_token);

@@ -300,19 +300,19 @@ static gMonStatus staUpdatePrintStrActuatorThreshold(
         gMonActuator_t *ator = &gmon->actuator.pump.entries[0];
         dst_buf = var_content_ptr[0];
         XMEMSET(dst_buf, 0x20, fix_content_idx[1]);
-        num_chr = staCvtUNumToStr(dst_buf, (unsigned int)ator->user_param.threshold);
+        num_chr = staCvtUNumToStr(dst_buf, (unsigned int)ator->param.threshold);
         XASSERT(num_chr <= fix_content_idx[1]);
 
         ator = &gmon->actuator.fan.entries[0];
         dst_buf = var_content_ptr[1];
         XMEMSET(dst_buf, 0x20, fix_content_idx[3]);
-        num_chr = staCvtFloatToStr(dst_buf, (float)ator->user_param.threshold, 0x1);
+        num_chr = staCvtFloatToStr(dst_buf, (float)ator->param.threshold, 0x1);
         XASSERT(num_chr <= fix_content_idx[3]);
 
         ator = &gmon->actuator.bulb.entries[0];
         dst_buf = var_content_ptr[2];
         XMEMSET(dst_buf, 0x20, fix_content_idx[5]);
-        num_chr = staCvtUNumToStr(dst_buf, (unsigned int)ator->user_param.threshold);
+        num_chr = staCvtUNumToStr(dst_buf, (unsigned int)ator->param.threshold);
         XASSERT(num_chr <= fix_content_idx[5]);
     }
     stationSysExitCritical();

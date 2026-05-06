@@ -4,11 +4,18 @@
 
 #define NUM_UTEST_SENSORS 2
 
-gardenMonitor_t test_gmon = {0}; // Initialize all members to 0
+static gMonActuator_t  test_actuator[3] = {0};
+static gardenMonitor_t test_gmon =
+    {.actuator = {
+         .pump = {.count = 1, .entries = &test_actuator[0]},
+         .fan = {.count = 1, .entries = &test_actuator[1]},
+         .bulb = {.count = 1, .entries = &test_actuator[2]},
+     }}; // Initialize all members to 0
 
 TEST_GROUP(RenderPrintText);
 
 TEST_SETUP(RenderPrintText) {
+    memset(test_actuator, 0, 3 * sizeof(gMonActuator_t));
     gMonStatus status = staDisplayInit(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
 }
@@ -69,9 +76,9 @@ TEST(RenderPrintText, ActuatorStateOk) {
         "[Thresold]: Pump: 0   , Fan: 0    , Bulb: 0   .", ac_trig_blk->content.str.data,
         ac_trig_blk->content.str.len
     );
-    test_gmon.actuator.pump.threshold = 627;
-    test_gmon.actuator.fan.threshold = 57;
-    test_gmon.actuator.bulb.threshold = 8;
+    test_gmon.actuator.pump.entries[0].param.threshold = 627;
+    test_gmon.actuator.fan.entries[0].param.threshold = 57;
+    test_gmon.actuator.bulb.entries[0].param.threshold = 8;
     gMonStatus status = ac_trig_blk->render(&ac_trig_blk->content, &test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
     TEST_ASSERT_EQUAL_STRING_LEN(

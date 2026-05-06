@@ -23,6 +23,7 @@ extern "C" {
 // Mock memory allocation for host
 #define XCALLOC             calloc
 #define XMALLOC(size)       malloc(size)
+#define XREALLOC            realloc
 #define XMEMFREE(ptr)       free(ptr)
 
 // Mock FreeRTOS-specific functions for host

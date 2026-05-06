@@ -42,19 +42,90 @@ extern "C" {
 #define GMON_CFG_ACTUATOR_NUM_BULBS 3
 
 #define GMON_CFG_ACTUATOR_TRIG_THRESHOLD_PUMP 890
-#define GMON_CFG_ACTUATOR_SENSOR_MASK_PUMP    0b00000001
 
 #define GMON_CFG_ACTUATOR_TRIG_THRESHOLD_FAN 51
 #define GMON_CFG_ACTUATOR_MAX_WORKTIME_FAN   (5300)
 #define GMON_CFG_ACTUATOR_MIN_RESTTIME_FAN   (2100)
-// for small-scale mini greenhouse which has one type of plant,
-// all air sensors should be linked to the same cooling actuator
-#define GMON_CFG_ACTUATOR_SENSOR_MASK_FAN 0b00000011
 
 #define GMON_CFG_ACTUATOR_TRIG_THRESHOLD_BULB 75
 #define GMON_CFG_ACTUATOR_MAX_WORKTIME_BULB   (7100)
 #define GMON_CFG_ACTUATOR_MIN_RESTTIME_BULB   (5700)
-#define GMON_CFG_ACTUATOR_SENSOR_MASK_BULB    0b00000111
+
+#define GMON_CFG_ACTUATOR_INIT_PARAMS_BULB \
+    { \
+        {.id = 2, \
+         .param = \
+             { \
+                 .threshold = GMON_CFG_ACTUATOR_TRIG_THRESHOLD_BULB, \
+                 .max_worktime = GMON_CFG_ACTUATOR_MAX_WORKTIME_BULB, \
+                 .min_resttime = GMON_CFG_ACTUATOR_MIN_RESTTIME_BULB, \
+                 .sensor_id_mask = 0b00000111, \
+             }}, \
+            {.id = 7, \
+             .param = \
+                 { \
+                     .threshold = GMON_CFG_ACTUATOR_TRIG_THRESHOLD_BULB, \
+                     .max_worktime = GMON_CFG_ACTUATOR_MAX_WORKTIME_BULB, \
+                     .min_resttime = GMON_CFG_ACTUATOR_MIN_RESTTIME_BULB, \
+                     .sensor_id_mask = 0b00000101, \
+                 }}, \
+            {.id = 8, \
+             .param = { \
+                 .threshold = GMON_CFG_ACTUATOR_TRIG_THRESHOLD_BULB, \
+                 .max_worktime = GMON_CFG_ACTUATOR_MAX_WORKTIME_BULB, \
+                 .min_resttime = GMON_CFG_ACTUATOR_MIN_RESTTIME_BULB, \
+                 .sensor_id_mask = 0b00000110, \
+             }}, \
+    }
+
+// for small-scale mini greenhouse which has one type of plant,
+// all air sensors should be linked to the same cooling actuator
+#define GMON_CFG_ACTUATOR_INIT_PARAMS_FAN \
+    { \
+        { \
+            .id = 3, .param = { \
+                .threshold = GMON_CFG_ACTUATOR_TRIG_THRESHOLD_FAN, \
+                .max_worktime = GMON_CFG_ACTUATOR_MAX_WORKTIME_FAN, \
+                .min_resttime = GMON_CFG_ACTUATOR_MIN_RESTTIME_FAN, \
+                .sensor_id_mask = 0b00000011, \
+            } \
+        } \
+    }
+
+#define GMON_CFG_ACTUATOR_INIT_PARAMS_PUMP \
+    { \
+        {.id = 1, \
+         .param = \
+             { \
+                 .threshold = GMON_CFG_ACTUATOR_TRIG_THRESHOLD_PUMP, \
+                 .max_worktime = GMON_CFG_ACTUATOR_MAX_WORKTIME_PUMP, \
+                 .min_resttime = GMON_CFG_ACTUATOR_MIN_RESTTIME_PUMP, \
+                 .sensor_id_mask = 0b00000001, \
+             }}, \
+            {.id = 4, \
+             .param = \
+                 { \
+                     .threshold = GMON_CFG_ACTUATOR_TRIG_THRESHOLD_PUMP, \
+                     .max_worktime = GMON_CFG_ACTUATOR_MAX_WORKTIME_PUMP, \
+                     .min_resttime = GMON_CFG_ACTUATOR_MIN_RESTTIME_PUMP, \
+                     .sensor_id_mask = 0b00000010, \
+                 }}, \
+            {.id = 5, \
+             .param = \
+                 { \
+                     .threshold = GMON_CFG_ACTUATOR_TRIG_THRESHOLD_PUMP, \
+                     .max_worktime = GMON_CFG_ACTUATOR_MAX_WORKTIME_PUMP, \
+                     .min_resttime = GMON_CFG_ACTUATOR_MIN_RESTTIME_PUMP, \
+                     .sensor_id_mask = 0b00000100, \
+                 }}, \
+            {.id = 6, \
+             .param = { \
+                 .threshold = GMON_CFG_ACTUATOR_TRIG_THRESHOLD_PUMP, \
+                 .max_worktime = GMON_CFG_ACTUATOR_MAX_WORKTIME_PUMP, \
+                 .min_resttime = GMON_CFG_ACTUATOR_MIN_RESTTIME_PUMP, \
+                 .sensor_id_mask = 0b00001000, \
+             }}, \
+    }
 
 #define GMON_CFG_DEFAULT_REQUIRED_LIGHT_LENGTH_TICKS (300000)
 
