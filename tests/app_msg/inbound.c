@@ -13,6 +13,9 @@ TEST_SETUP(DecodeMsgInflight) {
     // Reset test_gmon and mock statuses before each test
     XMEMSET(&test_gmon, 0, sizeof(gardenMonitor_t));
     XMEMSET(test_actuator, 0, 3 * sizeof(gMonActuator_t));
+    test_actuator[0].id = 9;
+    test_actuator[1].id = 14;
+    test_actuator[2].id = 6;
     test_gmon.actuator.pump = (gMonActuators_t){.count = 1, .entries = &test_actuator[0]};
     test_gmon.actuator.fan = (gMonActuators_t){.count = 1, .entries = &test_actuator[1]};
     test_gmon.actuator.bulb = (gMonActuators_t){.count = 1, .entries = &test_actuator[2]};
@@ -36,7 +39,7 @@ TEST(DecodeMsgInflight, EmptyJson) {
 }
 
 TEST(DecodeMsgInflight, ValidIntervalNetconn) {
-    const unsigned char *json_data = (const unsigned char *)"{\"netconn\":{\"interval\":3600000}}";
+    const unsigned char *json_data = (const unsigned char *)"{\"netconn\":{\"itvl\":3600000}}";
     uint16_t             testdata_sz = strlen((const char *)json_data);
     TEST_ASSERT_LESS_THAN_UINT16(test_gmon.rawmsg.inflight.len, testdata_sz);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
@@ -48,9 +51,8 @@ TEST(DecodeMsgInflight, ValidIntervalNetconn) {
 
 TEST(DecodeMsgInflight, ValidSpareSensor) {
     const unsigned char *json_data =
-        (const unsigned char
-             *)"{\"sensor\":{\"soilmoist\":{\"interval\":10009,\"mad\":[8,3]},\"airtemp\":{"
-               "\"interval\":20008,\"resample\":2},\"light\":{\"interval\":30007,\"qty\":5}}}";
+        (const unsigned char *)"{\"sensor\":{\"soilmoist\":{\"itvl\":10009,\"mad\":[8,3]},\"airtemp\":{"
+                               "\"itvl\":20008,\"rsmp\":2},\"light\":{\"itvl\":30007,\"qty\":5}}}";
     uint16_t testdata_sz = strlen((const char *)json_data);
     TEST_ASSERT_LESS_THAN_UINT16(test_gmon.rawmsg.inflight.len, testdata_sz);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
@@ -96,8 +98,8 @@ TEST(DecodeMsgInflight, SensorQtyExceed) {
 
 TEST(DecodeMsgInflight, SensorResampleExceed) {
     const unsigned char *json_data =
-        (const unsigned char *)"{\"sensor\":{\"soilmoist\":{\"resample\":6},"
-                               "\"airtemp\":{\"resample\":5},\"light\":{\"resample\":7}}}";
+        (const unsigned char *)"{\"sensor\":{\"soilmoist\":{\"rsmp\":6},"
+                               "\"airtemp\":{\"rsmp\":5},\"light\":{\"rsmp\":7}}}";
     uint16_t testdata_sz = strlen((const char *)json_data);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
     test_gmon.rawmsg.inflight.nbytes_written = testdata_sz;
@@ -110,8 +112,8 @@ TEST(DecodeMsgInflight, SensorResampleExceed) {
 
 TEST(DecodeMsgInflight, ValidThresholds) {
     const unsigned char *json_data =
-        (const unsigned char *)"{\"actuators\":{\"pump\":{\"threshold\":1019},\"fan\":{\"threshold\":"
-                               "35},\"bulb\":{\"threshold\":521}},\"daylength\":7200000}";
+        (const unsigned char *)"{\"actuators\":{\"bulb\":{\"id\":6,\"thre\":521},\"fan\":{\"id\":14,"
+                               "\"thre\":35},\"pump\":{\"id\":9,\"thre\":1019}},\"daylength\":7200000}";
     uint16_t testdata_sz = strlen((const char *)json_data);
     TEST_ASSERT_LESS_THAN_UINT16(test_gmon.rawmsg.inflight.len, testdata_sz);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
@@ -126,12 +128,12 @@ TEST(DecodeMsgInflight, ValidThresholds) {
 
 TEST(DecodeMsgInflight, MixedValid) {
     const unsigned char *json_data =
-        (const unsigned char
-             *)"{\"sensor\":{\"soilmoist\":{\"interval\":2100,\"qty\":3,\"outlier\":[32,11]},"
-               "\"airtemp\":{\"interval\":7100,\"qty\":2,\"outlier\":[33,12]},"
-               "\"light\":{\"interval\":11000,\"resample\":5,\"mad\":[38,13]}}"
-               ",\"actuators\":{\"pump\":{\"threshold\":934},\"fan\":{\"threshold\":31},\"bulb\":"
-               "{\"threshold\":609}},\"netconn\":{\"interval\":360095},\"daylength\":7200012}";
+        (const unsigned char *)"{\"sensor\":{\"soilmoist\":{\"itvl\":2100,\"qty\":3,\"outlier\":[32,11]},"
+                               "\"airtemp\":{\"itvl\":7100,\"qty\":2,\"outlier\":[33,12]},"
+                               "\"light\":{\"itvl\":11000,\"rsmp\":5,\"mad\":[38,13]}}"
+                               ",\"actuators\":{\"pump\":{\"id\":9,\"thre\":934},\"fan\":{\"id\":14,"
+                               "\"thre\":31},\"bulb\":{\"id\":6,\"thre\":609}},"
+                               "\"netconn\":{\"itvl\":360095},\"daylength\":7200012}";
     uint16_t testdata_sz = strlen((const char *)json_data);
     TEST_ASSERT_LESS_THAN_UINT16(test_gmon.rawmsg.inflight.len, testdata_sz);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
@@ -156,12 +158,12 @@ TEST(DecodeMsgInflight, MixedValid) {
 
 TEST(DecodeMsgInflight, MixedValidReordered) {
     const unsigned char *json_data =
-        (const unsigned char *)"{\"daylength\":7200012,\"netconn\":{\"interval\":360095},"
-                               "\"sensor\":{\"light\":{\"qty\":7,\"interval\":11000},"
-                               "\"airtemp\":{\"interval\":7100,\"resample\":2,\"qty\":3},"
-                               "\"soilmoist\":{\"qty\":6,\"interval\":2100,\"resample\":3}},"
-                               "\"actuators\":{\"pump\":{\"threshold\":934},\"fan\":{\"threshold\":31},"
-                               "\"bulb\":{\"threshold\":819}}}";
+        (const unsigned char *)"{\"daylength\":7200012,\"netconn\":{\"itvl\":360095},"
+                               "\"sensor\":{\"light\":{\"qty\":7,\"itvl\":11000},"
+                               "\"airtemp\":{\"itvl\":7100,\"rsmp\":2,\"qty\":3},"
+                               "\"soilmoist\":{\"qty\":6,\"itvl\":2100,\"rsmp\":3}},"
+                               "\"actuators\":{\"pump\":{\"id\":9,\"thre\":934},\"fan\":{\"id\":14"
+                               ",\"thre\":31},\"bulb\":{\"id\":6,\"thre\":819,\"work\":156700}}}";
     uint16_t testdata_sz = strlen((const char *)json_data);
     TEST_ASSERT_LESS_THAN_UINT16(test_gmon.rawmsg.inflight.len, testdata_sz);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
@@ -184,6 +186,7 @@ TEST(DecodeMsgInflight, MixedValidReordered) {
     TEST_ASSERT_EQUAL(934, test_gmon.actuator.pump.entries[0].param.threshold);
     TEST_ASSERT_EQUAL(31, test_gmon.actuator.fan.entries[0].param.threshold);
     TEST_ASSERT_EQUAL(819, test_gmon.actuator.bulb.entries[0].param.threshold);
+    TEST_ASSERT_EQUAL(156700, test_gmon.actuator.bulb.entries[0].param.max_worktime);
     // Assert required daylight length
     TEST_ASSERT_EQUAL(7200012, test_gmon.user_ctrl.required_light_daylength_ticks);
 }
@@ -227,7 +230,7 @@ TEST(DecodeMsgInflight, MalformedThresholdObject) {
 
 TEST(DecodeMsgInflight, UnknownTopLevelKey) {
     const unsigned char *json_data =
-        (const unsigned char *)"{\"unknown_key\":\"some_value\", \"netconn\":{\"interval\":100}}";
+        (const unsigned char *)"{\"unknown_key\":\"some_value\", \"netconn\":{\"itvl\":100}}";
     uint16_t testdata_sz = strlen((const char *)json_data);
     TEST_ASSERT_LESS_THAN_UINT16(test_gmon.rawmsg.inflight.len, testdata_sz);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
@@ -239,8 +242,8 @@ TEST(DecodeMsgInflight, UnknownTopLevelKey) {
 
 TEST(DecodeMsgInflight, NestedUnknownKeys) {
     const unsigned char *json_data =
-        (const unsigned char *)"{\"netconn\":{\"interval\":146, \"junk\":{\"nested_junk\":1}}, \"sensor\":{"
-                               "\"soilmoist\":{}}, \"actuators\":{\"pump\":{\"threshold\":291}}}";
+        (const unsigned char *)"{\"netconn\":{\"itvl\":146, \"junk\":{\"nested_junk\":1}}, \"sensor\":{"
+                               "\"soilmoist\":{}}, \"actuators\":{\"pump\":{\"id\":9,\"thre\":291}}}";
     uint16_t testdata_sz = strlen((const char *)json_data);
     TEST_ASSERT_LESS_THAN_UINT16(test_gmon.rawmsg.inflight.len, testdata_sz);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
@@ -253,9 +256,9 @@ TEST(DecodeMsgInflight, NestedUnknownKeys) {
 
 TEST(DecodeMsgInflight, ValidActuatorConfig) {
     const unsigned char *json_data =
-        (const unsigned char *)"{\"actuators\":{\"pump\":{\"max_worktime\":10000,\"min_resttime\":1000},"
-                               "\"fan\":{\"max_worktime\":20000,\"min_resttime\":2000},\"bulb\":{\"max_"
-                               "worktime\":30000,\"min_resttime\":3000}}}";
+        (const unsigned char *)"{\"actuators\":{\"pump\":{\"id\":9,\"work\":10000,\"rest\":1000},"
+                               "\"fan\":{\"id\":14,\"work\":20000,\"rest\":2000,\"srid\":0},"
+                               "\"bulb\":{\"id\":6,\"work\":30000,\"rest\":3000,\"srid\":65}}}";
     uint16_t testdata_sz = strlen((const char *)json_data);
     TEST_ASSERT_LESS_THAN_UINT16(test_gmon.rawmsg.inflight.len, testdata_sz);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
@@ -266,29 +269,37 @@ TEST(DecodeMsgInflight, ValidActuatorConfig) {
     TEST_ASSERT_EQUAL(1000, test_gmon.actuator.pump.entries[0].param.min_resttime);
     TEST_ASSERT_EQUAL(20000, test_gmon.actuator.fan.entries[0].param.max_worktime);
     TEST_ASSERT_EQUAL(2000, test_gmon.actuator.fan.entries[0].param.min_resttime);
+    TEST_ASSERT_EQUAL(0, test_gmon.actuator.fan.entries[0].param.sensor_id_mask);
     TEST_ASSERT_EQUAL(30000, test_gmon.actuator.bulb.entries[0].param.max_worktime);
     TEST_ASSERT_EQUAL(3000, test_gmon.actuator.bulb.entries[0].param.min_resttime);
+    TEST_ASSERT_EQUAL(0x41, test_gmon.actuator.bulb.entries[0].param.sensor_id_mask);
 }
 
 TEST(DecodeMsgInflight, ValidActuatorConfigPartial) {
     const unsigned char *json_data =
-        (const unsigned char *)"{\"actuators\":{\"pump\":{\"max_worktime\":15000}}}";
+        (const unsigned char *)"{\"actuators\":{\"pump\":{"
+                               "\"id\":9,\"work\":15000},\"fan\":{\"id\":14,\"srid\":19}}}";
     uint16_t testdata_sz = strlen((const char *)json_data);
     TEST_ASSERT_LESS_THAN_UINT16(test_gmon.rawmsg.inflight.len, testdata_sz);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
     test_gmon.rawmsg.inflight.nbytes_written = testdata_sz;
     gMonStatus status = staDecodeAppMsgInflight(&test_gmon);
     TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
+    TEST_ASSERT_EQUAL(9, test_gmon.actuator.pump.entries[0].id);
+    TEST_ASSERT_EQUAL(14, test_gmon.actuator.fan.entries[0].id);
     TEST_ASSERT_EQUAL(15000, test_gmon.actuator.pump.entries[0].param.max_worktime);
+    TEST_ASSERT_EQUAL(0x13, test_gmon.actuator.fan.entries[0].param.sensor_id_mask);
     // Should be 0 as not specified
     TEST_ASSERT_EQUAL(0, test_gmon.actuator.pump.entries[0].param.min_resttime);
+    TEST_ASSERT_EQUAL(0, test_gmon.actuator.pump.entries[0].param.sensor_id_mask);
     TEST_ASSERT_EQUAL(0, test_gmon.actuator.fan.entries[0].param.max_worktime);
+    TEST_ASSERT_EQUAL(0, test_gmon.actuator.fan.entries[0].param.min_resttime);
 }
 
 TEST(DecodeMsgInflight, ValidActuatorConfigUnknownKey) {
     const unsigned char *json_data =
-        (const unsigned char *)"{\"actuators\":{\"pump\":{\"max_worktime\":11000,\"unknown_act_key\":"
-                               "\"ignored_val\",\"min_resttime\":1100}}}";
+        (const unsigned char *)"{\"actuators\":{\"pump\":{\"id\":9,\"work\":11000,"
+                               "\"unknown_act_key\":\"ignored_val\",\"rest\":1100}}}";
     uint16_t testdata_sz = strlen((const char *)json_data);
     TEST_ASSERT_LESS_THAN_UINT16(test_gmon.rawmsg.inflight.len, testdata_sz);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
@@ -302,13 +313,13 @@ TEST(DecodeMsgInflight, ValidActuatorConfigUnknownKey) {
 TEST(DecodeMsgInflight, ComprehensiveConfigWithActuators) {
     const char *json_data =
         "{\"sensor\":{"
-        "\"soilmoist\":{\"interval\":2100,\"qty\":3,\"resample\":5,\"outlier\":[35,13],\"mad\":[40,17]},"
-        "\"airtemp\":{\"interval\":7100,\"qty\":4,\"resample\":2,\"outlier\":[35,14],\"mad\":[42,19]},"
-        "\"light\":{\"interval\":11000,\"qty\":6,\"resample\":3,\"outlier\":[36,13],\"mad\":[43,23]}},"
-        "\"netconn\":{\"interval\":360095},\"daylength\":7200012,\"actuators\":{"
-        "\"pump\":{\"max_worktime\":50000,\"min_resttime\":5000,\"threshold\":934},"
-        "\"fan\":{\"max_worktime\":60000,\"min_resttime\":6000,\"threshold\":31},"
-        "\"bulb\":{\"max_worktime\":70000,\"min_resttime\":7000,\"threshold\":189}}}";
+        "\"soilmoist\":{\"itvl\":2100,\"qty\":3,\"rsmp\":5,\"outlier\":[35,13],\"mad\":[40,17]},"
+        "\"airtemp\":{\"itvl\":7100,\"qty\":4,\"rsmp\":2,\"outlier\":[35,14],\"mad\":[42,19]},"
+        "\"light\":{\"itvl\":11000,\"qty\":6,\"rsmp\":3,\"outlier\":[36,13],\"mad\":[43,23]}},"
+        "\"netconn\":{\"itvl\":360095},\"daylength\":7200012,\"actuators\":{"
+        "\"pump\":{\"id\":9,\"work\":50000,\"rest\":5000,\"srid\":255,\"thre\":934},"
+        "\"fan\":{\"id\":14,\"work\":60000,\"rest\":6000,\"srid\":201,\"thre\":31},"
+        "\"bulb\":{\"id\":6,\"work\":70000,\"rest\":7000,\"srid\":172,\"thre\":189}}}";
     uint16_t testdata_sz = strlen(json_data);
     TEST_ASSERT_LESS_THAN_UINT16(test_gmon.rawmsg.inflight.len, testdata_sz);
     XMEMCPY(test_gmon.rawmsg.inflight.data, json_data, testdata_sz);
@@ -333,10 +344,17 @@ TEST(DecodeMsgInflight, ComprehensiveConfigWithActuators) {
     TEST_ASSERT_FLOAT_WITHIN(0.0001f, 1.8695f, test_gmon.sensors.light.mad_threshold);
     // Netconn interval
     TEST_ASSERT_EQUAL(360095, test_gmon.netconn.interval_ms);
-    // Output device thresholds
+    // Output device identities
+    TEST_ASSERT_EQUAL(9, test_gmon.actuator.pump.entries[0].id);
+    TEST_ASSERT_EQUAL(14, test_gmon.actuator.fan.entries[0].id);
+    TEST_ASSERT_EQUAL(6, test_gmon.actuator.bulb.entries[0].id);
+    // Output device thresholds / corresponding sensor ids
     TEST_ASSERT_EQUAL(934, test_gmon.actuator.pump.entries[0].param.threshold);
     TEST_ASSERT_EQUAL(31, test_gmon.actuator.fan.entries[0].param.threshold);
     TEST_ASSERT_EQUAL(189, test_gmon.actuator.bulb.entries[0].param.threshold);
+    TEST_ASSERT_EQUAL(255, test_gmon.actuator.pump.entries[0].param.sensor_id_mask);
+    TEST_ASSERT_EQUAL(201, test_gmon.actuator.fan.entries[0].param.sensor_id_mask);
+    TEST_ASSERT_EQUAL(172, test_gmon.actuator.bulb.entries[0].param.sensor_id_mask);
     // Required daylight length
     TEST_ASSERT_EQUAL(7200012, test_gmon.user_ctrl.required_light_daylength_ticks);
     // Actuator work/rest times

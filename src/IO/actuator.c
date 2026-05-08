@@ -93,6 +93,18 @@ gMonStatus staActuatorUpdateParam(
     return GMON_RESP_OK;
 }
 
+gMonActuator_t *staActuatorFindById(gMonActuators_t *ators, gMonActuatorId_t id) {
+    gMonActuator_t *out = NULL;
+    if (ators != NULL && id > 0) {
+        for (unsigned char idx = 0; (out == NULL) && (idx < ators->count); idx++) {
+            if (ators->entries[idx].id == id) {
+                out = &ators->entries[idx];
+            }
+        }
+    }
+    return out;
+}
+
 gMonStatus staSetTrigThresholdPump(gMonActuatorParam_t *param, unsigned int new_val) {
     if (param == NULL)
         return GMON_RESP_ERRARGS;

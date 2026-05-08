@@ -9,7 +9,7 @@ extern "C" {
 #define GMON_APPMSG_DATA_NAME_AIRTEMP   "airtemp"
 #define GMON_APPMSG_DATA_NAME_LIGHT     "light"
 
-#define GMON_NUM_JSON_TOKEN_DECODE 84
+#define GMON_NUM_JSON_TOKEN_DECODE 98
 
 typedef struct {
     gmonStr_t *msg;

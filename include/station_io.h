@@ -74,6 +74,7 @@ gMonStatus staActuatorGenericInit(gMonActuator_t *, gMonActuatorId_t, unsigned c
 gMonStatus staActuatorUpdateParam(
     gMonActuatorParam_t *, const gMonActuatorParam_t *, gMonStatus (*)(gMonActuatorParam_t *, unsigned int)
 );
+gMonActuator_t *staActuatorFindById(gMonActuators_t *, gMonActuatorId_t);
 
 gMonStatus staActuatorAggregateU32(gmonEvent_t *, gMonActuator_t *, int *value);
 gMonStatus staActuatorAggregateAirCond(gmonEvent_t *, gMonActuator_t *, int *value);

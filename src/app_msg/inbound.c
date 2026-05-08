@@ -6,35 +6,37 @@
 // message :
 // {
 //     "sensor": {
-//         "soilmoist": {"interval": 2100, "qty": 4, "resample": 6, "outlier": [27,10], "mad": [29,13]},
-//         "airtemp": {"interval": 7100, "qty": 2, "resample": 5, "outlier": [28,11], "mad": [30,17]},
-//         "light": {"interval": 11000, "qty": 5, "resample": 4, "outlier": [31,12], "mad": [59,17]}
+//         "soilmoist": {"itvl": 2100, "qty": 4, "rsmp": 6, "outlier": [27,10], "mad": [29,13]},
+//         "airtemp": {"itvl": 7100, "qty": 2, "rsmp": 5, "outlier": [28,11], "mad": [30,17]},
+//         "light": {"itvl": 11000, "qty": 5, "rsmp": 4, "outlier": [31,12], "mad": [59,17]}
 //     },
-//     "netconn":  {"interval": 360000},
+//     "netconn":  {"itvl": 360000},
 //     "daylength":7200012,
 //     "actuators": {
-//         "pump": {"max_worktime": 4000, "min_resttime": 1500, "threshold": 1234},
-//         "fan":  {"max_worktime": 5300, "min_resttime": 2100, "threshold": 35},
-//         "bulb": {"max_worktime": 7100, "min_resttime": 5700, "threshold": 4321}
+//         "pump": {"id":9, "work": 4000, "rest": 1500, "srid": 123, "thre": 1234},
+//         "fan":  {"id":10, "work": 5300, "rest": 2100, "srid": 45, "thre": 35},
+//         "bulb": {"id":13, "work": 7100, "rest": 5700, "srid": 6, "thre": 4321}
 //     }
 // }
 // clang-format on
 
-#define GMON_APPMSG_DATA_NAME_SENSOR       "sensor"
-#define GMON_APPMSG_DATA_NAME_NETCONN      "netconn"
-#define GMON_APPMSG_DATA_NAME_INTERVAL     "interval"
-#define GMON_APPMSG_DATA_NAME_ACTUATORS    "actuators"
-#define GMON_APPMSG_DATA_NAME_PUMP         "pump"
-#define GMON_APPMSG_DATA_NAME_FAN          "fan"
-#define GMON_APPMSG_DATA_NAME_BULB         "bulb"
-#define GMON_APPMSG_DATA_NAME_MAX_WORKTIME "max_worktime"
-#define GMON_APPMSG_DATA_NAME_MIN_RESTTIME "min_resttime"
-#define GMON_APPMSG_DATA_NAME_QTY          "qty"
-#define GMON_APPMSG_DATA_NAME_DAYLENGTH    "daylength"
-#define GMON_APPMSG_DATA_NAME_RESAMPLE     "resample"
-#define GMON_APPMSG_DATA_NAME_OUTLIER      "outlier"
-#define GMON_APPMSG_DATA_NAME_THRESHOLD    "threshold"
-#define GMON_APPMSG_DATA_NAME_MAD          "mad"
+#define GMON_APPMSG_DATA_NAME_SENSOR         "sensor"
+#define GMON_APPMSG_DATA_NAME_NETCONN        "netconn"
+#define GMON_APPMSG_DATA_NAME_INTERVAL       "itvl"
+#define GMON_APPMSG_DATA_NAME_ACTUATORS      "actuators"
+#define GMON_APPMSG_DATA_NAME_PUMP           "pump"
+#define GMON_APPMSG_DATA_NAME_FAN            "fan"
+#define GMON_APPMSG_DATA_NAME_BULB           "bulb"
+#define GMON_APPMSG_DATA_NAME_MAX_WORKTIME   "work"
+#define GMON_APPMSG_DATA_NAME_MIN_RESTTIME   "rest"
+#define GMON_APPMSG_DATA_NAME_QTY            "qty"
+#define GMON_APPMSG_DATA_NAME_DAYLENGTH      "daylength"
+#define GMON_APPMSG_DATA_NAME_RESAMPLE       "rsmp"
+#define GMON_APPMSG_DATA_NAME_OUTLIER        "outlier"
+#define GMON_APPMSG_DATA_NAME_THRESHOLD      "thre"
+#define GMON_APPMSG_DATA_NAME_ACTUATOR_ID    "id"
+#define GMON_APPMSG_DATA_NAME_SENSOR_ID_MASK "srid"
+#define GMON_APPMSG_DATA_NAME_MAD            "mad"
 
 static gMonStatus staDecodeMsgCvtStrToInt(const unsigned char *json_data, jsmntok_t *tokn, int *out) {
     unsigned char *user_var_name = NULL;
@@ -112,11 +114,13 @@ static gMonStatus staDecodeActuatorConfig(
 ) {
     gMonStatus status = GMON_RESP_OK;
     jsmntok_t *config_obj_token = &tokens[start_obj_tok_idx];
-    *tokens_consumed_out = 1;                      // For the config object itself
-    gMonActuator_t *actuator = &ators->entries[0]; // TODO, support multiple actuators
+    *tokens_consumed_out = 1; // For the config object itself
+    gMonActuator_t *actuator = NULL;
     if (config_obj_token->type != JSMN_OBJECT)
         return GMON_RESP_ERR_MSG_DECODE;
     int parsed_int = 0, curr_child_tok_idx = start_obj_tok_idx + 1;
+
+    gMonActuatorParam_t new_param = {0};
     for (int i = 0; i < config_obj_token->size && status == GMON_RESP_OK; i++) {
         jsmntok_t *child_key_token = &tokens[curr_child_tok_idx];
         jsmntok_t *child_value_token = &tokens[curr_child_tok_idx + 1];
@@ -127,18 +131,31 @@ static gMonStatus staDecodeActuatorConfig(
 
             if (XSTRNCMP(GMON_APPMSG_DATA_NAME_MAX_WORKTIME, child_key_name, child_key_len) == 0) {
                 status = staDecodeMsgCvtStrToInt(json_data, child_value_token, &parsed_int);
-                if (status == GMON_RESP_OK) {
-                    actuator->param.max_worktime = (unsigned int)parsed_int;
-                } // TODO, replace with `staActuatorUpdateParam`
+                if (status == GMON_RESP_OK)
+                    new_param.max_worktime = (unsigned int)parsed_int;
             } else if (XSTRNCMP(GMON_APPMSG_DATA_NAME_MIN_RESTTIME, child_key_name, child_key_len) == 0) {
                 status = staDecodeMsgCvtStrToInt(json_data, child_value_token, &parsed_int);
-                if (status == GMON_RESP_OK) {
-                    actuator->param.min_resttime = (unsigned int)parsed_int;
-                }
+                if (status == GMON_RESP_OK)
+                    new_param.min_resttime = (unsigned int)parsed_int;
             } else if (XSTRNCMP(GMON_APPMSG_DATA_NAME_THRESHOLD, child_key_name, child_key_len) == 0) {
                 status = staDecodeMsgCvtStrToInt(json_data, child_value_token, &parsed_int);
-                if (status == GMON_RESP_OK && set_threshold_fn != NULL && threshold_status_field != NULL) {
-                    *threshold_status_field = set_threshold_fn(&actuator->param, (unsigned int)parsed_int);
+                if (status == GMON_RESP_OK)
+                    new_param.threshold = parsed_int;
+            } else if (XSTRNCMP(GMON_APPMSG_DATA_NAME_SENSOR_ID_MASK, child_key_name, child_key_len) == 0) {
+                status = staDecodeMsgCvtStrToInt(json_data, child_value_token, &parsed_int);
+                if (parsed_int > 0xFF)
+                    status = GMON_RESP_ERR_MSG_DECODE;
+                if (status == GMON_RESP_OK)
+                    new_param.sensor_id_mask = (unsigned char)(0xFF & parsed_int);
+            } else if (i == 0 &&
+                       XSTRNCMP(GMON_APPMSG_DATA_NAME_ACTUATOR_ID, child_key_name, child_key_len) == 0) {
+                status = staDecodeMsgCvtStrToInt(json_data, child_value_token, &parsed_int);
+                if (status == GMON_RESP_OK)
+                    actuator = staActuatorFindById(ators, (gMonActuatorId_t)parsed_int);
+                if (actuator != NULL) {
+                    new_param = actuator->param;
+                } else {
+                    status = GMON_RESP_MALFORMED_DATA;
                 }
             } else {
                 int skip_tokens_for_value = staCalcTokensToSkip(child_value_token);
@@ -151,6 +168,9 @@ static gMonStatus staDecodeActuatorConfig(
         }
         curr_child_tok_idx += 2;
         *tokens_consumed_out += 2;
+    }
+    if (status == GMON_RESP_OK && actuator != NULL) {
+        *threshold_status_field = staActuatorUpdateParam(&actuator->param, &new_param, set_threshold_fn);
     }
     return status;
 }
