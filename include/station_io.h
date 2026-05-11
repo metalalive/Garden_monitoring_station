@@ -81,6 +81,7 @@ gMonStatus staActuatorAggregateAirCond(gmonEvent_t *, gMonActuator_t *, int *val
 
 gMonStatus staActuatorGrowSize(gMonActuators_t *, unsigned char new_count);
 gMonStatus staActuatorShrinkSize(gMonActuators_t *, unsigned char new_count, const gMonActuatorId_t *ids2rm);
+gMonStatus staActuatorAdjustSize(gMonActuators_t *, gMonActuatorIds_t *, gMonActuatorIds_t *);
 
 gMonActuatorStatus staActuatorMeasureWorkingTime(gMonActuator_t *, unsigned int time_elapsed_ms);
 

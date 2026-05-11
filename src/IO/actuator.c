@@ -67,6 +67,100 @@ staActuatorShrinkSize(gMonActuators_t *ators, unsigned char new_count, const gMo
     ators->count = new_count;
     return GMON_RESP_OK;
 }
+// Helper to check for duplicates in an ID list
+static gMonStatus staCheckDuplicateIds(gMonActuatorIds_t *ids) {
+    if (ids == NULL || ids->count == 0)
+        return GMON_RESP_OK;
+    // Create a temporary buffer for sorting
+    unsigned int temp[ids->count];
+    for (int i = 0; i < ids->count; i++) {
+        if (ids->id[i] == 0)
+            return GMON_RESP_ERR_NOT_SUPPORT;
+        temp[i] = (unsigned int)ids->id[i];
+    }
+    staQuickSort(temp, ids->count);
+    for (int i = 0; i < ids->count - 1; i++) {
+        if (temp[i] == temp[i + 1])
+            return GMON_RESP_ERR_NOT_SUPPORT;
+    }
+    return GMON_RESP_OK;
+}
+
+#define MAX3(a, b, c) (((a) > (b)) ? (((a) > (c)) ? (a) : (c)) : (((b) > (c)) ? (b) : (c)))
+#define MAXNUM_ACTUATORS \
+    MAX3(GMON_MAXNUM_ACTUATORS_PUMP, GMON_MAXNUM_ACTUATORS_FAN, GMON_MAXNUM_ACTUATORS_BULB)
+
+gMonStatus
+staActuatorAdjustSize(gMonActuators_t *ators, gMonActuatorIds_t *ids2add, gMonActuatorIds_t *ids2rm) {
+    // 1. Input Validation
+    if (ators == NULL)
+        return GMON_RESP_ERRARGS;
+    if (ids2add == NULL && ids2rm == NULL)
+        return GMON_RESP_SKIP;
+    // Check if any ID in ids2rm actually exists in ators
+    if (ids2rm != NULL) {
+        for (int i = 0; i < ids2rm->count; i++) {
+            if (staActuatorFindById(ators, ids2rm->id[i]) == NULL)
+                return GMON_RESP_ERR_NOT_SUPPORT;
+        }
+    }
+    { // maximum allocated space check
+        unsigned char add_cnt = ids2add != NULL ? ids2add->count : 0;
+        unsigned char rm_cnt = ids2rm != NULL ? ids2rm->count : 0;
+        unsigned char tot_cnt = ators->count + add_cnt - rm_cnt;
+        if (add_cnt > MAXNUM_ACTUATORS || rm_cnt > MAXNUM_ACTUATORS || tot_cnt > MAXNUM_ACTUATORS)
+            return GMON_RESP_ERRMEM;
+    }
+    // 2. Validate IDs (0 check and duplicates)
+    if (staCheckDuplicateIds(ids2add) != GMON_RESP_OK)
+        return GMON_RESP_ERR_NOT_SUPPORT;
+    if (staCheckDuplicateIds(ids2rm) != GMON_RESP_OK)
+        return GMON_RESP_ERR_NOT_SUPPORT;
+    {
+        gMonActuatorId_t  ids[ators->count];
+        gMonActuatorIds_t ids_curr = {.count = ators->count, .id = ids};
+        for (int i = 0; i < ators->count; i++)
+            ids_curr.id[i] = ators->entries[i].id;
+        if (staCheckDuplicateIds(&ids_curr) != GMON_RESP_OK)
+            return GMON_RESP_ERR_NOT_SUPPORT;
+    }
+
+    // 3. Reuse Logic
+    unsigned char add_idx = 0, rm_idx = 0;
+    if (ids2add != NULL && ids2rm != NULL) {
+        while (add_idx < ids2add->count && rm_idx < ids2rm->count) {
+            gMonActuator_t *target = staActuatorFindById(ators, ids2rm->id[rm_idx]);
+            if (target) {
+                staActuatorGenericInit(target, ids2add->id[add_idx], 0); // Assuming 0 or default lambda
+                add_idx++;
+                rm_idx++;
+            }
+        }
+    }
+
+    // 4. Handle remaining operations
+    // If we still have items to add, grow the array
+    if (ids2add != NULL && add_idx < ids2add->count) {
+        unsigned char remaining = ids2add->count - add_idx;
+        unsigned char old_count = ators->count;
+        gMonStatus    s = staActuatorGrowSize(ators, old_count + remaining);
+        if (s != GMON_RESP_OK)
+            return s;
+        for (int i = 0; i < remaining; i++)
+            staActuatorGenericInit(&ators->entries[old_count + i], ids2add->id[add_idx + i], 0);
+    }
+    // If we still have items to remove, shrink the array
+    if (ids2rm != NULL && rm_idx < ids2rm->count) {
+        unsigned char    remaining_count = ids2rm->count - rm_idx;
+        gMonActuatorId_t remaining_ids[remaining_count];
+        for (int i = 0; i < remaining_count; i++)
+            remaining_ids[i] = ids2rm->id[rm_idx + i];
+        return staActuatorShrinkSize(ators, ators->count - remaining_count, remaining_ids);
+    }
+    return GMON_RESP_OK;
+}
+#undef MAX3
+#undef MAXNUM_ACTUATORS
 
 gMonStatus staActuatorGenericInit(gMonActuator_t *ator, gMonActuatorId_t id, unsigned char ema_lambda_fixpt) {
     if (ator == NULL || id == 0)

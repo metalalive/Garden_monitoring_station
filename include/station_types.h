@@ -150,6 +150,11 @@ typedef struct {
 //   and deactivating the high-level actuator identities.
 typedef unsigned char gMonActuatorId_t;
 
+typedef struct {
+    gMonActuatorId_t *id;
+    unsigned char     count;
+} gMonActuatorIds_t;
+
 // runtime configurable parameters for actuator
 #pragma pack(push, 4)
 typedef struct {

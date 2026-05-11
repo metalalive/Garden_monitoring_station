@@ -347,10 +347,10 @@ TEST(AggregateAirCond, SkipNoRelevantSensors) {
     gMonActuator_t ator = {
         .param = {.sensor_id_mask = 0b00}, .ema.lambda_fixp = 50, .ema.last_aggregated = 12
     };
-    int        value = 999; // Check if value is modified
+    int        value = 199; // Check if value is modified
     gMonStatus status = staActuatorAggregateAirCond(&evt, &ator, &value);
     TEST_ASSERT_EQUAL(GMON_RESP_MALFORMED_DATA, status);
-    TEST_ASSERT_EQUAL(999, value);
+    TEST_ASSERT_EQUAL(199, value);
     TEST_ASSERT_EQUAL(12, ator.ema.last_aggregated);
 }
 
@@ -360,10 +360,10 @@ TEST(AggregateAirCond, SkipAllRelevantCorrupted) {
     gMonActuator_t ator = {
         .param = {.sensor_id_mask = 0b11}, .ema.lambda_fixp = 50, .ema.last_aggregated = 10
     };
-    int        value = 999;
+    int        value = 199;
     gMonStatus status = staActuatorAggregateAirCond(&evt, &ator, &value);
     TEST_ASSERT_EQUAL(GMON_RESP_SKIP, status);
-    TEST_ASSERT_EQUAL(999, value);
+    TEST_ASSERT_EQUAL(199, value);
     TEST_ASSERT_EQUAL(10, ator.ema.last_aggregated);
 }
 
@@ -373,10 +373,10 @@ TEST(AggregateAirCond, SkipAggregatedValuesAreZero) {
     gMonActuator_t ator = {
         .param = {.sensor_id_mask = 0b11}, .ema.lambda_fixp = 50, .ema.last_aggregated = 10
     };
-    int        value = 999;
+    int        value = 199;
     gMonStatus status = staActuatorAggregateAirCond(&evt, &ator, &value);
     TEST_ASSERT_EQUAL(GMON_RESP_SKIP, status);
-    TEST_ASSERT_EQUAL(999, value);
+    TEST_ASSERT_EQUAL(199, value);
     TEST_ASSERT_EQUAL(10, ator.ema.last_aggregated);
 }
 
@@ -579,33 +579,41 @@ TEST(ActuatorMemoryShrink, InvalidArgs) {
 TEST(ActuatorMemoryShrink, ShrinkPartialSuccess) {
     gMonActuators_t ators = {0};
     staActuatorGrowSize(&ators, 3);
-    ators.entries[0].id = 4;
-    ators.entries[1].id = 9;
-    ators.entries[2].id = 7;
+    TEST_ASSERT_EQUAL(GMON_RESP_OK, staActuatorGenericInit(&ators.entries[0], 4, 58));
+    TEST_ASSERT_EQUAL(GMON_RESP_OK, staActuatorGenericInit(&ators.entries[1], 9, 23));
+    TEST_ASSERT_EQUAL(GMON_RESP_OK, staActuatorGenericInit(&ators.entries[2], 7, 49));
     gMonActuatorId_t ids2rm_1[] = {9};
     TEST_ASSERT_EQUAL(GMON_RESP_OK, staActuatorShrinkSize(&ators, 2, ids2rm_1));
     TEST_ASSERT_EQUAL(2, ators.count);
     TEST_ASSERT_EQUAL(4, ators.entries[0].id);
     TEST_ASSERT_EQUAL(7, ators.entries[1].id);
+    TEST_ASSERT_EQUAL(58, ators.entries[0].ema.lambda_fixp);
+    TEST_ASSERT_EQUAL(49, ators.entries[1].ema.lambda_fixp);
     staActuatorGrowSize(&ators, 5);
-    ators.entries[2].id = 10;
-    ators.entries[3].id = 1;
-    ators.entries[4].id = 2;
+    TEST_ASSERT_EQUAL(GMON_RESP_OK, staActuatorGenericInit(&ators.entries[2], 10, 25));
+    TEST_ASSERT_EQUAL(GMON_RESP_OK, staActuatorGenericInit(&ators.entries[3], 1, 106));
+    TEST_ASSERT_EQUAL(GMON_RESP_OK, staActuatorGenericInit(&ators.entries[4], 2, 95));
     gMonActuatorId_t ids2rm_2[] = {10, 4};
     TEST_ASSERT_EQUAL(GMON_RESP_OK, staActuatorShrinkSize(&ators, 3, ids2rm_2));
     TEST_ASSERT_EQUAL(3, ators.count);
     TEST_ASSERT_EQUAL(7, ators.entries[0].id);
     TEST_ASSERT_EQUAL(1, ators.entries[1].id);
     TEST_ASSERT_EQUAL(2, ators.entries[2].id);
+    TEST_ASSERT_EQUAL(49, ators.entries[0].ema.lambda_fixp);
+    TEST_ASSERT_EQUAL(106, ators.entries[1].ema.lambda_fixp);
+    TEST_ASSERT_EQUAL(95, ators.entries[2].ema.lambda_fixp);
     staActuatorGrowSize(&ators, 5);
-    ators.entries[3].id = 6;
-    ators.entries[4].id = 9;
+    TEST_ASSERT_EQUAL(GMON_RESP_OK, staActuatorGenericInit(&ators.entries[3], 6, 40));
+    TEST_ASSERT_EQUAL(GMON_RESP_OK, staActuatorGenericInit(&ators.entries[4], 9, 35));
     gMonActuatorId_t ids2rm_3[] = {7, 2};
     TEST_ASSERT_EQUAL(GMON_RESP_OK, staActuatorShrinkSize(&ators, 3, ids2rm_3));
     TEST_ASSERT_EQUAL(3, ators.count);
     TEST_ASSERT_EQUAL(1, ators.entries[0].id);
     TEST_ASSERT_EQUAL(6, ators.entries[1].id);
     TEST_ASSERT_EQUAL(9, ators.entries[2].id);
+    TEST_ASSERT_EQUAL(106, ators.entries[0].ema.lambda_fixp);
+    TEST_ASSERT_EQUAL(40, ators.entries[1].ema.lambda_fixp);
+    TEST_ASSERT_EQUAL(35, ators.entries[2].ema.lambda_fixp);
     XMEMFREE(ators.entries);
 }
 
@@ -628,6 +636,127 @@ TEST(ActuatorMemoryShrink, SkipIfSizeNotSmaller) {
     TEST_ASSERT_NOT_NULL(ators.entries);
     TEST_ASSERT_EQUAL(GMON_RESP_SKIP, staActuatorShrinkSize(&ators, 3, &ids));
     TEST_ASSERT_EQUAL(GMON_RESP_SKIP, staActuatorShrinkSize(&ators, 2, &ids));
+    XMEMFREE(ators.entries);
+}
+
+TEST_GROUP(ActuatorAdjustSize);
+TEST_SETUP(ActuatorAdjustSize) {}
+TEST_TEAR_DOWN(ActuatorAdjustSize) {}
+
+TEST(ActuatorAdjustSize, InvalidAndEdgeCases) {
+    gMonActuator_t  entries[5] = {{.id = 1}, {.id = 2}, {.id = 3}, {.id = 4}, {.id = 5}};
+    gMonActuators_t ators = {.entries = entries, .count = 5};
+    // NULL pointers
+    TEST_ASSERT_EQUAL(GMON_RESP_ERRARGS, staActuatorAdjustSize(NULL, NULL, NULL));
+    // Both NULL ids -> Skip
+    TEST_ASSERT_EQUAL(GMON_RESP_SKIP, staActuatorAdjustSize(&ators, NULL, NULL));
+    // Zero ID in ids2add
+    gMonActuatorId_t  add_ids[] = {0}, rm_ids[] = {0};
+    gMonActuatorIds_t ids2add = {.id = add_ids, .count = 1}, ids2rm = {.id = rm_ids, .count = 1};
+    TEST_ASSERT_EQUAL(GMON_RESP_ERR_NOT_SUPPORT, staActuatorAdjustSize(&ators, &ids2add, NULL));
+    // Zero ID in ids2rm
+    TEST_ASSERT_EQUAL(GMON_RESP_ERR_NOT_SUPPORT, staActuatorAdjustSize(&ators, NULL, &ids2rm));
+    // Zero ID in ators
+    add_ids[0] = 12;
+    ators.entries[0].id = 0;
+    TEST_ASSERT_EQUAL(GMON_RESP_ERR_NOT_SUPPORT, staActuatorAdjustSize(&ators, &ids2add, NULL));
+    ators.entries[0].id = 1; // Restore
+    // ID in ids2rm not exist in ators
+    rm_ids[0] = 199;
+    TEST_ASSERT_EQUAL(GMON_RESP_ERR_NOT_SUPPORT, staActuatorAdjustSize(&ators, NULL, &ids2rm));
+
+    // Duplicate in ators
+    ators.entries[0].id = 2; // Duplicate of entries[1].id
+    TEST_ASSERT_EQUAL(GMON_RESP_ERR_NOT_SUPPORT, staActuatorAdjustSize(&ators, &ids2add, NULL));
+    ators.entries[0].id = 1; // Restore
+    // Duplicate in ids2add
+    gMonActuatorId_t  add_ids_dup[] = {6, 6};
+    gMonActuatorIds_t ids2add_dup = {.id = add_ids_dup, .count = 2};
+    TEST_ASSERT_EQUAL(GMON_RESP_ERR_NOT_SUPPORT, staActuatorAdjustSize(&ators, &ids2add_dup, NULL));
+    // total actuators exceeding hard limit
+    gMonActuatorId_t  add_ids_exceed[] = {20, 21, 22, 23};
+    gMonActuatorIds_t ids2add_exceed = {.id = add_ids_exceed, .count = 4};
+    TEST_ASSERT_EQUAL(GMON_RESP_ERRMEM, staActuatorAdjustSize(&ators, &ids2add_exceed, NULL));
+}
+
+TEST(ActuatorAdjustSize, SuccessfulSizeIncreaseNothingRemoved) {
+    gMonActuatorId_t ids[5] = {3, 7, 8, 13, 16};
+    gMonActuator_t  *entries = XMALLOC(5 * sizeof(gMonActuator_t));
+    for (int i = 0; i < 5; i++)
+        entries[i].id = ids[i];
+    gMonActuators_t   ators = {.entries = entries, .count = 5};
+    gMonActuatorId_t  add_ids[] = {12, 4};
+    gMonActuatorIds_t ids2add = {.id = add_ids, .count = 2};
+    gMonStatus        status = staActuatorAdjustSize(&ators, &ids2add, NULL);
+    TEST_ASSERT_EQUAL(GMON_RESP_OK, status);
+    TEST_ASSERT_EQUAL(7, ators.count);
+    gMonActuatorId_t expected[] = {3, 7, 8, 13, 16, 12, 4};
+    for (int i = 0; i < 7; i++)
+        TEST_ASSERT_EQUAL(expected[i], ators.entries[i].id);
+    XMEMFREE(ators.entries);
+}
+
+TEST(ActuatorAdjustSize, SuccessfulSizeIncreaseSomeRemovedSomeAdded) {
+    gMonActuatorId_t ids[5] = {3, 7, 8, 13, 16};
+    gMonActuator_t  *entries = XMALLOC(5 * sizeof(gMonActuator_t));
+    for (int i = 0; i < 5; i++)
+        entries[i].id = ids[i];
+    gMonActuators_t   ators = {.entries = entries, .count = 5};
+    gMonActuatorId_t  add_ids[] = {12, 9, 4}, rm_ids[] = {13, 7};
+    gMonActuatorIds_t ids2add = {.id = add_ids, .count = 3}, ids2rm = {.id = rm_ids, .count = 2};
+    TEST_ASSERT_EQUAL(GMON_RESP_OK, staActuatorAdjustSize(&ators, &ids2add, &ids2rm));
+    TEST_ASSERT_EQUAL(6, ators.count);
+    gMonActuatorId_t expected[] = {3, 9, 8, 12, 16, 4};
+    for (int i = 0; i < 6; i++)
+        TEST_ASSERT_EQUAL(expected[i], ators.entries[i].id);
+    XMEMFREE(ators.entries);
+}
+
+TEST(ActuatorAdjustSize, SuccessfulSizeDecreaseNothingAdded) {
+    gMonActuatorId_t ids[5] = {3, 7, 8, 13, 16};
+    gMonActuator_t  *entries = XMALLOC(5 * sizeof(gMonActuator_t));
+    for (int i = 0; i < 5; i++)
+        entries[i].id = ids[i];
+    gMonActuators_t   ators = {.entries = entries, .count = 5};
+    gMonActuatorId_t  rm_ids[] = {13, 7};
+    gMonActuatorIds_t ids2rm = {.id = rm_ids, .count = 2};
+    TEST_ASSERT_EQUAL(GMON_RESP_OK, staActuatorAdjustSize(&ators, NULL, &ids2rm));
+    TEST_ASSERT_EQUAL(3, ators.count);
+    gMonActuatorId_t expected[] = {3, 8, 16};
+    for (int i = 0; i < 3; i++)
+        TEST_ASSERT_EQUAL(expected[i], ators.entries[i].id);
+    XMEMFREE(ators.entries);
+}
+
+TEST(ActuatorAdjustSize, SuccessfulSizeDecreaseSomeRemovedSomeAdded) {
+    gMonActuatorId_t ids[5] = {3, 7, 8, 13, 16};
+    gMonActuator_t  *entries = XMALLOC(5 * sizeof(gMonActuator_t));
+    for (int i = 0; i < 5; i++)
+        entries[i].id = ids[i];
+    gMonActuators_t   ators = {.entries = entries, .count = 5};
+    gMonActuatorId_t  add_ids[] = {11}, rm_ids[] = {13, 7};
+    gMonActuatorIds_t ids2add = {.id = add_ids, .count = 1}, ids2rm = {.id = rm_ids, .count = 2};
+    TEST_ASSERT_EQUAL(GMON_RESP_OK, staActuatorAdjustSize(&ators, &ids2add, &ids2rm));
+    TEST_ASSERT_EQUAL(4, ators.count);
+    gMonActuatorId_t expected[] = {3, 8, 11, 16};
+    for (int i = 0; i < 4; i++)
+        TEST_ASSERT_EQUAL(expected[i], ators.entries[i].id);
+    XMEMFREE(ators.entries);
+}
+
+TEST(ActuatorAdjustSize, SuccessWithSizeUnchangedSomeRemovedSomeAdded) {
+    gMonActuatorId_t ids[5] = {3, 7, 8, 13, 16};
+    gMonActuator_t  *entries = XMALLOC(5 * sizeof(gMonActuator_t));
+    for (int i = 0; i < 5; i++)
+        entries[i].id = ids[i];
+    gMonActuators_t   ators = {.entries = entries, .count = 5};
+    gMonActuatorId_t  add_ids[] = {11, 5}, rm_ids[] = {13, 7};
+    gMonActuatorIds_t ids2add = {.id = add_ids, .count = 2}, ids2rm = {.id = rm_ids, .count = 2};
+    TEST_ASSERT_EQUAL(GMON_RESP_OK, staActuatorAdjustSize(&ators, &ids2add, &ids2rm));
+    TEST_ASSERT_EQUAL(5, ators.count);
+    gMonActuatorId_t expected[] = {3, 5, 8, 11, 16};
+    for (int i = 0; i < 5; i++)
+        TEST_ASSERT_EQUAL(expected[i], ators.entries[i].id);
     XMEMFREE(ators.entries);
 }
 
@@ -672,4 +801,10 @@ TEST_GROUP_RUNNER(gMonActuator) {
     RUN_TEST_CASE(ActuatorMemoryShrink, ShrinkPartialSuccess);
     RUN_TEST_CASE(ActuatorMemoryShrink, ShrinkFullSuccess);
     RUN_TEST_CASE(ActuatorMemoryShrink, SkipIfSizeNotSmaller);
+    RUN_TEST_CASE(ActuatorAdjustSize, InvalidAndEdgeCases);
+    RUN_TEST_CASE(ActuatorAdjustSize, SuccessfulSizeIncreaseNothingRemoved);
+    RUN_TEST_CASE(ActuatorAdjustSize, SuccessfulSizeIncreaseSomeRemovedSomeAdded);
+    RUN_TEST_CASE(ActuatorAdjustSize, SuccessfulSizeDecreaseNothingAdded);
+    RUN_TEST_CASE(ActuatorAdjustSize, SuccessfulSizeDecreaseSomeRemovedSomeAdded);
+    RUN_TEST_CASE(ActuatorAdjustSize, SuccessWithSizeUnchangedSomeRemovedSomeAdded);
 }

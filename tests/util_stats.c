@@ -288,110 +288,149 @@ TEST(QuickSelect, LargeArrayLargeK) {
     TEST_ASSERT_EQUAL(expected_list[k], staQuickSelect(list, len, k));
 }
 
+TEST_GROUP(QuickSort);
+
+TEST_SETUP(QuickSort) {}
+
+TEST_TEAR_DOWN(QuickSort) {}
+
+TEST(QuickSort, InvalidInput) { TEST_ASSERT_EQUAL(GMON_RESP_ERRARGS, staQuickSort(NULL, 3)); }
+
+TEST(QuickSort, EmptyList) {
+    unsigned int list[1] = {};
+    TEST_ASSERT_EQUAL(GMON_RESP_OK, staQuickSort(list, 0));
+}
+
+TEST(QuickSort, OneElementList) {
+    unsigned int list[] = {7};
+    TEST_ASSERT_EQUAL(GMON_RESP_OK, staQuickSort(list, 1));
+    TEST_ASSERT_EQUAL(7, list[0]);
+}
+
+TEST(QuickSort, TwoElementList) {
+    unsigned int list[] = {255, 0}; // Using 0 instead of -255 as it's unsigned
+    TEST_ASSERT_EQUAL(GMON_RESP_OK, staQuickSort(list, 2));
+    TEST_ASSERT_EQUAL(0, list[0]);
+    TEST_ASSERT_EQUAL(255, list[1]);
+}
+
+TEST(QuickSort, AllIdentical) {
+    unsigned int list[] = {7, 7, 7};
+    TEST_ASSERT_EQUAL(GMON_RESP_OK, staQuickSort(list, 3));
+    TEST_ASSERT_EQUAL(7, list[0]);
+    TEST_ASSERT_EQUAL(7, list[1]);
+    TEST_ASSERT_EQUAL(7, list[2]);
+}
+
+TEST(QuickSort, UnsortedRandom) {
+    unsigned int list[] = {4, 7, 5, 9, 3, 6};
+    TEST_ASSERT_EQUAL(GMON_RESP_OK, staQuickSort(list, 6));
+    unsigned int expected[] = {3, 4, 5, 6, 7, 9};
+    for (int i = 0; i < 6; i++) {
+        TEST_ASSERT_EQUAL(expected[i], list[i]);
+    }
+}
+
+TEST(QuickSort, UnsortedWithDuplicates) {
+    unsigned int list[] = {4, 9, 5, 9, 3, 4};
+    TEST_ASSERT_EQUAL(GMON_RESP_OK, staQuickSort(list, 6));
+    unsigned int expected[] = {3, 4, 4, 5, 9, 9};
+    for (int i = 0; i < 6; i++) {
+        TEST_ASSERT_EQUAL(expected[i], list[i]);
+    }
+}
+
+TEST(QuickSort, UnsortedWithDuplicates2) {
+    unsigned int list[] = {9, 5, 10, 3, 4, 3};
+    TEST_ASSERT_EQUAL(GMON_RESP_OK, staQuickSort(list, 6));
+    unsigned int expected[] = {3, 3, 4, 5, 9, 10};
+    for (int i = 0; i < 6; i++) {
+        TEST_ASSERT_EQUAL(expected[i], list[i]);
+    }
+}
+
 TEST(PartitionIntArray, EmptyArray) {
-    unsigned int   list[] = {};
-    unsigned short len = 0;
-    unsigned int   original_list[] = {};
-    unsigned short partition_index = staPartitionIntArray(list, len);
+    unsigned int   list[] = {}, original_list[] = {};
+    unsigned short len = 0, partition_index = staPartitionIntArray(list, len);
     TEST_ASSERT_EQUAL(0, partition_index);
     verify_content_integrity(original_list, list, len);
 }
 
 TEST(PartitionIntArray, SingleElementArray) {
-    unsigned int   list[] = {10};
-    unsigned short len = 1;
-    unsigned int   original_list[] = {10};
-    unsigned short partition_index = staPartitionIntArray(list, len);
+    unsigned int   list[] = {10}, original_list[] = {10};
+    unsigned short len = 1, partition_index = staPartitionIntArray(list, len);
     TEST_ASSERT_EQUAL(0, partition_index);
     TEST_ASSERT_EQUAL(10, list[0]); // Ensure element is untouched
     verify_content_integrity(original_list, list, len);
 }
 
 TEST(PartitionIntArray, TwoElementsAscending) {
-    unsigned int   list[] = {1, 2};
-    unsigned short len = 2;
-    unsigned int   original_list[] = {1, 2};
-    unsigned short partition_index = staPartitionIntArray(list, len);
+    unsigned int   list[] = {1, 2}, original_list[] = {1, 2};
+    unsigned short len = 2, partition_index = staPartitionIntArray(list, len);
     TEST_ASSERT_EQUAL(0, partition_index);
     verify_partition(list, len, partition_index);
     verify_content_integrity(original_list, list, len);
 }
 
 TEST(PartitionIntArray, TwoElementsDescending) {
-    unsigned int   list[] = {2, 1};
-    unsigned short len = 2;
-    unsigned int   original_list[] = {2, 1};
-    unsigned short partition_index = staPartitionIntArray(list, len);
+    unsigned int   list[] = {2, 1}, original_list[] = {2, 1};
+    unsigned short len = 2, partition_index = staPartitionIntArray(list, len);
     TEST_ASSERT_EQUAL(0, partition_index);
     verify_partition(list, len, partition_index);
     verify_content_integrity(original_list, list, len);
 }
 
 TEST(PartitionIntArray, TwoElementsEqual) {
-    unsigned int   list[] = {5, 5};
-    unsigned short len = 2;
-    unsigned int   original_list[] = {5, 5};
-    unsigned short partition_index = staPartitionIntArray(list, len);
+    unsigned int   list[] = {5, 5}, original_list[] = {5, 5};
+    unsigned short len = 2, partition_index = staPartitionIntArray(list, len);
     TEST_ASSERT_EQUAL(0, partition_index);
     verify_partition(list, len, partition_index);
     verify_content_integrity(original_list, list, len);
 }
 
 TEST(PartitionIntArray, AllElementsIdentical) {
-    unsigned int   list[] = {7, 7, 7, 7, 7};
-    unsigned short len = 5;
-    unsigned int   original_list[] = {7, 7, 7, 7, 7};
-    unsigned short partition_index = staPartitionIntArray(list, len);
+    unsigned int   list[] = {7, 7, 7, 7, 7}, original_list[] = {7, 7, 7, 7, 7};
+    unsigned short len = 5, partition_index = staPartitionIntArray(list, len);
     TEST_ASSERT_EQUAL(2, partition_index);
     verify_partition(list, len, partition_index);
     verify_content_integrity(original_list, list, len);
 }
 
 TEST(PartitionIntArray, SortedAscending) {
-    unsigned int   list[] = {1, 2, 3, 4, 5};
-    unsigned short len = 5;
-    unsigned int   original_list[] = {1, 2, 3, 4, 5};
-    unsigned short partition_index = staPartitionIntArray(list, len);
+    unsigned int   list[] = {1, 2, 3, 4, 5}, original_list[] = {1, 2, 3, 4, 5};
+    unsigned short len = 5, partition_index = staPartitionIntArray(list, len);
     TEST_ASSERT_EQUAL(0, partition_index);
     verify_partition(list, len, partition_index);
     verify_content_integrity(original_list, list, len);
 }
 
 TEST(PartitionIntArray, SortedDescending) {
-    unsigned int   list[] = {5, 4, 3, 2, 1};
-    unsigned short len = 5;
-    unsigned int   original_list[] = {5, 4, 3, 2, 1};
-    unsigned short partition_index = staPartitionIntArray(list, len);
+    unsigned int   list[] = {5, 4, 3, 2, 1}, original_list[] = {5, 4, 3, 2, 1};
+    unsigned short len = 5, partition_index = staPartitionIntArray(list, len);
     TEST_ASSERT_EQUAL(3, partition_index);
     verify_partition(list, len, partition_index);
     verify_content_integrity(original_list, list, len);
 }
 
 TEST(PartitionIntArray, MixedPivotSmallest) {
-    unsigned int   list[] = {1, 5, 2, 8, 3};
-    unsigned short len = 5;
-    unsigned int   original_list[] = {1, 5, 2, 8, 3};
-    unsigned short partition_index = staPartitionIntArray(list, len);
+    unsigned int   list[] = {1, 5, 2, 8, 3}, original_list[] = {1, 5, 2, 8, 3};
+    unsigned short len = 5, partition_index = staPartitionIntArray(list, len);
     TEST_ASSERT_EQUAL(0, partition_index);
     verify_partition(list, len, partition_index);
     verify_content_integrity(original_list, list, len);
 }
 
 TEST(PartitionIntArray, MixedPivotLargest) {
-    unsigned int   list[] = {8, 1, 5, 2, 3};
-    unsigned short len = 5;
-    unsigned int   original_list[] = {8, 1, 5, 2, 3};
-    unsigned short partition_index = staPartitionIntArray(list, len);
+    unsigned int   list[] = {8, 1, 5, 2, 3}, original_list[] = {8, 1, 5, 2, 3};
+    unsigned short len = 5, partition_index = staPartitionIntArray(list, len);
     TEST_ASSERT_EQUAL(3, partition_index);
     verify_partition(list, len, partition_index);
     verify_content_integrity(original_list, list, len);
 }
 
 TEST(PartitionIntArray, MixedPivotMiddle) {
-    unsigned int   list[] = {5, 2, 8, 1, 9, 3};
-    unsigned short len = 6;
-    unsigned int   original_list[] = {5, 2, 8, 1, 9, 3};
-    unsigned short partition_index = staPartitionIntArray(list, len);
+    unsigned int   list[] = {5, 2, 8, 1, 9, 3}, original_list[] = {5, 2, 8, 1, 9, 3};
+    unsigned short len = 6, partition_index = staPartitionIntArray(list, len);
     TEST_ASSERT_EQUAL(2, partition_index);
     verify_partition(list, len, partition_index);
     verify_content_integrity(original_list, list, len);
@@ -415,20 +454,16 @@ TEST(PartitionIntArray, MixedPivotMiddle2) {
 }
 
 TEST(PartitionIntArray, MixedPivotMiddle3) {
-    unsigned int   list[] = {6, 9, 5};
-    unsigned short len = 3;
-    unsigned int   original_list[] = {6, 9, 5};
-    unsigned short partition_index = staPartitionIntArray(list, len);
+    unsigned int   list[] = {6, 9, 5}, original_list[] = {6, 9, 5};
+    unsigned short len = 3, partition_index = staPartitionIntArray(list, len);
     TEST_ASSERT_EQUAL(0, partition_index);
     verify_partition(list, len, partition_index);
     verify_content_integrity(original_list, list, len);
 }
 
 TEST(PartitionIntArray, DuplicatesPivot) {
-    unsigned int   list[] = {3, 5, 1, 5, 2, 4};
-    unsigned short len = 6;
-    unsigned int   original_list[] = {3, 5, 1, 5, 2, 4};
-    unsigned short partition_index = staPartitionIntArray(list, len);
+    unsigned int   list[] = {3, 5, 1, 5, 2, 4}, original_list[] = {3, 5, 1, 5, 2, 4};
+    unsigned short len = 6, partition_index = staPartitionIntArray(list, len);
     TEST_ASSERT_EQUAL(1, partition_index);
     verify_partition(list, len, partition_index);
     verify_content_integrity(original_list, list, len);
@@ -700,6 +735,15 @@ TEST_GROUP_RUNNER(gMonUtilityStatistical) {
     RUN_TEST_CASE(QuickSelect, LargeArrayMidK);
     RUN_TEST_CASE(QuickSelect, LargeArraySmallK);
     RUN_TEST_CASE(QuickSelect, LargeArrayLargeK);
+
+    RUN_TEST_CASE(QuickSort, InvalidInput);
+    RUN_TEST_CASE(QuickSort, EmptyList);
+    RUN_TEST_CASE(QuickSort, OneElementList);
+    RUN_TEST_CASE(QuickSort, TwoElementList);
+    RUN_TEST_CASE(QuickSort, AllIdentical);
+    RUN_TEST_CASE(QuickSort, UnsortedRandom);
+    RUN_TEST_CASE(QuickSort, UnsortedWithDuplicates);
+    RUN_TEST_CASE(QuickSort, UnsortedWithDuplicates2);
 
     RUN_TEST_CASE(FindMedian, NullListZeroLength);
     RUN_TEST_CASE(FindMedian, SingleElementList);
