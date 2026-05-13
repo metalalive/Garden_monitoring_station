@@ -510,6 +510,19 @@ gMonStatus staActuatorPlatformInitBulb(void **pinstruct) {
     return staPlatformPinSetDirection(*pinstruct, GMON_PLATFORM_PIN_DIRECTION_OUT);
 }
 
+gMonStatus staActuatorPlatformDeInitPump(void **pinstruct) {
+    XASSERT(0);
+    return GMON_RESP_ERR;
+}
+gMonStatus staActuatorPlatformDeInitFan(void **pinstruct) {
+    XASSERT(0);
+    return GMON_RESP_ERR;
+}
+gMonStatus staActuatorPlatformDeInitBulb(void **pinstruct) {
+    XASSERT(0);
+    return GMON_RESP_ERR;
+}
+
 gMonStatus staDisplayPlatformInit(uint8_t comm_protocal_id, void **pinstruct) {
     if (pinstruct == NULL) {
         return GMON_RESP_ERRARGS;

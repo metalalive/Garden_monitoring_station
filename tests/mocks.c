@@ -158,6 +158,31 @@ gMonStatus staSensorPlatformDeInitAirTemp(gMonSensorMeta_t *s) {
     (void)s;
     return GMON_RESP_OK;
 }
+
+gMonStatus staActuatorPlatformInitPump(void **pinstruct) {
+    (void)pinstruct;
+    return GMON_RESP_OK;
+}
+gMonStatus staActuatorPlatformInitFan(void **pinstruct) {
+    (void)pinstruct;
+    return GMON_RESP_OK;
+}
+gMonStatus staActuatorPlatformInitBulb(void **pinstruct) {
+    (void)pinstruct;
+    return GMON_RESP_OK;
+}
+gMonStatus staActuatorPlatformDeInitPump(void **pinstruct) {
+    (void)pinstruct;
+    return GMON_RESP_OK;
+}
+gMonStatus staActuatorPlatformDeInitFan(void **pinstruct) {
+    (void)pinstruct;
+    return GMON_RESP_OK;
+}
+gMonStatus staActuatorPlatformDeInitBulb(void **pinstruct) {
+    (void)pinstruct;
+    return GMON_RESP_OK;
+}
 gMonStatus staPlatformMeasurePulse(void *pinstruct, uint8_t *direction, uint16_t *us) {
     (void)pinstruct;
     (void)direction;

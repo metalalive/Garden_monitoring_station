@@ -46,6 +46,10 @@ gMonStatus staActuatorPlatformInitPump(void **pinstruct);
 gMonStatus staActuatorPlatformInitFan(void **pinstruct);
 gMonStatus staActuatorPlatformInitBulb(void **pinstruct);
 
+gMonStatus staActuatorPlatformDeInitPump(void **pinstruct);
+gMonStatus staActuatorPlatformDeInitFan(void **pinstruct);
+gMonStatus staActuatorPlatformDeInitBulb(void **pinstruct);
+
 gMonStatus staDisplayPlatformInit(uint8_t comm_protocal_id, void **pinstruct);
 gMonStatus staDisplayPlatformDeinit(void *pinstruct);
 
