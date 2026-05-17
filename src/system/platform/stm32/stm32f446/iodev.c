@@ -6,6 +6,9 @@
 #define NUM_AIRTEMP_DATA_PINS 2
 #define NUM_LIGHTS_DATA_PINS  3
 #define NUM_SOILS_DATA_PINS   4
+#define NUM_PUMPS_CTRL_PINS   4
+#define NUM_FANS_CTRL_PINS    1
+#define NUM_BULBS_CTRL_PINS   3
 
 typedef struct {
     SPI_HandleTypeDef *handler;
@@ -21,10 +24,17 @@ typedef struct {
 } hal_extend_adc_t;
 
 typedef struct {
+    hal_pinout_t     pinout;
+    gMonActuatorId_t app_id;
+    uint8_t          low_active : 1;
+} hal_relay_pin_t;
+
+typedef struct {
     const hal_pinout_t *pwrctrl;
     union {
         const hal_extend_adc_t *adc;
         const hal_pinout_t     *gpio;
+        const hal_relay_pin_t  *relay;
     } func;
     uint8_t len;
 } hal_extend_t;
@@ -40,9 +50,20 @@ static DMA_HandleTypeDef hdma_adc1;
 static const hal_pinout_t hal_air_temp_read_pins[NUM_AIRTEMP_DATA_PINS] = {
     {HW_AIRTEMP_PORT, HW_AIRTEMP1_PIN, 0}, {HW_AIRTEMP_PORT, HW_AIRTEMP2_PIN, 0}
 };
-static const hal_pinout_t hal_pump_write_pin = {HW_PUMP_PORT, HW_PUMP_PIN, 0};
-static const hal_pinout_t hal_fan_write_pin = {HW_FAN_PORT, HW_FAN_PIN, 0};
-static const hal_pinout_t hal_bulb_write_pin = {HW_BULB_PORT, HW_BULB_PIN, 0};
+static const hal_relay_pin_t hal_pump_write_pin[NUM_PUMPS_CTRL_PINS] = {
+    {.pinout = {HW_PUMP_PORT, HW_PUMP_1_PIN, 0x2}, .app_id = 1, .low_active = 0},
+    {.pinout = {HW_PUMP_PORT, HW_PUMP_2_PIN, 0}, .app_id = 4, .low_active = 0},
+    {.pinout = {HW_PUMP_PORT, HW_PUMP_3_PIN, 0}, .app_id = 5, .low_active = 0},
+    {.pinout = {HW_PUMP_PORT, HW_PUMP_4_PIN, 0x2}, .app_id = 6, .low_active = 0},
+};
+static const hal_relay_pin_t hal_fan_write_pin[NUM_FANS_CTRL_PINS] = {
+    {.pinout = {HW_FAN_PORT, HW_FAN_1_PIN, 0}, .app_id = 3, .low_active = 1},
+};
+static const hal_relay_pin_t hal_bulb_write_pin[NUM_BULBS_CTRL_PINS] = {
+    {.pinout = {HW_BULB_PORT, HW_BULB_1_PIN, 0}, .app_id = 2, .low_active = 1},
+    {.pinout = {HW_BULB_PORT, HW_BULB_2_PIN, 0}, .app_id = 7, .low_active = 1},
+    {.pinout = {HW_BULB_PORT, HW_BULB_3_PIN, 0}, .app_id = 8, .low_active = 1},
+};
 static const hal_pinout_t hal_display_rst_pin = {HW_DISPLAY_RST_PORT, HW_DISPLAY_RST_PIN, 0};
 static const hal_pinout_t hal_display_dc_pin = {HW_DISPLAY_DC_PORT, HW_DISPLAY_DC_PIN, 0};
 static hal_spi_pinout_t   hal_display_spi_pins;
@@ -61,11 +82,14 @@ static const hal_extend_adc_t hal_extended_adc_devices[NUM_SOILS_DATA_PINS + NUM
     {.reference = &hadc1, .channel = HW_LIGHT_SENSOR_ADC_CH3, .app_sensor_id = 3},
 };
 
-static const hal_extend_t hal_extended_devices[3] = {
+static const hal_extend_t hal_extended_devices[6] = {
     {.func = {.adc = &hal_extended_adc_devices[0]}, .len = NUM_SOILS_DATA_PINS, .pwrctrl = &pwrctrl_soilmoist
     },
     {.func = {.adc = &hal_extended_adc_devices[4]}, .len = NUM_LIGHTS_DATA_PINS, .pwrctrl = &pwrctrl_light},
     {.func = {.gpio = &hal_air_temp_read_pins[0]}, .len = NUM_AIRTEMP_DATA_PINS, .pwrctrl = &pwrctrl_airtemp},
+    {.func = {.relay = &hal_pump_write_pin[0]}, .len = NUM_PUMPS_CTRL_PINS, .pwrctrl = NULL},
+    {.func = {.relay = &hal_fan_write_pin[0]}, .len = NUM_FANS_CTRL_PINS, .pwrctrl = NULL},
+    {.func = {.relay = &hal_bulb_write_pin[0]}, .len = NUM_BULBS_CTRL_PINS, .pwrctrl = NULL},
 };
 
 HAL_StatusTypeDef SystemClock_Config(void) {
@@ -486,42 +510,66 @@ gMonStatus staSensorPlatformDeInitAirTemp(gMonSensorMeta_t *s) {
     return GMON_RESP_OK;
 }
 
-gMonStatus staActuatorPlatformInitPump(void **pinstruct) {
-    if (pinstruct == NULL) {
+gMonStatus staPlatformActuatorSwitch(gMonActuator_t *ator) {
+    if (ator == NULL)
         return GMON_RESP_ERRARGS;
+    const hal_relay_pin_t *valid = NULL, *rly = ator->lowlvl;
+    for (unsigned char i = 3; valid == NULL && i < 6; i++) {
+        const hal_extend_t *ext = &hal_extended_devices[i];
+        for (unsigned char j = 0; valid == NULL && j < ext->len; j++) {
+            const hal_relay_pin_t *tmp = &ext->func.relay[j];
+            if (ator->id == tmp->app_id)
+                valid = (void *)tmp;
+        }
     }
-    *(const hal_pinout_t **)pinstruct = &hal_pump_write_pin;
-    return staPlatformPinSetDirection(*pinstruct, GMON_PLATFORM_PIN_DIRECTION_OUT);
+    if (valid == NULL)
+        return GMON_RESP_ERR_NOT_SUPPORT;
+    uint8_t ll_state = GMON_PLATFORM_PIN_RESET;
+    if (rly->low_active) {
+        ll_state = (ator->status == GMON_OUT_DEV_STATUS_ON ? GMON_PLATFORM_PIN_RESET : GMON_PLATFORM_PIN_SET);
+    } else {
+        ll_state = (ator->status == GMON_OUT_DEV_STATUS_ON ? GMON_PLATFORM_PIN_SET : GMON_PLATFORM_PIN_RESET);
+    }
+    return staPlatformWritePin((void *)&rly->pinout, ll_state);
 }
 
-gMonStatus staActuatorPlatformInitFan(void **pinstruct) {
-    if (pinstruct == NULL) {
+static gMonStatus actuatorInitCommon(gMonActuator_t *ator, short idx) {
+    if (ator == NULL)
         return GMON_RESP_ERRARGS;
+    const hal_extend_t *ext = &hal_extended_devices[idx];
+    for (unsigned char i = 0; ator->lowlvl == NULL && i < ext->len; i++) {
+        const hal_relay_pin_t *tmp = &ext->func.relay[i];
+        if (ator->id == tmp->app_id)
+            ator->lowlvl = (void *)tmp;
     }
-    *(const hal_pinout_t **)pinstruct = &hal_fan_write_pin;
-    return staPlatformPinSetDirection(*pinstruct, GMON_PLATFORM_PIN_DIRECTION_OUT);
+    if (ator->lowlvl == NULL)
+        return GMON_RESP_ERR_NOT_SUPPORT;
+    gMonStatus status = staPlatformPinSetDirection(ator->lowlvl, GMON_PLATFORM_PIN_DIRECTION_OUT);
+    if (status != GMON_RESP_OK)
+        return status;
+    ator->status = GMON_OUT_DEV_STATUS_OFF;
+    return staPlatformActuatorSwitch(ator);
 }
 
-gMonStatus staActuatorPlatformInitBulb(void **pinstruct) {
-    if (pinstruct == NULL) {
+gMonStatus staActuatorPlatformInitPump(gMonActuator_t *ator) { return actuatorInitCommon(ator, 3); }
+gMonStatus staActuatorPlatformInitFan(gMonActuator_t *ator) { return actuatorInitCommon(ator, 4); }
+gMonStatus staActuatorPlatformInitBulb(gMonActuator_t *ator) { return actuatorInitCommon(ator, 5); }
+
+static gMonStatus actuatorDeInitCommon(gMonActuator_t *ator) {
+    if (ator == NULL)
         return GMON_RESP_ERRARGS;
-    }
-    *(const hal_pinout_t **)pinstruct = &hal_bulb_write_pin;
-    return staPlatformPinSetDirection(*pinstruct, GMON_PLATFORM_PIN_DIRECTION_OUT);
+    ator->status = GMON_OUT_DEV_STATUS_OFF;
+    XASSERT(GMON_RESP_OK == staPlatformActuatorSwitch(ator));
+    // TODO, turn off relay , then HAL de-init
+    const hal_relay_pin_t *rly = ator->lowlvl;
+    HAL_GPIO_DeInit(rly->pinout.port, rly->pinout.pin);
+    ator->lowlvl = NULL;
+    return GMON_RESP_OK;
 }
 
-gMonStatus staActuatorPlatformDeInitPump(void **pinstruct) {
-    XASSERT(0);
-    return GMON_RESP_ERR;
-}
-gMonStatus staActuatorPlatformDeInitFan(void **pinstruct) {
-    XASSERT(0);
-    return GMON_RESP_ERR;
-}
-gMonStatus staActuatorPlatformDeInitBulb(void **pinstruct) {
-    XASSERT(0);
-    return GMON_RESP_ERR;
-}
+gMonStatus staActuatorPlatformDeInitPump(gMonActuator_t *ator) { return actuatorDeInitCommon(ator); }
+gMonStatus staActuatorPlatformDeInitFan(gMonActuator_t *ator) { return actuatorDeInitCommon(ator); }
+gMonStatus staActuatorPlatformDeInitBulb(gMonActuator_t *ator) { return actuatorDeInitCommon(ator); }
 
 gMonStatus staDisplayPlatformInit(uint8_t comm_protocal_id, void **pinstruct) {
     if (pinstruct == NULL) {
@@ -620,14 +668,12 @@ void *staPlatformFindIOpin(void *lowlvl, uint8_t idx) {
 }
 
 gMonStatus staPlatformPinSetDirection(void *pinstruct, uint8_t direction) {
-    if (pinstruct == NULL) {
+    if (pinstruct == NULL)
         return GMON_RESP_ERRARGS;
-    }
-    hal_pinout_t     *hal_pinstruct = NULL;
-    GPIO_InitTypeDef  GPIO_InitStruct = {0};
+    hal_pinout_t     *hal_pinstruct = (hal_pinout_t *)pinstruct;
+    GPIO_InitTypeDef  GPIO_InitStruct = {.Alternate = hal_pinstruct->alternate};
     HAL_StatusTypeDef status = HAL_OK;
 
-    hal_pinstruct = (hal_pinout_t *)pinstruct;
     HAL_GPIO_DeInit(hal_pinstruct->port, hal_pinstruct->pin);
     switch (direction) {
     case GMON_PLATFORM_PIN_DIRECTION_OUT:

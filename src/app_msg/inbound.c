@@ -228,7 +228,7 @@ static gMonStatus decodeSingleActuator(
 static gMonStatus decodeActuatorSetCfg(
     const unsigned char *json_data, gmonParsedToken_t *tokens, int start_obj_tok_idx, gMonActuators_t *ators,
     gMonStatus (*set_threshold_fn)(gMonActuatorParam_t *, unsigned int), gMonStatus *threshold_status_field,
-    gMonStatus (*init_platform_fn)(void **), gMonStatus (*deinit_platform_fn)(void **),
+    gMonStatus (*init_platform_fn)(gMonActuator_t *), gMonStatus (*deinit_platform_fn)(gMonActuator_t *),
     unsigned char ema_lambda_fixpt, int *tokens_consumed_out
 ) {
     gMonStatus status = GMON_RESP_OK;
@@ -263,7 +263,7 @@ static gMonStatus decodeActuatorSetCfg(
             for (int i = 0; i < ids2rm.count; i++) {
                 gMonActuator_t *ator = staActuatorFindById(ators, ids2rm.id[i]);
                 if (ator != NULL)
-                    deinit_platform_fn(&ator->lowlvl);
+                    deinit_platform_fn(ator);
             }
         }
     }
@@ -283,7 +283,7 @@ static gMonStatus decodeActuatorSetCfg(
         for (int i = 0; i < ids2add.count; i++) {
             gMonActuator_t *ator = staActuatorFindById(ators, ids2add.id[i]);
             if (ator != NULL) {
-                init_platform_fn(&ator->lowlvl);
+                init_platform_fn(ator);
                 staActuatorGenericInit(ator, ator->id, ema_lambda_fixpt);
             }
         }

@@ -5,6 +5,14 @@
 extern "C" {
 #endif
 
+// ----- pins which cannot be used in STM32F446 board -----
+// - PA13 / PA14 are tied with serial-wire debug (SWD) protocol
+//   on SL-LINK, both pinouts are manufactued but MUST NOT be used as GPIO pins.
+//   since this will activate JTAG pins causing on-chip debug corruption
+// - PC14 / PC15 are tied with low-speed external clock module (LSE) and the
+//   relevant solder bridges `SB48` / `SB49` are OFF by default . To make it
+//   function as GPIO pins, add bridges on `SB48` / `SB49`
+
 // ---- hardware pins mapping to application domain ----
 // Sensor Pin Assignments
 #define HW_SOIL_MOISTURE_1_PIN   GPIO_PIN_6 // PA6
@@ -35,14 +43,19 @@ extern "C" {
 #define HW_AIRTEMP2_PIN GPIO_PIN_12
 
 // Actuator Pin Assignments
-#define HW_PUMP_PORT GPIOC
-#define HW_PUMP_PIN  GPIO_PIN_13
+#define HW_PUMP_PORT  GPIOA
+#define HW_PUMP_1_PIN GPIO_PIN_8
+#define HW_PUMP_2_PIN GPIO_PIN_9
+#define HW_PUMP_3_PIN GPIO_PIN_10
+#define HW_PUMP_4_PIN GPIO_PIN_15
 
-#define HW_FAN_PORT GPIOC
-#define HW_FAN_PIN  GPIO_PIN_1
+#define HW_FAN_PORT  GPIOC
+#define HW_FAN_1_PIN GPIO_PIN_6
 
-#define HW_BULB_PORT GPIOC
-#define HW_BULB_PIN  GPIO_PIN_0
+#define HW_BULB_PORT  GPIOC
+#define HW_BULB_1_PIN GPIO_PIN_7
+#define HW_BULB_2_PIN GPIO_PIN_12
+#define HW_BULB_3_PIN GPIO_PIN_13
 
 // Display Pin Assignments
 #define HW_DISPLAY_RST_PORT      GPIOB

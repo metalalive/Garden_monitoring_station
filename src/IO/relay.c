@@ -15,7 +15,7 @@ gMonStatus staActuatorInitPump(gMonActuators_t *ators) {
         status = staActuatorUpdateParam(&ator->param, &new_cfg[idx].param, staSetTrigThresholdPump);
         if (status != GMON_RESP_OK)
             goto done;
-        status = staActuatorPlatformInitPump(&ator->lowlvl);
+        status = staActuatorPlatformInitPump(ator);
         if (status != GMON_RESP_OK)
             goto done;
         XASSERT(ator->lowlvl != NULL);
@@ -24,7 +24,11 @@ done:
     return status;
 }
 
-gMonStatus staActuatorDeinitPump(gMonActuators_t *ators) { return staActuatorShrinkSize(ators, 0, NULL); }
+gMonStatus staActuatorDeinitPump(gMonActuators_t *ators) {
+    for (int i = 0; i < ators->count; i++)
+        staActuatorPlatformDeInitPump(&ators->entries[i]);
+    return staActuatorShrinkSize(ators, 0, NULL);
+}
 
 gMonStatus staActuatorInitFan(gMonActuators_t *ators) {
     XMEMSET(ators, 0x00, sizeof(gMonActuators_t));
@@ -40,7 +44,7 @@ gMonStatus staActuatorInitFan(gMonActuators_t *ators) {
         status = staActuatorUpdateParam(&ator->param, &new_cfg[idx].param, staSetTrigThresholdFan);
         if (status != GMON_RESP_OK)
             goto done;
-        status = staActuatorPlatformInitFan(&ator->lowlvl);
+        status = staActuatorPlatformInitFan(ator);
         if (status != GMON_RESP_OK)
             goto done;
         XASSERT(ator->lowlvl != NULL);
@@ -49,7 +53,11 @@ done:
     return status;
 }
 
-gMonStatus staActuatorDeinitFan(gMonActuators_t *ators) { return staActuatorShrinkSize(ators, 0, NULL); }
+gMonStatus staActuatorDeinitFan(gMonActuators_t *ators) {
+    for (int i = 0; i < ators->count; i++)
+        staActuatorPlatformDeInitFan(&ators->entries[i]);
+    return staActuatorShrinkSize(ators, 0, NULL);
+}
 
 gMonStatus staActuatorInitBulb(gMonActuators_t *ators) {
     XMEMSET(ators, 0x00, sizeof(gMonActuators_t));
@@ -66,7 +74,7 @@ gMonStatus staActuatorInitBulb(gMonActuators_t *ators) {
         status = staActuatorUpdateParam(&ator->param, &new_cfg[idx].param, staSetTrigThresholdBulb);
         if (status != GMON_RESP_OK)
             goto done;
-        status = staActuatorPlatformInitBulb(&ator->lowlvl);
+        status = staActuatorPlatformInitBulb(ator);
         if (status != GMON_RESP_OK)
             goto done;
         XASSERT(ator->lowlvl != NULL);
@@ -75,7 +83,11 @@ done:
     return status;
 }
 
-gMonStatus staActuatorDeinitBulb(gMonActuators_t *ators) { return staActuatorShrinkSize(ators, 0, NULL); }
+gMonStatus staActuatorDeinitBulb(gMonActuators_t *ators) {
+    for (int i = 0; i < ators->count; i++)
+        staActuatorPlatformDeInitBulb(&ators->entries[i]);
+    return staActuatorShrinkSize(ators, 0, NULL);
+}
 
 static gMonStatus TrigSinglePump(gMonActuator_t *ator, gmonEvent_t *evt, gMonSoilSensorMeta_t *sensor) {
     int          soil_moist = 0;
@@ -89,9 +101,7 @@ static gMonStatus TrigSinglePump(gMonActuator_t *ator, gmonEvent_t *evt, gMonSoi
     if (ator->status != dev_status) {
         ator->status = dev_status;
         staSensorFastPollToggle(sensor, ator);
-        uint8_t pin_state =
-            (dev_status == GMON_OUT_DEV_STATUS_ON ? GMON_PLATFORM_PIN_SET : GMON_PLATFORM_PIN_RESET);
-        status = staPlatformWritePin(ator->lowlvl, pin_state);
+        status = staPlatformActuatorSwitch(ator);
     }
     return status;
 }
@@ -122,9 +132,7 @@ static gMonStatus TrigSingleFan(gMonActuator_t *ator, gmonEvent_t *evt, gMonSens
                                         : GMON_OUT_DEV_STATUS_OFF;
     if (ator->status != dev_status) {
         ator->status = dev_status;
-        uint8_t pin_state =
-            (dev_status == GMON_OUT_DEV_STATUS_ON ? GMON_PLATFORM_PIN_SET : GMON_PLATFORM_PIN_RESET);
-        status = staPlatformWritePin(ator->lowlvl, pin_state);
+        status = staPlatformActuatorSwitch(ator);
     }
     return status;
 }
@@ -156,9 +164,7 @@ static gMonStatus TrigSingleBulb(gMonActuator_t *ator, gmonEvent_t *evt, gMonSen
                                         : GMON_OUT_DEV_STATUS_OFF;
     if (ator->status != dev_status) {
         ator->status = dev_status;
-        uint8_t pin_state =
-            (dev_status == GMON_OUT_DEV_STATUS_ON ? GMON_PLATFORM_PIN_SET : GMON_PLATFORM_PIN_RESET);
-        status = staPlatformWritePin(ator->lowlvl, pin_state);
+        status = staPlatformActuatorSwitch(ator);
     }
     return status;
 }
