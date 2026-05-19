@@ -42,9 +42,13 @@ gMonStatus staSensorPlatformInitLight(gMonSensorMeta_t *);
 gMonStatus staSensorPlatformDeInitLight(gMonSensorMeta_t *);
 gMonStatus staPlatformReadLightSensor(gMonSensorMeta_t *, gmonSensorSample_t *);
 
-gMonStatus staActuatorPlatformInitPump(void **pinstruct);
-gMonStatus staActuatorPlatformInitFan(void **pinstruct);
-gMonStatus staActuatorPlatformInitBulb(void **pinstruct);
+gMonStatus staActuatorPlatformInitPump(gMonActuator_t *);
+gMonStatus staActuatorPlatformInitFan(gMonActuator_t *);
+gMonStatus staActuatorPlatformInitBulb(gMonActuator_t *);
+gMonStatus staActuatorPlatformDeInitPump(gMonActuator_t *);
+gMonStatus staActuatorPlatformDeInitFan(gMonActuator_t *);
+gMonStatus staActuatorPlatformDeInitBulb(gMonActuator_t *);
+gMonStatus staPlatformActuatorSwitch(gMonActuator_t *);
 
 gMonStatus staDisplayPlatformInit(uint8_t comm_protocal_id, void **pinstruct);
 gMonStatus staDisplayPlatformDeinit(void *pinstruct);

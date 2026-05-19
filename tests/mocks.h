@@ -8,9 +8,9 @@
 
 // Forward declarations for mock functions
 gMonStatus staSetNetConnTaskInterval(gMonNet_t *, unsigned int interval_ms);
-gMonStatus staSetTrigThresholdPump(gMonActuator_t *pump, unsigned int threshold);
-gMonStatus staSetTrigThresholdFan(gMonActuator_t *fan, unsigned int threshold);
-gMonStatus staSetTrigThresholdBulb(gMonActuator_t *bulb, unsigned int threshold);
-gMonStatus staSetRequiredDaylenTicks(gardenMonitor_t *gmon, unsigned int light_length);
+gMonStatus staSetTrigThresholdPump(gMonActuatorParam_t *, unsigned int threshold);
+gMonStatus staSetTrigThresholdFan(gMonActuatorParam_t *, unsigned int threshold);
+gMonStatus staSetTrigThresholdBulb(gMonActuatorParam_t *, unsigned int threshold);
+gMonStatus staSetRequiredDaylenTicks(gardenMonitor_t *, unsigned int light_length);
 
 #endif // TEST_GMON_MOCKS_H

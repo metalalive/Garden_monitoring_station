@@ -40,7 +40,7 @@ _COMMON_C_SOURCES_FUNC = \
     src/IO/actuator.c  \
     src/IO/display.c \
     src/IO/display/textfonts.c \
-    src/IO/relay/SRD-0xVDC-SL-C.c \
+    src/IO/relay.c \
     src/IO/display/SSD1315_OLED.c \
     src/IO/soilsensor.c \
     src/IO/LDR.c  \
@@ -57,6 +57,8 @@ APPCFG_MIDDLEWARE_C_INCLUDES = $(_APP_SYS_INCLUDE)/middleware/ESP_AT_parser
 APPCFG_HW_C_INCLUDES = $(_APP_SYS_INCLUDE)/platform/stm32/stm32f446
 
 APPCFG_ASM_SOURCES = $(_APP_SYS_SOURCE)/platform/stm32/stm32f446/bootcode_stm32f446.s
+
+EXTRA_C_DEFS := JSMN_TOKEN_START_TYPE=short JSMN_TOKEN_END_TYPE=short JSMN_TOKEN_SIZE_TYPE=char
 
 APP_LINK_SCRIPT = $(_APP_SYS_SOURCE)/platform/stm32/stm32f446/stm32f446_flash.ld
 

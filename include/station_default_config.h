@@ -160,32 +160,58 @@ extern "C" {
 
 #ifdef GMON_CFG_ENABLE_ACTUATOR_PUMP
     #define GMON_ACTUATOR_INIT_FN_PUMP(dev)              staActuatorInitPump((dev))
-    #define GMON_ACTUATOR_DEINIT_FN_PUMP()               staActuatorDeinitPump()
+    #define GMON_ACTUATOR_DEINIT_FN_PUMP(dev)            staActuatorDeinitPump((dev))
     #define GMON_ACTUATOR_TRIG_FN_PUMP(dev, evt, sensor) staActuatorTrigPump((dev), (evt), (sensor))
+    #ifndef GMON_CFG_ACTUATOR_NUM_PUMPS
+        #define GMON_CFG_ACTUATOR_NUM_PUMPS 0
+    #endif
 #else
     #define GMON_ACTUATOR_INIT_FN_PUMP(dev)              GMON_RESP_OK
-    #define GMON_ACTUATOR_DEINIT_FN_PUMP()               GMON_RESP_OK
+    #define GMON_ACTUATOR_DEINIT_FN_PUMP(dev)            GMON_RESP_OK
     #define GMON_ACTUATOR_TRIG_FN_PUMP(dev, evt, sensor) GMON_RESP_OK
+    #define GMON_CFG_ACTUATOR_NUM_PUMPS                  0
 #endif
 
 #ifdef GMON_CFG_ENABLE_ACTUATOR_FAN
     #define GMON_ACTUATOR_INIT_FN_FAN(dev)              staActuatorInitFan((dev))
-    #define GMON_ACTUATOR_DEINIT_FN_FAN()               staActuatorDeinitFan()
+    #define GMON_ACTUATOR_DEINIT_FN_FAN(dev)            staActuatorDeinitFan((dev))
     #define GMON_ACTUATOR_TRIG_FN_FAN(dev, evt, sensor) staActuatorTrigFan((dev), (evt), (sensor))
+    #ifndef GMON_CFG_ACTUATOR_NUM_FANS
+        #define GMON_CFG_ACTUATOR_NUM_FANS 0
+    #endif
 #else
     #define GMON_ACTUATOR_INIT_FN_FAN(dev)              GMON_RESP_OK
-    #define GMON_ACTUATOR_DEINIT_FN_FAN()               GMON_RESP_OK
+    #define GMON_ACTUATOR_DEINIT_FN_FAN(dev)            GMON_RESP_OK
     #define GMON_ACTUATOR_TRIG_FN_FAN(dev, evt, sensor) GMON_RESP_OK
+    #define GMON_CFG_ACTUATOR_NUM_FANS                  0
 #endif
 
 #ifdef GMON_CFG_ENABLE_ACTUATOR_BULB
     #define GMON_ACTUATOR_INIT_FN_BULB(dev)              staActuatorInitBulb((dev))
-    #define GMON_ACTUATOR_DEINIT_FN_BULB()               staActuatorDeinitBulb()
+    #define GMON_ACTUATOR_DEINIT_FN_BULB(dev)            staActuatorDeinitBulb((dev))
     #define GMON_ACTUATOR_TRIG_FN_BULB(dev, evt, sensor) staActuatorTrigBulb((dev), (evt), (sensor))
+    #ifndef GMON_CFG_ACTUATOR_NUM_BULBS
+        #define GMON_CFG_ACTUATOR_NUM_BULBS 0
+    #endif
 #else
     #define GMON_ACTUATOR_INIT_FN_BULB(dev)              GMON_RESP_OK
-    #define GMON_ACTUATOR_DEINIT_FN_BULB()               GMON_RESP_OK
+    #define GMON_ACTUATOR_DEINIT_FN_BULB(dev)            GMON_RESP_OK
     #define GMON_ACTUATOR_TRIG_FN_BULB(dev, evt, sensor) GMON_RESP_OK
+    #define GMON_CFG_ACTUATOR_NUM_BULBS                  0
+#endif
+
+#define GMON_MAXNUM_ACTUATORS_PUMP 8
+#define GMON_MAXNUM_ACTUATORS_FAN  2
+#define GMON_MAXNUM_ACTUATORS_BULB 4
+
+#if (GMON_CFG_ACTUATOR_NUM_PUMPS > GMON_MAXNUM_ACTUATORS_PUMP)
+    #error "GMON_CFG_ACTUATOR_NUM_PUMPS must NOT be greater than GMON_MAXNUM_ACTUATORS_PUMP."
+#endif
+#if (GMON_CFG_ACTUATOR_NUM_FANS > GMON_MAXNUM_ACTUATORS_FAN)
+    #error "GMON_CFG_ACTUATOR_NUM_FANS must NOT be greater than GMON_MAXNUM_ACTUATORS_FAN."
+#endif
+#if (GMON_CFG_ACTUATOR_NUM_BULBS > GMON_MAXNUM_ACTUATORS_BULB)
+    #error "GMON_CFG_ACTUATOR_NUM_BULBS must NOT be greater than GMON_MAXNUM_ACTUATORS_BULB."
 #endif
 
 #ifdef GMON_CFG_ENABLE_DISPLAY
@@ -239,13 +265,6 @@ extern "C" {
     #error "GMON_CFG_ACTUATOR_MIN_RESTTIME_BULB must NOT be greater than 1000 * 60 * 60 * 24 milliseconds."
 #endif
 
-#ifndef GMON_CFG_ACTUATOR_SENSOR_MASK_BULB
-    #define GMON_CFG_ACTUATOR_SENSOR_MASK_BULB 0x0
-#endif
-#if (GMON_CFG_ACTUATOR_SENSOR_MASK_BULB == 0x0)
-    #error "GMON_CFG_ACTUATOR_SENSOR_MASK_BULB should be ranging from 0x1 to 0xff"
-#endif
-
 #ifndef GMON_CFG_ACTUATOR_EMA_LAMBDA_BULB
     #define GMON_CFG_ACTUATOR_EMA_LAMBDA_BULB 55
 #endif
@@ -274,13 +293,6 @@ extern "C" {
     #define GMON_CFG_ACTUATOR_MIN_RESTTIME_PUMP (1500)
 #elif (GMON_CFG_ACTUATOR_MIN_RESTTIME_PUMP > GMON_ACTUATOR_MAX_RESTTIME_PER_DAY)
     #error "GMON_CFG_ACTUATOR_MIN_RESTTIME_PUMP must NOT be greater than 1000 * 60 * 60 * 24 milliseconds."
-#endif
-
-#ifndef GMON_CFG_ACTUATOR_SENSOR_MASK_PUMP
-    #define GMON_CFG_ACTUATOR_SENSOR_MASK_PUMP 0x0
-#endif
-#if (GMON_CFG_ACTUATOR_SENSOR_MASK_PUMP == 0x0)
-    #error "GMON_CFG_ACTUATOR_SENSOR_MASK_PUMP should be ranging from 0x1 to 0xff"
 #endif
 
 #ifndef GMON_CFG_ACTUATOR_EMA_LAMBDA_PUMP
@@ -313,11 +325,14 @@ extern "C" {
     #error "GMON_CFG_ACTUATOR_MIN_RESTTIME_FAN must NOT be greater than 1000 * 60 * 60 * 24 milliseconds."
 #endif
 
-#ifndef GMON_CFG_ACTUATOR_SENSOR_MASK_FAN
-    #define GMON_CFG_ACTUATOR_SENSOR_MASK_FAN 0x0
+#ifndef GMON_CFG_ACTUATOR_INIT_PARAMS_FAN
+    #error "GMON_CFG_ACTUATOR_INIT_PARAMS_FAN should be list of immutable `gMonActuatorConfig_t` instances"
 #endif
-#if (GMON_CFG_ACTUATOR_SENSOR_MASK_FAN == 0x0)
-    #error "GMON_CFG_ACTUATOR_SENSOR_MASK_FAN should be ranging from 0x1 to 0xff"
+#ifndef GMON_CFG_ACTUATOR_INIT_PARAMS_BULB
+    #error "GMON_CFG_ACTUATOR_INIT_PARAMS_BULB should be list of immutable `gMonActuatorConfig_t` instances"
+#endif
+#ifndef GMON_CFG_ACTUATOR_INIT_PARAMS_PUMP
+    #error "GMON_CFG_ACTUATOR_INIT_PARAMS_PUMP should be list of immutable `gMonActuatorConfig_t` instances"
 #endif
 
 #ifndef GMON_CFG_ACTUATOR_EMA_LAMBDA_FAN

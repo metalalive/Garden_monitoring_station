@@ -59,7 +59,7 @@ This project relies on the code repositories below. Clone them to your local fil
 | [`RealTimeOS-Playground`](https://github.com/metalalive/RealTimeOS-Playground) | Latest | Real-time OS for multi-tasking |
 | [`ESP8266_AT_parser`](https://github.com/metalalive/ESP8266_AT_parser) | Latest |ESP8266 Wi-Fi firmware abstraction|
 | [`MQTT_Client`](https://github.com/metalalive/MQTT_Client) | Latest | MQTT client C library for network data exchange |
-| [`jsmn`](https://github.com/zserge/jsmn) | Latest | For parsing serial string to JSON object |
+| [`jsmn`](https://github.com/metalalive/jsmn/tree/feature/custom-token-size) | Latest | For parsing serial string to JSON object |
 | [`Unity`](https://github.com/ThrowTheSwitch/Unity)   | Latest | Optional, for running unit tests |
 
 

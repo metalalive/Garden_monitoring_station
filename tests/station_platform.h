@@ -24,6 +24,14 @@ gMonStatus staPlatformReadLightSensor(gMonSensorMeta_t *, gmonSensorSample_t *ou
 
 gMonStatus staSensorPlatformInitAirTemp(gMonSensorMeta_t *);
 gMonStatus staSensorPlatformDeInitAirTemp(gMonSensorMeta_t *);
+
+gMonStatus staActuatorPlatformInitPump(gMonActuator_t *);
+gMonStatus staActuatorPlatformInitFan(gMonActuator_t *);
+gMonStatus staActuatorPlatformInitBulb(gMonActuator_t *);
+gMonStatus staActuatorPlatformDeInitPump(gMonActuator_t *);
+gMonStatus staActuatorPlatformDeInitFan(gMonActuator_t *);
+gMonStatus staActuatorPlatformDeInitBulb(gMonActuator_t *);
+
 gMonStatus staPlatformMeasurePulse(void *pinstruct, uint8_t *direction, uint16_t *us);
 gMonStatus staPlatformPinSetDirection(void *pinstruct, uint8_t direction);
 gMonStatus staPlatformWritePin(void *pinstruct, uint8_t new_state);

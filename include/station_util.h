@@ -37,6 +37,8 @@ unsigned short staPartitionIntArray(unsigned int *list, unsigned short len);
 
 unsigned int staQuickSelect(unsigned int *list, unsigned short len, unsigned short k);
 
+gMonStatus staQuickSort(unsigned int *list, unsigned short len);
+
 unsigned int staFindMedian(unsigned int *list, unsigned short len);
 
 unsigned int staMedianAbsDeviation(unsigned int median, unsigned int *list, unsigned short len);

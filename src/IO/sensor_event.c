@@ -193,13 +193,13 @@ gMonStatus stationIOdeinit(gardenMonitor_t *gmon) {
     XASSERT(gmon->msgpipe.sensor2net == NULL);
 
     // Deinitialize output devices and sensors
-    status = GMON_ACTUATOR_DEINIT_FN_BULB();
+    status = GMON_ACTUATOR_DEINIT_FN_BULB(&gmon->actuator.bulb);
     if (status < 0)
         goto done;
-    status = GMON_ACTUATOR_DEINIT_FN_FAN();
+    status = GMON_ACTUATOR_DEINIT_FN_FAN(&gmon->actuator.fan);
     if (status < 0)
         goto done;
-    status = GMON_ACTUATOR_DEINIT_FN_PUMP();
+    status = GMON_ACTUATOR_DEINIT_FN_PUMP(&gmon->actuator.pump);
     if (status < 0)
         goto done;
     status = GMON_SENSOR_DEINIT_FN_SOIL_MOIST(&gmon->sensors.soil_moist);

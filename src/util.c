@@ -90,6 +90,21 @@ unsigned int staQuickSelect(unsigned int *list, unsigned short len, unsigned sho
     return list[lo]; // lo == hi
 }
 
+gMonStatus staQuickSort(unsigned int *list, unsigned short len) {
+    if (list == NULL) {
+        return GMON_RESP_ERRARGS;
+    } else if (len < 2) {
+        return GMON_RESP_OK;
+    }
+    unsigned short p = staPartitionIntArray(list, len);
+    // Recursively sort elements before and after partition
+    // left side: list[0...p]
+    staQuickSort(list, p + 1);
+    // right side: list[p+1...len-1]
+    staQuickSort(&list[p + 1], len - (p + 1));
+    return GMON_RESP_OK;
+}
+
 unsigned int staFindMedian(unsigned int *list, unsigned short len) {
     if (list == NULL || len == 0)
         return 0;

@@ -1,84 +1,225 @@
 #include "station_include.h"
 
-// The parameters below are used to store default maximum continuously working time of user's bulb
-// , since the maximum working time of a bulb would be adjust every 24 hours for unstable natural light
-// environment e.g. the plant you grow need 7 hours growing light every day but your garden can only provide 4
-// hours natural
-//      light per day
-// TODO, recheck if It's necessary to use this
-static unsigned int gmon_bulb_max_worktime_default;
-
-gMonStatus staActuatorInitGenericPump(gMonActuator_t *dev) {
-    if (dev == NULL)
+gMonStatus staActuatorGrowSize(gMonActuators_t *ators, unsigned char new_count) {
+    if (ators == NULL || new_count == 0)
         return GMON_RESP_ERRARGS;
-    staSetTrigThresholdPump(dev, (unsigned int)GMON_CFG_ACTUATOR_TRIG_THRESHOLD_PUMP);
-    dev->status = GMON_OUT_DEV_STATUS_OFF;
-    dev->ema.last_aggregated = 0;
-    dev->max_worktime = GMON_CFG_ACTUATOR_MAX_WORKTIME_PUMP;
-    dev->min_resttime = GMON_CFG_ACTUATOR_MIN_RESTTIME_PUMP;
-    // TODO, the fields below should also be able to change through remote network users
-    dev->sensor_id_mask = GMON_CFG_ACTUATOR_SENSOR_MASK_PUMP;
-    dev->ema.lambda_fixp = GMON_CFG_ACTUATOR_EMA_LAMBDA_PUMP;
+    if (ators->count >= new_count)
+        return GMON_RESP_SKIP;
+    gMonActuator_t *new_entries = XREALLOC(ators->entries, new_count * sizeof(gMonActuator_t));
+    if (new_entries == NULL)
+        return GMON_RESP_ERRMEM;
+    XMEMSET(&new_entries[ators->count], 0, (new_count - ators->count) * sizeof(gMonActuator_t));
+    ators->entries = new_entries;
+    ators->count = new_count;
     return GMON_RESP_OK;
 }
 
-gMonStatus staActuatorDeinitGenericPump(void) { return GMON_RESP_OK; }
-
-gMonStatus staActuatorInitGenericFan(gMonActuator_t *dev) {
-    if (dev == NULL)
+gMonStatus
+staActuatorShrinkSize(gMonActuators_t *ators, unsigned char new_count, const gMonActuatorId_t *ids2rm) {
+    if (ators == NULL || ators->entries == NULL || ators->count == 0) {
         return GMON_RESP_ERRARGS;
-    staSetTrigThresholdFan(dev, (unsigned int)GMON_CFG_ACTUATOR_TRIG_THRESHOLD_FAN);
-    dev->status = GMON_OUT_DEV_STATUS_OFF;
-    dev->ema.last_aggregated = 0;
-    dev->max_worktime = GMON_CFG_ACTUATOR_MAX_WORKTIME_FAN;
-    dev->min_resttime = GMON_CFG_ACTUATOR_MIN_RESTTIME_FAN;
-    dev->sensor_id_mask = GMON_CFG_ACTUATOR_SENSOR_MASK_FAN;
-    dev->ema.lambda_fixp = GMON_CFG_ACTUATOR_EMA_LAMBDA_FAN;
+    } else if (new_count > 0 && ids2rm == NULL) {
+        return GMON_RESP_ERRARGS;
+    } else if (ators->count <= new_count) {
+        return GMON_RESP_SKIP;
+    }
+    if (new_count == 0) {
+        XMEMFREE(ators->entries);
+        *ators = (gMonActuators_t){0};
+        return GMON_RESP_OK;
+    }
+    unsigned char idx = 0, num_ids_to_remove = ators->count - new_count;
+    size_t        flg_sz = 0;
+    for (idx = 0; idx < ators->count; ++idx) {
+        if (ators->entries[idx].id == 0)
+            return GMON_RESP_ERR_NOT_SUPPORT;
+    }
+    for (idx = 0; idx < num_ids_to_remove; ++idx) {
+        if (ids2rm[idx] == 0) {
+            return GMON_RESP_ERR_NOT_SUPPORT;
+        } else if (flg_sz < ids2rm[idx]) {
+            flg_sz = ids2rm[idx] + 1;
+        }
+    }
+    // Use a bit flag array to mark IDs that should be removed
+    unsigned char ids_to_remove_flags[flg_sz];
+    XMEMSET(ids_to_remove_flags, 0, flg_sz * sizeof(unsigned char));
+    for (idx = 0; idx < num_ids_to_remove; ++idx) {
+        unsigned short pos = ids2rm[idx] - 1;
+        staSetBitFlag(ids_to_remove_flags, pos, 1);
+    }
+    gMonActuatorId_t write_idx = 0, read_idx = 0;
+    for (read_idx = 0; read_idx < ators->count; ++read_idx) {
+        unsigned short pos = ators->entries[read_idx].id - 1;
+        // If the current actuator's ID is NOT marked for removal
+        if (staGetBitFlag(ids_to_remove_flags, pos) == 0) {
+            if (write_idx != read_idx) {
+                // Avoid self-assignment if element is already in its correct place
+                ators->entries[write_idx] = ators->entries[read_idx];
+            }
+            write_idx++;
+        }
+    }
+    gMonActuator_t *new_entries = XREALLOC(ators->entries, new_count * sizeof(gMonActuator_t));
+    if (new_entries == NULL)
+        return GMON_RESP_ERRMEM;
+    ators->entries = new_entries;
+    ators->count = new_count;
+    return GMON_RESP_OK;
+}
+// Helper to check for duplicates in an ID list
+static gMonStatus staCheckDuplicateIds(gMonActuatorIds_t *ids) {
+    if (ids == NULL || ids->count == 0)
+        return GMON_RESP_OK;
+    // Create a temporary buffer for sorting
+    unsigned int temp[ids->count];
+    for (int i = 0; i < ids->count; i++) {
+        if (ids->id[i] == 0)
+            return GMON_RESP_ERR_NOT_SUPPORT;
+        temp[i] = (unsigned int)ids->id[i];
+    }
+    staQuickSort(temp, ids->count);
+    for (int i = 0; i < ids->count - 1; i++) {
+        if (temp[i] == temp[i + 1])
+            return GMON_RESP_ERR_NOT_SUPPORT;
+    }
     return GMON_RESP_OK;
 }
 
-gMonStatus staActuatorDeinitGenericFan(void) { return GMON_RESP_OK; }
+#define MAX3(a, b, c) (((a) > (b)) ? (((a) > (c)) ? (a) : (c)) : (((b) > (c)) ? (b) : (c)))
+#define MAXNUM_ACTUATORS \
+    MAX3(GMON_MAXNUM_ACTUATORS_PUMP, GMON_MAXNUM_ACTUATORS_FAN, GMON_MAXNUM_ACTUATORS_BULB)
 
-gMonStatus staActuatorInitGenericBulb(gMonActuator_t *dev) {
-    if (dev == NULL)
+gMonStatus
+staActuatorAdjustSize(gMonActuators_t *ators, gMonActuatorIds_t *ids2add, gMonActuatorIds_t *ids2rm) {
+    // 1. Input Validation
+    if (ators == NULL)
         return GMON_RESP_ERRARGS;
-    staSetTrigThresholdBulb(dev, (unsigned int)GMON_CFG_ACTUATOR_TRIG_THRESHOLD_BULB);
-    dev->status = GMON_OUT_DEV_STATUS_OFF;
-    dev->ema.last_aggregated = 0;
-    dev->max_worktime = 0;
-    dev->min_resttime = GMON_CFG_ACTUATOR_MIN_RESTTIME_BULB;
-    dev->sensor_id_mask = GMON_CFG_ACTUATOR_SENSOR_MASK_BULB;
-    dev->ema.lambda_fixp = GMON_CFG_ACTUATOR_EMA_LAMBDA_BULB;
-    // blub device is mapped to light sensor, which is read in about every 10 to 30 minutes
-    gmon_bulb_max_worktime_default = GMON_CFG_ACTUATOR_MAX_WORKTIME_BULB;
+    if (ids2add == NULL && ids2rm == NULL)
+        return GMON_RESP_SKIP;
+    // Check if any ID in ids2rm actually exists in ators
+    if (ids2rm != NULL) {
+        for (int i = 0; i < ids2rm->count; i++) {
+            if (staActuatorFindById(ators, ids2rm->id[i]) == NULL)
+                return GMON_RESP_ERR_NOT_SUPPORT;
+        }
+    }
+    { // maximum allocated space check
+        unsigned char add_cnt = ids2add != NULL ? ids2add->count : 0;
+        unsigned char rm_cnt = ids2rm != NULL ? ids2rm->count : 0;
+        unsigned char tot_cnt = ators->count + add_cnt - rm_cnt;
+        if (add_cnt > MAXNUM_ACTUATORS || rm_cnt > MAXNUM_ACTUATORS || tot_cnt > MAXNUM_ACTUATORS)
+            return GMON_RESP_ERRMEM;
+    }
+    // 2. Validate IDs (0 check and duplicates)
+    if (staCheckDuplicateIds(ids2add) != GMON_RESP_OK)
+        return GMON_RESP_ERR_NOT_SUPPORT;
+    if (staCheckDuplicateIds(ids2rm) != GMON_RESP_OK)
+        return GMON_RESP_ERR_NOT_SUPPORT;
+    {
+        gMonActuatorId_t  ids[ators->count];
+        gMonActuatorIds_t ids_curr = {.count = ators->count, .id = ids};
+        for (int i = 0; i < ators->count; i++)
+            ids_curr.id[i] = ators->entries[i].id;
+        if (staCheckDuplicateIds(&ids_curr) != GMON_RESP_OK)
+            return GMON_RESP_ERR_NOT_SUPPORT;
+    }
+
+    // 3. Reuse Logic
+    unsigned char add_idx = 0, rm_idx = 0;
+    if (ids2add != NULL && ids2rm != NULL) {
+        while (add_idx < ids2add->count && rm_idx < ids2rm->count) {
+            gMonActuator_t *target = staActuatorFindById(ators, ids2rm->id[rm_idx]);
+            if (target) {
+                staActuatorGenericInit(target, ids2add->id[add_idx], 0); // Assuming 0 or default lambda
+                add_idx++;
+                rm_idx++;
+            }
+        }
+    }
+
+    // 4. Handle remaining operations
+    // If we still have items to add, grow the array
+    if (ids2add != NULL && add_idx < ids2add->count) {
+        unsigned char remaining = ids2add->count - add_idx;
+        unsigned char old_count = ators->count;
+        gMonStatus    s = staActuatorGrowSize(ators, old_count + remaining);
+        if (s != GMON_RESP_OK)
+            return s;
+        for (int i = 0; i < remaining; i++)
+            staActuatorGenericInit(&ators->entries[old_count + i], ids2add->id[add_idx + i], 0);
+    }
+    // If we still have items to remove, shrink the array
+    if (ids2rm != NULL && rm_idx < ids2rm->count) {
+        unsigned char    remaining_count = ids2rm->count - rm_idx;
+        gMonActuatorId_t remaining_ids[remaining_count];
+        for (int i = 0; i < remaining_count; i++)
+            remaining_ids[i] = ids2rm->id[rm_idx + i];
+        return staActuatorShrinkSize(ators, ators->count - remaining_count, remaining_ids);
+    }
+    return GMON_RESP_OK;
+}
+#undef MAX3
+#undef MAXNUM_ACTUATORS
+
+gMonStatus staActuatorGenericInit(gMonActuator_t *ator, gMonActuatorId_t id, unsigned char ema_lambda_fixpt) {
+    if (ator == NULL || id == 0)
+        return GMON_RESP_ERRARGS;
+    ator->lowlvl = NULL;
+    ator->status = GMON_OUT_DEV_STATUS_OFF;
+    ator->ema.last_aggregated = 0;
+    ator->ema.lambda_fixp = ema_lambda_fixpt;
+    ator->id = id;
     return GMON_RESP_OK;
 }
 
-gMonStatus staActuatorDeinitGenericBulb(void) { return GMON_RESP_OK; }
+gMonStatus staActuatorUpdateParam(
+    gMonActuatorParam_t *old_param, const gMonActuatorParam_t *new_param,
+    gMonStatus (*set_threshold_fn)(gMonActuatorParam_t *, unsigned int)
+) {
+    if (old_param == NULL || set_threshold_fn == NULL || new_param == NULL)
+        return GMON_RESP_ERRARGS;
+    set_threshold_fn(old_param, (unsigned int)new_param->threshold);
+    old_param->max_worktime = new_param->max_worktime;
+    old_param->min_resttime = new_param->min_resttime;
+    // TODO, runtime configurable through remote network users
+    old_param->sensor_id_mask = new_param->sensor_id_mask;
+    return GMON_RESP_OK;
+}
 
-gMonStatus staSetTrigThresholdPump(gMonActuator_t *dev, unsigned int new_val) {
-    if (dev == NULL)
+gMonActuator_t *staActuatorFindById(gMonActuators_t *ators, gMonActuatorId_t id) {
+    gMonActuator_t *out = NULL;
+    if (ators != NULL && id > 0) {
+        for (unsigned char idx = 0; (out == NULL) && (idx < ators->count); idx++) {
+            if (ators->entries[idx].id == id) {
+                out = &ators->entries[idx];
+            }
+        }
+    }
+    return out;
+}
+
+gMonStatus staSetTrigThresholdPump(gMonActuatorParam_t *param, unsigned int new_val) {
+    if (param == NULL)
         return GMON_RESP_ERRARGS;
     return staSetUintInRange(
-        (unsigned int *)&dev->threshold, new_val, (unsigned int)GMON_MAX_ACTUATOR_TRIG_THRESHOLD_PUMP,
+        (unsigned int *)&param->threshold, new_val, (unsigned int)GMON_MAX_ACTUATOR_TRIG_THRESHOLD_PUMP,
         (unsigned int)GMON_MIN_ACTUATOR_TRIG_THRESHOLD_PUMP
     );
 }
-
-gMonStatus staSetTrigThresholdFan(gMonActuator_t *dev, unsigned int new_val) {
-    if (dev == NULL)
+gMonStatus staSetTrigThresholdFan(gMonActuatorParam_t *param, unsigned int new_val) {
+    if (param == NULL)
         return GMON_RESP_ERRARGS;
     return staSetUintInRange(
-        (unsigned int *)&dev->threshold, new_val, (unsigned int)GMON_MAX_ACTUATOR_TRIG_THRESHOLD_FAN,
+        (unsigned int *)&param->threshold, new_val, (unsigned int)GMON_MAX_ACTUATOR_TRIG_THRESHOLD_FAN,
         (unsigned int)GMON_MIN_ACTUATOR_TRIG_THRESHOLD_FAN
     );
 }
-
-gMonStatus staSetTrigThresholdBulb(gMonActuator_t *dev, unsigned int new_val) {
-    if (dev == NULL)
+gMonStatus staSetTrigThresholdBulb(gMonActuatorParam_t *param, unsigned int new_val) {
+    if (param == NULL)
         return GMON_RESP_ERRARGS;
     return staSetUintInRange(
-        (unsigned int *)&dev->threshold, new_val, (unsigned int)GMON_MAX_ACTUATOR_TRIG_THRESHOLD_BULB,
+        (unsigned int *)&param->threshold, new_val, (unsigned int)GMON_MAX_ACTUATOR_TRIG_THRESHOLD_BULB,
         (unsigned int)GMON_MIN_ACTUATOR_TRIG_THRESHOLD_BULB
     );
 }
@@ -86,7 +227,7 @@ gMonStatus staSetTrigThresholdBulb(gMonActuator_t *dev, unsigned int new_val) {
 gMonStatus staActuatorAggregateU32(gmonEvent_t *evt, gMonActuator_t *dev, int *value) {
     if (evt == NULL || dev == NULL || value == NULL)
         return GMON_RESP_ERRARGS;
-    if (evt->num_active_sensors == 0x0 || dev->sensor_id_mask == 0x0)
+    if (evt->num_active_sensors == 0x0 || dev->param.sensor_id_mask == 0x0)
         return GMON_RESP_MALFORMED_DATA;
 
     unsigned int *event_data_u32 = (unsigned int *)evt->data;
@@ -94,7 +235,8 @@ gMonStatus staActuatorAggregateU32(gmonEvent_t *evt, gMonActuator_t *dev, int *v
     for (unsigned char i = 0; i < evt->num_active_sensors; i++) {
         // Aggregate data if the sensor is relevant to the actuator (mask bit set)
         // and its data is not marked as corrupted (corruption flag clear).
-        if (staGetBitFlag(&dev->sensor_id_mask, i) && !staGetBitFlag(&evt->flgs.corruption, i)) {
+        unsigned char idmsk = dev->param.sensor_id_mask;
+        if (staGetBitFlag(&idmsk, i) && !staGetBitFlag(&evt->flgs.corruption, i)) {
             sum += event_data_u32[i];
             count++;
         }
@@ -118,7 +260,7 @@ gMonStatus staActuatorAggregateU32(gmonEvent_t *evt, gMonActuator_t *dev, int *v
 gMonStatus staActuatorAggregateAirCond(gmonEvent_t *evt, gMonActuator_t *dev, int *value) {
     if (evt == NULL || dev == NULL || value == NULL)
         return GMON_RESP_ERRARGS;
-    if (evt->num_active_sensors == 0x0 || dev->sensor_id_mask == 0x0)
+    if (evt->num_active_sensors == 0x0 || dev->param.sensor_id_mask == 0x0)
         return GMON_RESP_MALFORMED_DATA;
 
     gmonAirCond_t *event_data_ac = (gmonAirCond_t *)evt->data;
@@ -128,7 +270,8 @@ gMonStatus staActuatorAggregateAirCond(gmonEvent_t *evt, gMonActuator_t *dev, in
     for (i = 0, count = 0; i < evt->num_active_sensors; i++) {
         // Aggregate data if the sensor is relevant to the actuator (mask bit set)
         // and its data is not marked as corrupted (corruption flag clear).
-        if (staGetBitFlag(&dev->sensor_id_mask, i) && !staGetBitFlag(&evt->flgs.corruption, i)) {
+        unsigned char idmsk = dev->param.sensor_id_mask;
+        if (staGetBitFlag(&idmsk, i) && !staGetBitFlag(&evt->flgs.corruption, i)) {
             sum.temporature += event_data_ac[i].temporature;
             sum.humidity += event_data_ac[i].humidity;
             count++;
@@ -163,14 +306,17 @@ gMonStatus staPauseWorkingActuators(gardenMonitor_t *gmon) {
     if (gmon == NULL)
         return GMON_RESP_ERRARGS;
     // pause the actuators which require precise control
-    gMonActuator_t *dev = &gmon->actuator.pump;
-    if (dev->status == GMON_OUT_DEV_STATUS_ON) {
-        dev->curr_worktime = dev->max_worktime;
-        // For pausing, we simply set the status and do not trigger the actuator with a sensor value.
-        // The intention of this block is to force a PAUSE state, not to actually trigger the pump.
-        // If a trigger based on a sensor is needed here, the sensor object needs to be passed.
-        // Manually set to PAUSE for this specific function's logic
-        dev->status = GMON_OUT_DEV_STATUS_PAUSE;
+    gMonActuators_t *ators = &gmon->actuator.pump;
+    for (unsigned char idx = 0; idx < ators->count; idx++) {
+        gMonActuator_t *ator = &ators->entries[idx];
+        if (ator->status == GMON_OUT_DEV_STATUS_ON) {
+            ator->curr_worktime = ator->param.max_worktime;
+            // For pausing, we simply set the status and do not trigger the actuator with a sensor value.
+            // The intention of this block is to force a PAUSE state, not to actually trigger the pump.
+            // If a trigger based on a sensor is needed here, the sensor object needs to be passed.
+            // Manually set to PAUSE for this specific function's logic
+            ator->status = GMON_OUT_DEV_STATUS_PAUSE;
+        }
     }
     return GMON_RESP_OK;
 }
@@ -195,7 +341,7 @@ gMonActuatorStatus staActuatorMeasureWorkingTime(gMonActuator_t *dev, unsigned i
     gMonActuatorStatus next_status = GMON_OUT_DEV_STATUS_OFF;
     switch (dev->status) {
     case GMON_OUT_DEV_STATUS_OFF:
-        if (dev->max_worktime > 0) {
+        if (dev->param.max_worktime > 0) {
             next_status = GMON_OUT_DEV_STATUS_ON;
             dev->curr_worktime = time_elapsed_ms;
             dev->curr_resttime = 0;
@@ -203,7 +349,7 @@ gMonActuatorStatus staActuatorMeasureWorkingTime(gMonActuator_t *dev, unsigned i
         break;
     case GMON_OUT_DEV_STATUS_ON:
         dev->curr_worktime += time_elapsed_ms;
-        if (dev->curr_worktime >= dev->max_worktime) {
+        if (dev->curr_worktime >= dev->param.max_worktime) {
             dev->curr_worktime = 0;
             next_status = GMON_OUT_DEV_STATUS_PAUSE;
         } else {
@@ -212,7 +358,7 @@ gMonActuatorStatus staActuatorMeasureWorkingTime(gMonActuator_t *dev, unsigned i
         break;
     case GMON_OUT_DEV_STATUS_PAUSE:
         dev->curr_resttime += time_elapsed_ms;
-        if (dev->curr_resttime >= dev->min_resttime) {
+        if (dev->curr_resttime >= dev->param.min_resttime) {
             dev->curr_resttime = 0;
             next_status = GMON_OUT_DEV_STATUS_ON;
         } else {

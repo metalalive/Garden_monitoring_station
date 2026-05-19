@@ -143,37 +143,73 @@ typedef struct {
     } fast_poll;
 } gMonSoilSensorMeta_t;
 
+// - valid identity started from one , they can be mapped to zero-indexed array
+//   for any search work
+// - low-level platforms should bind each identity to specific output pin
+// - application users can swtich between the platform-specific pins by activating
+//   and deactivating the high-level actuator identities.
+typedef unsigned char gMonActuatorId_t;
+
 typedef struct {
-    void *lowlvl;
+    gMonActuatorId_t *id;
+    unsigned char     count;
+} gMonActuatorIds_t;
+
+// runtime configurable parameters for actuator
+#pragma pack(push, 4)
+typedef struct {
     // ---- TODO, shorten data size on some fields ----
+    // threshold that turns ON / OFF low-level device
+    int threshold;
     // maximum time in milliseconds for a device that has been
     // continuously working in one day, maximum value MUST NOT
     // be greater than 1000 * 60 * 60 * 24 = 0x5265c00
-    unsigned int max_worktime;
-    // current working time since this device is turned on last time
-    unsigned int curr_worktime;
+    unsigned int max_worktime : 28;
     // minimum time in milliseconds to pause a device after it continuously
     // worked overtime but still needs to work longer to change
     // environment condition e.g. temperature drop, provide more growing
     // light...etc.
     // Again the maximum value MUST NOT be greater than 1000 * 60 * 60 * 24 = 0x5265c00
-    unsigned int min_resttime;
-    unsigned int curr_resttime;
-    // threshold that turns ON / OFF low-level device
-    int threshold;
-    // low-level device status
-    gMonActuatorStatus status : 8;
+    unsigned int min_resttime : 28;
     // Bitmask to select specific sensor IDs (pointed by `gmonSensorSample_t.id`)
-    unsigned char sensor_id_mask;
+    // TODO, redesign this if actuator requires to reference several types of
+    // sensors in future.
+    unsigned char sensor_id_mask : 8;
+} gMonActuatorParam_t;
+#pragma pack(pop)
+
+typedef struct {
+    gMonActuatorParam_t param;
+    gMonActuatorId_t    id;
+} gMonActuatorConfig_t;
+
+typedef struct {
+    void *lowlvl;
+    // current working time since this device is turned on last time
+    unsigned int curr_worktime;
+    unsigned int curr_resttime;
+    // runtime configurable parameters
+    gMonActuatorParam_t param;
     // EMA (Exponential Moving Average) is applied to event data aggregation, where
     // the outcome will be compared with pre-defined threshold field above.
     struct {
-        // weight in fixed-point representation (fixed scaling factor = 2)
-        unsigned char lambda_fixp;
         // last aggregated event data which compares with the threshold
         int last_aggregated;
+#pragma pack(push, 1)
+        // weight in fixed-point representation (fixed scaling factor = 2)
+        unsigned char lambda_fixp;
     } ema;
+    // identity low-level platform can bind to
+    gMonActuatorId_t id;
+    // low-level device status
+    gMonActuatorStatus status : 4;
+#pragma pack(pop)
 } gMonActuator_t;
+
+typedef struct {
+    gMonActuator_t *entries;
+    unsigned char   count;
+} gMonActuators_t;
 
 typedef struct {
     unsigned int ticks_per_day;

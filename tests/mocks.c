@@ -61,26 +61,35 @@ gMonStatus UTestSysMsgBoxPut(stationSysMsgbox_t msgbuf, void *msg, uint32_t bloc
     return GMON_RESP_OK;
 }
 
-gMonStatus staActuatorInitPump(gMonActuator_t *dev) {
-    (void)dev;
+gMonStatus staActuatorInitPump(gMonActuators_t *ators) {
+    (void)ators;
     return GMON_RESP_OK;
 }
-gMonStatus staActuatorDeinitPump(void) { return GMON_RESP_OK; }
-
-gMonStatus staActuatorInitFan(gMonActuator_t *dev) {
-    (void)dev;
+gMonStatus staActuatorDeinitPump(gMonActuators_t *ators) {
+    (void)ators;
     return GMON_RESP_OK;
 }
-gMonStatus staActuatorDeinitFan(void) { return GMON_RESP_OK; }
-
-gMonStatus staActuatorInitBulb(gMonActuator_t *dev) {
-    (void)dev;
+gMonStatus staActuatorInitFan(gMonActuators_t *ators) {
+    (void)ators;
     return GMON_RESP_OK;
 }
-gMonStatus staActuatorDeinitBulb(void) { return GMON_RESP_OK; }
+gMonStatus staActuatorDeinitFan(gMonActuators_t *ators) {
+    (void)ators;
+    return GMON_RESP_OK;
+}
+gMonStatus staActuatorInitBulb(gMonActuators_t *ators) {
+    (void)ators;
+    return GMON_RESP_OK;
+}
+gMonStatus staActuatorDeinitBulb(gMonActuators_t *ators) {
+    (void)ators;
+    return GMON_RESP_OK;
+}
 
-gMonStatus staTurnOffActuator(gMonActuator_t *ac) {
-    ac->status = GMON_OUT_DEV_STATUS_OFF;
+gMonStatus staTurnOffActuator(gMonActuators_t *ac) {
+    for (unsigned char idx = 0; idx < ac->count; idx++) {
+        ac->entries[idx].status = GMON_OUT_DEV_STATUS_OFF;
+    }
     return GMON_RESP_OK;
 }
 
@@ -147,6 +156,31 @@ gMonStatus staSensorPlatformInitAirTemp(gMonSensorMeta_t *s) {
 }
 gMonStatus staSensorPlatformDeInitAirTemp(gMonSensorMeta_t *s) {
     (void)s;
+    return GMON_RESP_OK;
+}
+
+gMonStatus staActuatorPlatformInitPump(gMonActuator_t *ator) {
+    (void)ator;
+    return GMON_RESP_OK;
+}
+gMonStatus staActuatorPlatformInitFan(gMonActuator_t *ator) {
+    (void)ator;
+    return GMON_RESP_OK;
+}
+gMonStatus staActuatorPlatformInitBulb(gMonActuator_t *ator) {
+    (void)ator;
+    return GMON_RESP_OK;
+}
+gMonStatus staActuatorPlatformDeInitPump(gMonActuator_t *ator) {
+    (void)ator;
+    return GMON_RESP_OK;
+}
+gMonStatus staActuatorPlatformDeInitFan(gMonActuator_t *ator) {
+    (void)ator;
+    return GMON_RESP_OK;
+}
+gMonStatus staActuatorPlatformDeInitBulb(gMonActuator_t *ator) {
+    (void)ator;
     return GMON_RESP_OK;
 }
 gMonStatus staPlatformMeasurePulse(void *pinstruct, uint8_t *direction, uint16_t *us) {
